@@ -6,6 +6,14 @@ Checks do not interrupt playback. Successful results, including an empty release
 
 These are in-app notices while Riff is open, not background push notifications. Installation is performed on Windows: quit Riff from its tray menu, extract the release ZIP into a new folder, and run the new executable. Decks, clips, and pairing remain in the Windows user's existing Riff data folder.
 
+## Reading what’s new
+
+Open **Settings → Companion updates → What’s new** to read the latest companion release’s `CHANGELOG.md` inside Riff. The app downloads the uploaded release asset, rather than reading the repository’s working copy. MarkdownUI 2.4.1 renders GitHub-flavored Markdown with headings, emphasis, nested lists, links, code blocks, block quotes, tables, and task lists. The reader matches the app’s colors and scales text with the iPad’s text-size setting. HTML comments such as the generated-file notice are hidden in the display; the downloaded Markdown remains unchanged.
+
+A saved copy is available offline for the same release and asset. The cache includes the release tag, asset ID, update timestamp, and size, so a replaced asset or new release cannot display another version’s notes. Refresh is available in the reader. Failed refreshes keep a saved copy with an explanatory message. Missing assets and unreadable files show an error and a link to the release page; update detection and playback remain available. Downloads are limited to 1 MiB and must contain UTF-8 text.
+
+The dependency versions are pinned in the Xcode project and `Package.resolved`. License notices for MarkdownUI, NetworkImage, and cmark-gfm are bundled in the app and readable under **Settings → Open-source licenses**.
+
 ## Release integration
 
 The workflow is maintained separately. The application recognizes its current conventions:
@@ -22,7 +30,7 @@ The GitHub client uses a separate, unauthenticated HTTPS session. It sends no pa
 
 ## Verification
 
-- 36 Swift tests passed, including numeric and prerelease ordering, unknown installed versions, versioned Windows assets, independent iPad releases, incomplete uploads, paginated histories, GitHub errors, persistent caching, retry timing, concurrent checks, and older snapshot decoding.
+- 44 Swift tests passed, including numeric and prerelease ordering, unknown installed versions, versioned Windows assets, independent iPad releases, incomplete uploads, paginated histories, GitHub errors, persistent caching, retry timing, concurrent checks, older snapshot decoding, changelog asset selection, unchanged Markdown content, comment display, size/encoding limits, offline caching, replaced assets, and out-of-order changelog requests.
 - 25 Windows core tests passed. The companion and Windows HTTPS integration-test project compiled with zero warnings/errors. The integration assertion checks that `/api/state` reports the running assembly version; execution of that test still requires Windows.
-- iPad simulator and unsigned device Release builds passed. The simulator's update screen queried the real public GitHub API and displayed the empty-release state. No release had been published at the time of the check. Update-available decisions were tested with fixtures, not represented as a real connected PC.
+- iPad simulator and unsigned device Release builds passed. The simulator initially verified the empty-release state. After `companion-v0.1.0` was published, it downloaded the actual 582-byte `CHANGELOG.md`; the cached contents matched the published asset byte for byte. The real notes and a separate Markdown formatting sample were visually inspected in the simulator. Update-available decisions were tested with fixtures, not represented as a real connected PC.
 - Physical follow-up: connect an older companion, publish a newer stable release with its Windows ZIP, manually check, open/share the release link, update Windows, and confirm the notice disappears after the PC reconnects. Also check loss of internet while local soundboard playback continues.
