@@ -36,9 +36,13 @@ public sealed class MainForm : Form
         layout.RowStyles.Add(new(SizeType.Absolute, 88)); layout.RowStyles.Add(new(SizeType.Percent, 100)); layout.RowStyles.Add(new(SizeType.Absolute, 46));
         var header = new FlowLayoutPanel { Dock = DockStyle.Fill };
         header.Controls.Add(new Label { Text = "riff", Font = new("Segoe UI", 32, FontStyle.Bold), ForeColor = Accent, AutoSize = true });
-        header.Controls.Add(new Label { Text = "YOUR IPAD. YOUR CONTROL ROOM.\nWindows companion", AutoSize = true, ForeColor = Color.Silver, Margin = new(24, 17, 0, 0) });
+        header.Controls.Add(new Label { Text = "Sounds, shortcuts, and a little personality.\nWindows companion", AutoSize = true, ForeColor = Color.Silver, Margin = new(24, 17, 0, 0) });
         var tabs = new TabControl { Dock = DockStyle.Fill, Padding = new(22, 10) };
         tabs.TabPages.Add(PairPage()); tabs.TabPages.Add(ControlsPage()); tabs.TabPages.Add(AudioPage()); tabs.TabPages.Add(AppsPage());
+        var updates = new CompanionUpdatesView();
+        var updatesTab = new TabPage("Updates") { BackColor = PanelColor }; updatesTab.Controls.Add(updates); tabs.TabPages.Add(updatesTab);
+        updates.UpdateAvailable += available => updatesTab.Text = available ? "Updates · New" : "Updates";
+        Shown += async (_, _) => await updates.Check();
         var activity = new TabPage("Activity") { BackColor = PanelColor, Padding = new(18) }; activity.Controls.Add(log); tabs.TabPages.Add(activity);
         layout.Controls.Add(header, 0, 0); layout.Controls.Add(tabs, 0, 1);
         var footer = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new(0, 12, 0, 0) }; footer.Controls.Add(status); layout.Controls.Add(footer, 0, 2); Controls.Add(layout);

@@ -11,6 +11,7 @@
     <ProjectReference Include="../Riff.Core/Riff.Core.csproj" />
     <PackageReference Include="QRCoder" Version="1.6.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
+    <Content Include="Markdig-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../Shared/Sounds/*.wav" Link="Sounds/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
