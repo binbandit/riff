@@ -70,6 +70,8 @@ struct Snapshot: Codable {
     var activeGameName: String
     var capabilities: [String]? = nil
     var companionVersion: String? = nil
+    var soundboardOnly: Bool? = nil
+    func blocksDesktopAction(_ pad: Pad) -> Bool { soundboardOnly == true && pad.kind != "sound" }
     func decksSaving(_ pad: Pad, in deckId: String) throws -> [Deck] {
         var result = decks
         guard let target = result.firstIndex(where: { $0.id == deckId }) else { throw RiffError.message("This deck no longer exists.") }

@@ -36,6 +36,20 @@ enum DesignPreview {
         default: nil
         }
     }
+    @MainActor static func configurePages(_ store: RiffStore) {
+        guard !store.paired else { return }
+        var deck = Snapshot.starter.decks[0]
+        deck.name = "Page preview"
+        deck.pads = (0..<3).flatMap { page in
+            Snapshot.starter.decks[0].pads.map { pad in
+                var copy = pad
+                copy.id = "page-\(page)-\(pad.id)"
+                return copy
+            }
+        }
+        store.snapshot.decks[0] = deck
+        store.selectedDeckId = deck.id
+    }
     @MainActor static func checkPlayback(_ store: RiffStore) async {
         guard !store.paired else { return }
         let originalMode = store.soundMode

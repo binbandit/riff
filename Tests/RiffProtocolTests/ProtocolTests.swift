@@ -53,4 +53,19 @@ import Testing
         let clipIds = Set(state.clips.map(\.id))
         #expect(state.decks.flatMap(\.pads).filter { $0.kind == "sound" }.allSatisfy { clipIds.contains($0.value) })
     }
+    @Test func soundboardModeDecodesAndBlocksEveryDesktopAction() throws {
+        var state = Snapshot.starter
+        state.soundboardOnly = true
+        let decoded = try JSONDecoder().decode(Snapshot.self, from: JSONEncoder().encode(state))
+        #expect(decoded.soundboardOnly == true)
+        #expect(!decoded.blocksDesktopAction(Pad(kind: "sound")))
+        for kind in ["hotkey", "text", "media", "app", "url", "macro", "unknown"] {
+            #expect(decoded.blocksDesktopAction(Pad(kind: kind)))
+        }
+        let old = try JSONDecoder().decode(Snapshot.self, from: JSONEncoder().encode(Snapshot.starter))
+        #expect(old.soundboardOnly == nil)
+        #expect(!old.blocksDesktopAction(Pad(kind: "hotkey")))
+        state.soundboardOnly = false
+        #expect(!state.blocksDesktopAction(Pad(kind: "hotkey")))
+    }
 }

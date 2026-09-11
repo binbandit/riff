@@ -25,4 +25,38 @@ import Testing
         let bounds = GridPreferences(columns: -1, rows: 100).dimensions(portrait: true)
         #expect(bounds.columns == 1 && bounds.rows == 6)
     }
+
+    @Test func playModeMakesRoomWithoutChangingPages() {
+        let size = CGSize(width: 1194, height: 750)
+        let preferences = GridPreferences(columns: 3, rows: 2)
+        let regular = BoardLayout(size: size, preferences: preferences)
+        let playing = BoardLayout(size: size, preferences: preferences, playMode: true)
+        #expect(playing.padHeight > regular.padHeight)
+        #expect(playing.capacity == regular.capacity)
+        #expect(playing.columns == regular.columns)
+        #expect(playing.gridWidth == regular.gridWidth)
+        let small = BoardLayout(size: CGSize(width: 320, height: 480), preferences: GridPreferences(columns: 6, rows: 6), playMode: true)
+        #expect(small.capacity == 36 && small.padHeight >= 110)
+    }
+
+    @Test func remembersEachDeckAndKeepsSoundsVisibleWhenGridChanges() {
+        var memory = DeckPageMemory()
+        memory.select(2, deckID: "pilot", capacity: 6, padCount: 24)
+        memory.select(1, deckID: "memes", capacity: 4, padCount: 12)
+        #expect(memory.page(deckID: "pilot", capacity: 6, padCount: 24) == 2)
+        #expect(memory.page(deckID: "memes", capacity: 4, padCount: 12) == 1)
+        #expect(memory.page(deckID: "pilot", capacity: 4, padCount: 24) == 3)
+        #expect(memory.page(deckID: "new", capacity: 6, padCount: 24) == 0)
+    }
+
+    @Test func clampsPagesAfterRemovalAndForEmptyDecks() {
+        var memory = DeckPageMemory()
+        memory.select(7, deckID: "pilot", capacity: 6, padCount: 48)
+        #expect(memory.page(deckID: "pilot", capacity: 6, padCount: 7) == 1)
+        #expect(memory.page(deckID: "pilot", capacity: 6, padCount: 0) == 0)
+        memory.select(-1, deckID: "pilot", capacity: 6, padCount: 48)
+        #expect(memory.page(deckID: "pilot", capacity: 6, padCount: 48) == 0)
+        memory.select(100, deckID: "pilot", capacity: 6, padCount: 13)
+        #expect(memory.page(deckID: "pilot", capacity: 6, padCount: 13) == 2)
+    }
 }

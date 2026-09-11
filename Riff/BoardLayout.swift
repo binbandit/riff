@@ -1,5 +1,22 @@
 import Foundation
 
+// Remember the first button's position so grid changes keep the same sounds in view.
+struct DeckPageMemory {
+    private var firstButtons: [String: Int] = [:]
+
+    func page(deckID: String, capacity: Int, padCount: Int) -> Int {
+        let capacity = max(1, capacity)
+        let lastPage = max(0, padCount - 1) / capacity
+        return min(lastPage, (firstButtons[deckID] ?? 0) / capacity)
+    }
+
+    mutating func select(_ page: Int, deckID: String, capacity: Int, padCount: Int) {
+        let capacity = max(1, capacity)
+        let lastPage = max(0, padCount - 1) / capacity
+        firstButtons[deckID] = min(lastPage, max(0, page)) * capacity
+    }
+}
+
 struct GridPreferences: Codable, Equatable {
     var columns = 0
     var rows = 0
@@ -18,7 +35,7 @@ struct BoardLayout {
     let margin: CGFloat
     let gap: CGFloat
 
-    init(size: CGSize, preferences: GridPreferences) {
+    init(size: CGSize, preferences: GridPreferences, playMode: Bool = false) {
         let portrait = size.height > size.width
         let dimensions = preferences.dimensions(portrait: portrait)
         columns = dimensions.columns
@@ -28,7 +45,8 @@ struct BoardLayout {
         // Keep custom grids usable in small windows by allowing scrolling.
         gridWidth = max(size.width - margin * 2, CGFloat(columns) * 110 + gap * CGFloat(columns - 1))
         let width = (gridWidth - gap * CGFloat(columns - 1)) / CGFloat(columns)
-        let height = (size.height - 264 - gap * CGFloat(dimensions.rows - 1)) / CGFloat(dimensions.rows)
+        let chromeHeight: CGFloat = playMode ? 168 : 264
+        let height = (size.height - chromeHeight - gap * CGFloat(dimensions.rows - 1)) / CGFloat(dimensions.rows)
         padHeight = max(110, min(width * 0.96, height))
     }
 }
