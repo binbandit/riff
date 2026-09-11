@@ -77,14 +77,19 @@ import Observation
     private var refreshRunning = false
     private var epoch = 0
     private var cachedData: Data?
+    private let snapshotCacheURL: URL
     var selectedDeck: Deck? { snapshot.decks.first { $0.id == selectedDeckId } }
     var paired: Bool { client != nil }
     var outputName: String { snapshot.outputs.first { $0.id == snapshot.outputId }?.name ?? "PC default output" }
     var cableSelected: Bool { outputName.localizedCaseInsensitiveContains("cable") || outputName.localizedCaseInsensitiveContains("voicemeeter") }
 
-    init() {
-        if let data = try? Data(contentsOf: Self.cacheURL), let saved = try? JSONDecoder().decode(Snapshot.self, from: data) { snapshot = saved; cachedData = data }
-        if let pairing = PairingVault.load() { client = CompanionClient(pairing: pairing) }
+    convenience init() { self.init(cacheURL: Self.cacheURL, pairing: PairingVault.load()) }
+
+    init(cacheURL: URL, pairing: Pairing?) {
+        snapshotCacheURL = cacheURL
+        if let data = try? Data(contentsOf: cacheURL), let saved = try? JSONDecoder().decode(Snapshot.self, from: data) { snapshot = saved; cachedData = data }
+        if selectedDeck == nil { selectedDeckId = snapshot.decks.first?.id ?? "" }
+        if let pairing { client = CompanionClient(pairing: pairing) }
     }
     static var cacheURL: URL { URL.applicationSupportDirectory.appendingPathComponent("snapshot.json") }
     func message(_ text: String) {
@@ -130,10 +135,10 @@ import Observation
         }
         if !editing && !interacting { lastGame = state.activeGameId }
         do {
-            try FileManager.default.createDirectory(at: Self.cacheURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: snapshotCacheURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
             let data = try encoder.encode(state)
-            if data != cachedData { try data.write(to: Self.cacheURL, options: .atomic); cachedData = data }
+            if data != cachedData { try data.write(to: snapshotCacheURL, options: .atomic); cachedData = data }
         } catch { /* Cache is optional; the companion remains authoritative. */ }
     }
     func trigger(_ pad: Pad) async {
@@ -142,8 +147,10 @@ import Observation
                 error = "Connect your PC to use this action."; return
             }
             do {
+#if os(iOS)
                 try AVAudioSession.sharedInstance().setCategory(.playback)
                 try AVAudioSession.sharedInstance().setActive(true)
+#endif
                 players = players.filter { $0.value.isPlaying }
                 if let playing = players.removeValue(forKey: pad.id) {
                     playing.stop(); playingPadIDs = Set(players.keys)
@@ -218,14 +225,32 @@ import Observation
     }
     func upload(_ url: URL, name: String) async throws -> Clip {
         guard let client, connected else { throw RiffError.message("Connect your PC before adding sounds.") }
+        guard !busy else { throw RiffError.message("Wait for the current change to finish.") }
         if let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > 20 * 1024 * 1024 {
             throw RiffError.message("Choose a sound smaller than 20 MB.")
         }
         let data = try Data(contentsOf: url)
         guard data.count <= 20 * 1024 * 1024 else { throw RiffError.message("Choose a sound smaller than 20 MB.") }
+        busy = true; epoch += 1
+        let generation = epoch
+        defer { busy = false }
         var query = URLComponents(); query.queryItems = [URLQueryItem(name: "name", value: name), URLQueryItem(name: "ext", value: url.pathExtension.lowercased())]
         let clip: Clip = try await client.request("/api/clips?\(query.percentEncodedQuery ?? "")", method: "POST", body: data, contentType: "application/octet-stream")
-        await refresh(); return clip
+        guard generation == epoch else { throw RiffError.message("The PC connection changed while saving. Reconnect and check Sounds for your clip.") }
+        do {
+            // An older poll may still be in flight. Fetch the post-upload version directly.
+            let state: Snapshot = try await client.request("/api/state")
+            guard generation == epoch else { throw CancellationError() }
+            apply(state)
+        } catch {
+            guard generation == epoch else { throw RiffError.message("The PC connection changed. Reconnect and check Sounds for your saved clip.") }
+            // The upload succeeded. Keep its result instead of asking the user to upload twice.
+            if !snapshot.clips.contains(where: { $0.id == clip.id }) { snapshot.clips.append(clip) }
+            connected = false
+            connectionIssue = "Your sound was saved on the PC. Reconnect to finish adding its button."
+            message("Sound saved on PC. Reconnecting…")
+        }
+        return clip
     }
     func deleteClip(_ clip: Clip) async {
         guard let client, connected else { return }

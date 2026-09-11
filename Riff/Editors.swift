@@ -62,12 +62,13 @@ struct PadEditor: View {
                     Section { Button("Delete button", role: .destructive) { confirmDelete = true } }
                 }
             }
+            .disabled(saving)
             .scrollContentBackground(.hidden).background(Palette.background)
             .navigationTitle(store.snapshot.decks.flatMap(\.pads).contains(where: { $0.id == pad.id }) ? "Edit button" : "Add button").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(saving ? "Saving…" : "Save") { save() }.fontWeight(.semibold).disabled(saving || pad.title.trimmingCharacters(in: .whitespaces).isEmpty || pad.title.utf16.count > 40)
+                    Button(saving ? "Saving…" : "Save") { save() }.fontWeight(.semibold).disabled(saving || !store.connected || store.busy || pad.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || pad.title.utf16.count > 40)
                 }
             }
             .onChange(of: pad.kind) { _, kind in
@@ -140,11 +141,14 @@ struct DeckEditor: View {
     @State private var failure: String?
     @State private var saving = false
     @State private var confirmDelete = false
+    private var cleanName: String { deck.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var validName: Bool { !cleanName.isEmpty && cleanName.utf16.count <= 40 }
     var body: some View {
         NavigationStack {
             Form {
                 Section("Your deck") {
                     TextField("Deck name", text: $deck.name)
+                    if cleanName.utf16.count > 40 { Text("Use 40 characters or fewer.").font(.caption).foregroundStyle(.red) }
                     Picker("Icon", selection: $deck.icon) {
                         Label("Soundboard", systemImage: "waveform").tag("waveform")
                         Label("Gaming", systemImage: "gamecontroller").tag("gamecontroller")
@@ -169,10 +173,11 @@ struct DeckEditor: View {
                 if store.snapshot.decks.contains(where: { $0.id == deck.id }) {
                     Section {
                         Button("Duplicate deck", systemImage: "square.on.square") {
-                            var duplicate = deck; duplicate.id = UUID().uuidString; duplicate.name = String((deck.name + " copy").prefix(40)); duplicate.steamAppId = ""
-                            duplicate.pads = duplicate.pads.map { var pad = $0; pad.id = UUID().uuidString; return pad }
+                            var source = deck
+                            source.pads = store.snapshot.decks.first(where: { $0.id == deck.id })?.pads ?? deck.pads
+                            let duplicate = source.duplicated()
                             persist(store.snapshot.decks + [duplicate], selected: duplicate.id)
-                        }
+                        }.disabled(!validName || !store.connected || store.snapshot.decks.count >= 20)
                         Button("Delete deck", role: .destructive) { confirmDelete = true }.disabled(store.snapshot.decks.count <= 1)
                     }
                 }
@@ -182,13 +187,14 @@ struct DeckEditor: View {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
                     ToolbarItem(placement: .confirmationAction) {
                         Button(saving ? "Saving…" : "Save") {
+                            deck.name = cleanName
                             var decks = store.snapshot.decks
                             if let index = decks.firstIndex(where: { $0.id == deck.id }) {
                                 // Keep current pads when saving deck metadata after another edit.
                                 deck.pads = decks[index].pads; decks[index] = deck
                             } else { decks.append(deck) }
                             persist(decks, selected: deck.id)
-                        }.disabled(saving || deck.name.trimmingCharacters(in: .whitespaces).isEmpty)
+                        }.disabled(saving || store.busy || !store.connected || !validName)
                     }
                 }
                 .confirmationDialog("Delete this deck and its buttons? Your sounds stay in the library.", isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -241,5 +247,7 @@ struct PadAppearanceEditor: View {
             }
         }.scrollContentBackground(.hidden).background(Palette.background)
             .navigationTitle("Icon & color").navigationBarTitleDisplayMode(.inline)
+            .sensoryFeedback(.selection, trigger: pad.icon)
+            .sensoryFeedback(.selection, trigger: pad.color)
     }
 }

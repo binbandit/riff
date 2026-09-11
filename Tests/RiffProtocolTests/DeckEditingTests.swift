@@ -2,6 +2,16 @@ import Testing
 @testable import RiffProtocol
 
 @MainActor struct DeckEditingTests {
+    @Test func duplicatesEmojiDeckNamesWithinWindowsLimits() {
+        let original = Deck(name: String(repeating: "✈️", count: 20), pads: Snapshot.starter.decks[0].pads, steamAppId: "730")
+        let copy = original.duplicated()
+        #expect(copy.name.utf16.count <= 40)
+        #expect(copy.name.hasSuffix(" copy"))
+        #expect(copy.id != original.id && copy.steamAppId.isEmpty)
+        #expect(Set(copy.pads.map(\.id)).isDisjoint(with: original.pads.map(\.id)))
+        #expect(copy.pads.map(\.value) == original.pads.map(\.value))
+        #expect(original.name.utf16.count == 40 && original.steamAppId == "730")
+    }
     @Test func movesAnExistingButtonWithoutDuplicatingItsAction() throws {
         let snapshot = Snapshot.starter
         var pad = snapshot.decks[0].pads[0]
