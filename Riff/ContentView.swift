@@ -25,6 +25,8 @@ struct ContentView: View {
     @State private var picker = false
     @State private var pendingClip: Clip?
     @State private var playMode = false
+    @State private var selectionFeedback = 0
+    @State private var stopFeedback = 0
     enum Destination: String, Identifiable {
         case connection, recording, settings, sounds, grid, audio, updates, audioSetup, musicSetup
         var id: String { rawValue }
@@ -91,6 +93,7 @@ struct ContentView: View {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     if playMode {
                         Button("Done", systemImage: "arrow.down.right.and.arrow.up.left") {
+                            selectionFeedback += 1
                             withAnimation(reduceMotion ? nil : .snappy) { playMode = false }
                         }.accessibilityLabel("Exit Play mode")
                     } else {
@@ -149,6 +152,8 @@ struct ContentView: View {
         .alert("Something needs attention", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
             Button("OK", role: .cancel) { store.error = nil }
         } message: { Text(store.error ?? "") }
+        .sensoryFeedback(.selection, trigger: selectionFeedback)
+        .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: stopFeedback)
         .onChange(of: editor != nil || editDeck != nil || destination != nil || picker) { _, presented in store.interacting = presented }
 #if DEBUG
         .task {
@@ -223,6 +228,7 @@ struct ContentView: View {
             List {
                 ForEach(store.snapshot.decks) { deck in
                     Button {
+                        if store.selectedDeckId != deck.id { selectionFeedback += 1 }
                         store.selectedDeckId = deck.id; picker = false
                     } label: {
                         HStack(spacing: 14) {
@@ -294,7 +300,7 @@ struct ContentView: View {
             }
             if pages > 1 {
                 HStack(spacing: 20) {
-                    Button { withAnimation { selection.wrappedValue = page - 1 } } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44) }
+                    Button { selectionFeedback += 1; withAnimation(reduceMotion ? nil : .default) { selection.wrappedValue = page - 1 } } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44) }
                         .disabled(page == 0).accessibilityLabel("Previous page")
                     Menu {
                         Picker("Page", selection: selection) {
@@ -309,7 +315,7 @@ struct ContentView: View {
                         }.font(.subheadline).frame(minWidth: 88, minHeight: 44)
                     }.accessibilityLabel("Page \(page + 1) of \(pages)")
                         .accessibilityHint("Choose a page, or swipe across the buttons")
-                    Button { withAnimation { selection.wrappedValue = page + 1 } } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44) }
+                    Button { selectionFeedback += 1; withAnimation(reduceMotion ? nil : .default) { selection.wrappedValue = page + 1 } } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44) }
                         .disabled(page == pages - 1).accessibilityLabel("Next page")
                 }
             }
@@ -343,6 +349,7 @@ struct ContentView: View {
         }
     }
     private func enterPlayMode() {
+        selectionFeedback += 1
         withAnimation(reduceMotion ? nil : .snappy) { store.editing = false; playMode = true }
     }
     private func trigger(_ pad: Pad) {
@@ -400,7 +407,7 @@ struct ContentView: View {
         }.foregroundStyle(.secondary).buttonStyle(.plain)
     }
     private var stopButton: some View {
-        Button { Task { await store.stopAll() } } label: {
+        Button { stopFeedback += 1; Task { await store.stopAll() } } label: {
             Label("Stop all", systemImage: "stop.fill").font(.body.weight(.medium)).padding(.horizontal, 20).padding(.vertical, 15)
         }.foregroundStyle(.primary).background(Palette.panel, in: Capsule()).buttonStyle(PadPressStyle())
     }
@@ -421,6 +428,8 @@ struct PadReordering: ViewModifier {
 }
 
 struct PadTile: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var tapFeedback = 0
     let pad: Pad
     var editing = false
     var active = false
@@ -431,12 +440,16 @@ struct PadTile: View {
         GeometryReader { geometry in
             let compact = geometry.size.height < 160
             let symbolSize = min(76, max(34, geometry.size.height * 0.29))
-            Button(action: action) {
+            Button {
+                if !blocked { tapFeedback += 1 }
+                action()
+            } label: {
                 VStack(spacing: compact ? 10 : 22) {
                     Spacer(minLength: 0)
                     PadGlyph(icon: pad.icon, size: symbolSize)
                         .frame(height: symbolSize * 1.15)
-                        .symbolEffect(.bounce, value: active)
+                        .symbolEffect(.bounce, value: tapFeedback)
+                        .symbolEffectsRemoved(reduceMotion)
                     Text(pad.title)
                         .font(.system(compact ? .body : .title3, design: .rounded, weight: .semibold))
                         .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.8)
@@ -461,7 +474,7 @@ struct PadTile: View {
                 .overlay(RoundedRectangle(cornerRadius: compact ? 24 : 34).strokeBorder(playing ? Palette.ink.opacity(0.6) : .white.opacity(0.3), lineWidth: playing ? 3 : 1))
                 .shadow(color: pad.tint.opacity(0.12), radius: 6, y: 4)
             }.buttonStyle(PadPressStyle())
-                .sensoryFeedback(.impact(weight: .light), trigger: active)
+                .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: tapFeedback)
                 .accessibilityLabel("\(pad.title), \(pad.typeName)")
                 .accessibilityValue(blocked ? "Desktop actions disabled on PC" : playing ? "Playing" : "")
                 .accessibilityHint(editing ? "Customize this button" : blocked ? "Learn about soundboard-only mode" : playing ? "Tap again to stop this sound" : "Run this action")

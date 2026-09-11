@@ -3,6 +3,7 @@ import SwiftUI
 struct AppearanceView: View {
     @Bindable private var preferences = ThemePreferences.shared
     @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var selectionFeedback = 0
 
     var body: some View {
         ScrollView {
@@ -24,6 +25,7 @@ struct AppearanceView: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: typeSize.isAccessibilitySize ? 1 : 2), spacing: 18) {
                     ForEach(AppTheme.allCases) { theme in
                         Button {
+                            if preferences.theme != theme { selectionFeedback += 1 }
                             preferences.theme = theme
                         } label: {
                             ThemePreview(theme: theme, selected: preferences.theme == theme)
@@ -42,6 +44,7 @@ struct AppearanceView: View {
             .padding(24)
             .frame(maxWidth: .infinity)
         }
+        .sensoryFeedback(.selection, trigger: selectionFeedback)
         .background(Palette.background)
         .navigationTitle("Appearance")
         .navigationBarTitleDisplayMode(.inline)
