@@ -8,6 +8,8 @@ struct AudioControlsView: View {
     @State private var saving = false
     @State private var failure: String?
     @State private var connection = false
+    @State private var hasLoadedAudio = false
+    @State private var hasLoadedConnectedAudio = false
 
     var body: some View {
         NavigationStack {
@@ -68,9 +70,15 @@ struct AudioControlsView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) { SoundPreviewBar() }
-            .onAppear { load() }
-            .sheet(isPresented: $connection, onDismiss: load) { ConnectionView() }
+            .onAppear { if !hasLoadedAudio { load() } }
+            .onChange(of: store.connected) { _, connected in
+                if connected && !hasLoadedConnectedAudio { load() }
+            }
+            .sheet(isPresented: $connection) { ConnectionView(onConnectionChanged: load) }
         }.interactiveDismissDisabled(saving)
     }
-    private func load() { output = store.snapshot.outputId; volume = store.snapshot.volume }
+    private func load() {
+        output = store.snapshot.outputId; volume = store.snapshot.volume
+        hasLoadedAudio = true; hasLoadedConnectedAudio = store.connected
+    }
 }

@@ -3,6 +3,7 @@ import VisionKit
 import AVFoundation
 
 struct ConnectionView: View {
+    var onConnectionChanged: () -> Void = {}
     @Environment(RiffStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var scanning = false
@@ -42,7 +43,7 @@ struct ConnectionView: View {
                     if let failure { Text(failure).font(.subheadline).foregroundStyle(.red) }
                     Label("Encrypted and local. Your pairing link is a key to this PC; keep it private.", systemImage: "lock.shield")
                         .font(.caption).foregroundStyle(.secondary)
-                    if store.paired { Button("Forget this PC", role: .destructive) { store.disconnect(); dismiss() } }
+                    if store.paired { Button("Forget this PC", role: .destructive) { store.disconnect(); onConnectionChanged(); dismiss() } }
                 }.padding(30)
             }.background(Palette.background).navigationTitle("Connect your PC").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() }.disabled(store.connecting) } }
@@ -58,7 +59,7 @@ struct ConnectionView: View {
     }
     private func connect() {
         failure = nil
-        Task { do { try await store.pair(link); dismiss() } catch { failure = error.localizedDescription } }
+        Task { do { try await store.pair(link); onConnectionChanged(); dismiss() } catch { failure = error.localizedDescription } }
     }
     private func instruction(_ number: String, _ title: String, _ detail: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
@@ -76,13 +77,15 @@ struct SettingsView: View {
     @State private var saving = false
     @State private var failure: String?
     @State private var connection = false
+    @State private var hasLoadedAudio = false
+    @State private var hasLoadedConnectedAudio = false
     var body: some View {
         @Bindable var store = store
         NavigationStack {
             Form {
                 Section("Your PC") {
                     LabeledContent("Connection", value: store.connected ? store.snapshot.computerName : "Offline")
-                    Button("Pair or change PC", systemImage: "link") { connection = true }
+                    Button("Pair or change PC", systemImage: "link") { connection = true }.disabled(saving)
                     NavigationLink { CompanionUpdatesView() } label: {
                         Label(store.updates.release?.isNewer(than: store.snapshot.companionVersion) == true ? "Companion update available" : "Companion updates", systemImage: "arrow.down.circle")
                     }
@@ -103,6 +106,7 @@ struct SettingsView: View {
                     }
                     if let failure { Text(failure).foregroundStyle(.red) }
                 } header: { Text("Audio routing") } footer: { Text("Apply changes before testing. New sounds use the selected output. Stop existing sounds before switching devices.") }
+                    .disabled(!store.connected || saving)
                 Section {
                     NavigationLink { AudioSetupView() } label: {
                         Label("Microphone, sounds & music", systemImage: "mic")
@@ -129,12 +133,19 @@ struct SettingsView: View {
                 Section { Text("Riff \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")").foregroundStyle(.secondary) }
             }.scrollContentBackground(.hidden).background(Palette.background)
                 .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-                .onAppear { output = store.snapshot.outputId; volume = store.snapshot.volume }
-                .sheet(isPresented: $connection) { ConnectionView() }
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.disabled(saving) } }
+                .onAppear { if !hasLoadedAudio { loadAudio() } }
+                .onChange(of: store.connected) { _, connected in
+                    if connected && !hasLoadedConnectedAudio { loadAudio() }
+                }
+                .sheet(isPresented: $connection) { ConnectionView(onConnectionChanged: loadAudio) }
 #if DEBUG
                 .navigationDestination(isPresented: .constant(DesignPreview.screen == "appearance")) { AppearanceView() }
 #endif
-        }
+        }.interactiveDismissDisabled(saving)
+    }
+    private func loadAudio() {
+        output = store.snapshot.outputId; volume = store.snapshot.volume
+        hasLoadedAudio = true; hasLoadedConnectedAudio = store.connected
     }
 }
