@@ -5,3 +5,6 @@ artifacts/
 **/obj/
 **/xcuserdata/
 *.user
+
+.build/
+.swiftpm/

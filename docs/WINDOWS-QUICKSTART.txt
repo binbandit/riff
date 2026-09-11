@@ -1,0 +1,43 @@
+RIFF - YOUR IPAD, YOUR CONTROL ROOM
+
+1. Extract the whole ZIP to a folder on your Windows 11 PC.
+2. Open Riff.Companion.exe. No separate .NET installation is needed.
+3. Allow Riff on Private networks if Windows Firewall asks.
+4. Open Riff on your iPad. Tap Connect your PC, scan the QR code, then Connect PC.
+   Both devices must be on the same home network. Choose your Wi-Fi/Ethernet IP
+   in the companion, rather than a VPN adapter.
+5. Tap a sound. Use Edit deck on the iPad to add, customize, or move buttons.
+
+TO PLAY SOUNDS AS YOUR VOICE IN GAME CHAT
+
+Install VB-CABLE from https://vb-audio.com/Cable/ and restart Windows.
+In Riff Audio & voice chat, choose CABLE Input and Apply.
+In your game or Discord, choose CABLE Output as the microphone.
+Use voice activation, or hold your push-to-talk key while a sound plays.
+Use the chat app's microphone test to verify the complete route.
+If sounds get cut off, lower the voice threshold and disable noise suppression.
+
+To hear the sounds yourself, enable Listen to this device for CABLE Output in
+Windows Sound > Recording > Properties > Listen; choose headphones for playback.
+This route uses clips instead of your real microphone. Mixing both requires an
+optional mixer such as Voicemeeter. VB-CABLE and Voicemeeter are separate products.
+
+DECKS FOR DIFFERENT GAMES
+
+Create or duplicate a deck on iPad, then link a Steam game in Deck settings.
+Enable Follow my Steam game in Settings. Steam must be open. Detection is best
+effort using Steam's local data; if multiple games run, select a deck manually.
+Manual selection stays in place until another game is detected.
+
+Closing the companion window leaves Riff running in the tray. Use Quit Riff in
+its tray menu to stop it. Stop all cancels sounds and remaining sequence steps.
+Allowed apps lets you select the .exe applications your iPad may launch.
+
+Keep your pairing link private. Revoke paired devices generates a new key.
+Do not forward port 49321 on your router. Riff is intended for your local network.
+Your decks and clips are in %LOCALAPPDATA%\Riff. Close Riff before backing up.
+
+This is an unsigned personal build. Sign and install Riff-iPad-unsigned.ipa with
+your own Apple account using Sideloadly on Windows (https://sideloadly.io/), or
+build with Xcode on a Mac. Free signing requires renewal every 7 days. The
+physical sideloading flow has not been tested here. See the README for details.
