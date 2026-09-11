@@ -106,6 +106,26 @@ Windows stores decks, clips, settings, and approved app paths in `%LOCALAPPDATA%
 
 The iPad app lives in `Riff/`, the C# Windows companion in `Companion/`, and the bundled sounds in `Shared/Sounds/`. Swift tests are in `Tests/`; companion tests live alongside the C# projects.
 
+The iPad source is grouped by responsibility:
+
+```text
+Riff/
+├── App/          App entry point and shared store
+├── Models/       Decks, pads, clips, and companion snapshots
+├── Design/       Themes, button styles, and shared glyphs
+├── Features/
+│   ├── Audio/       Playback controls and microphone/music setup
+│   ├── Connection/  Pairing, QR scanning, and secure transport
+│   ├── Decks/       Main board, layout, and button/deck editors
+│   ├── Settings/    Preferences and appearance
+│   ├── Sounds/      Library, recording, trimming, and sound packs
+│   └── Updates/     Companion releases and Markdown changelogs
+├── Preview/      Development preview scenarios
+└── Resources/    Asset catalog, starter audio, sound-pack catalog, and licenses
+```
+
+Keep feature-specific views and supporting logic together. Put app-wide models and reusable visual components in `Models/` and `Design/`. Xcode discovers files inside `Riff/` automatically; update `Package.swift` when adding portable code or excluding an iPad-only view from the Mac test target. The sound generator writes starter audio to both `Shared/Sounds/` and `Riff/Resources/Sounds/`.
+
 Clone the repository first:
 
 ```sh

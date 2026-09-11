@@ -21,7 +21,7 @@ for name, notes in SOUNDS.items():
             envelope = min(1, index / 220) * min(1, (count - index) / 1800)
             sound = (math.sin(2 * math.pi * frequency * t) + .2 * math.sin(4 * math.pi * frequency * t)) if frequency else 0
             samples.append(int(15000 * envelope * sound))
-    for folder in ['Shared/Sounds', 'Riff/Sounds']:
+    for folder in ['Shared/Sounds', 'Riff/Resources/Sounds']:
         with wave.open(str(ROOT / folder / (name + '.wav')), 'wb') as output:
             output.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
             output.writeframes(struct.pack('<' + 'h' * len(samples), *samples))

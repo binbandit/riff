@@ -6,7 +6,62 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [.library(name: "RiffProtocol", targets: ["RiffProtocol"])],
     targets: [
-        .target(name: "RiffProtocol", path: "Riff", exclude: ["Assets.xcassets", "MarkdownLicenses.txt", "Sounds", "DesignPreview.swift", "GridLayoutView.swift", "SoundPickerView.swift", "ClipEditorView.swift", "AudioControlsView.swift", "AudioSetupView.swift", "AppearanceView.swift", "AddSoundsView.swift", "CompanionUpdatesView.swift", "CompanionChangelogView.swift", "ContentView.swift", "Editors.swift", "PairingScanner.swift", "Recorder.swift", "SettingsView.swift", "SoundLibrary.swift", "SoundPacksView.swift"], sources: ["Models.swift", "RiffStore.swift", "Connection.swift", "BoardLayout.swift", "SoundCatalog.swift", "SoundPacks.swift", "ClipAudio.swift", "SoundPlayback.swift", "SoundDeckBuilder.swift", "CompanionRelease.swift", "CompanionUpdates.swift", "ReleaseChangelog.swift", "MarkdownDisplay.swift"], resources: [.process("Resources")], swiftSettings: [.defaultIsolation(MainActor.self)]),
-        .testTarget(name: "RiffProtocolTests", dependencies: ["RiffProtocol"], path: "Tests/RiffProtocolTests")
+        .target(
+            name: "RiffProtocol",
+            path: "Riff",
+            exclude: [
+                "App/RiffApp.swift",
+                "Design/ButtonStyles.swift",
+                "Design/PadGlyph.swift",
+                "Features/Audio",
+                "Features/Connection/ConnectionView.swift",
+                "Features/Connection/PairingScanner.swift",
+                "Features/Decks/ActionFields.swift",
+                "Features/Decks/ContentView.swift",
+                "Features/Decks/DeckEditor.swift",
+                "Features/Decks/GridLayoutView.swift",
+                "Features/Decks/PadAppearanceEditor.swift",
+                "Features/Decks/PadEditor.swift",
+                "Features/Decks/PadTile.swift",
+                "Features/Settings",
+                "Features/Sounds/AddSoundsView.swift",
+                "Features/Sounds/ClipEditorView.swift",
+                "Features/Sounds/LibraryView.swift",
+                "Features/Sounds/Recorder.swift",
+                "Features/Sounds/RecordingView.swift",
+                "Features/Sounds/SoundNameEditor.swift",
+                "Features/Sounds/SoundPacksView.swift",
+                "Features/Sounds/SoundPickerView.swift",
+                "Features/Updates/CompanionChangelogView.swift",
+                "Features/Updates/CompanionUpdatesView.swift",
+                "Preview",
+                "Resources/Assets.xcassets",
+                "Resources/MarkdownLicenses.txt",
+                "Resources/Sounds"
+            ],
+            sources: [
+                "App/RiffStore.swift",
+                "Design/Theme.swift",
+                "Models",
+                "Features/Connection/Connection.swift",
+                "Features/Decks/BoardLayout.swift",
+                "Features/Sounds/ClipAudio.swift",
+                "Features/Sounds/SoundCatalog.swift",
+                "Features/Sounds/SoundDeckBuilder.swift",
+                "Features/Sounds/SoundPacks.swift",
+                "Features/Sounds/SoundPlayback.swift",
+                "Features/Updates/CompanionRelease.swift",
+                "Features/Updates/CompanionUpdates.swift",
+                "Features/Updates/MarkdownDisplay.swift",
+                "Features/Updates/ReleaseChangelog.swift"
+            ],
+            resources: [.process("Resources/sound-packs.json")],
+            swiftSettings: [.defaultIsolation(MainActor.self)]
+        ),
+        .testTarget(
+            name: "RiffProtocolTests",
+            dependencies: ["RiffProtocol"],
+            path: "Tests/RiffProtocolTests"
+        )
     ]
 )
