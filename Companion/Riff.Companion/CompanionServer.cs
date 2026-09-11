@@ -116,6 +116,12 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             }
             finally { if (temporary is not null) File.Delete(temporary); importGate.Release(); }
         });
+        app.MapPut("/api/clips/{id}", (string id, ClipRename rename) =>
+        {
+            store.RenameClip(id, rename);
+            Activity?.Invoke("Sound renamed");
+            return Snapshot();
+        });
         app.MapDelete("/api/clips/{id}", (string id) =>
         {
             lock (store.Gate)

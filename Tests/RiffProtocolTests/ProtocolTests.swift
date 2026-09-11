@@ -7,6 +7,20 @@ import Testing
     let fingerprint = String(repeating: "b", count: 64)
     var link: String { "riff://connect?host=192.168.1.10&port=49321&token=\(token)&fp=\(fingerprint)" }
 
+    @Test func duplicateKeepsActionsAndHasIndependentIdentity() {
+        let original = Pad(title: String(repeating: "✈️", count: 20), kind: "macro", steps: [ActionStep()])
+        let copy = original.duplicated()
+        #expect(copy.id != original.id)
+        #expect(copy.title.utf16.count <= 40)
+        #expect(copy.title.hasSuffix(" (copy)"))
+        #expect(copy.kind == original.kind && copy.value == original.value)
+        #expect(copy.steps[0].id != original.steps[0].id)
+        #expect(copy.steps[0].kind == original.steps[0].kind)
+        #expect(copy.steps[0].value == original.steps[0].value)
+        #expect(copy.steps[0].delayMs == original.steps[0].delayMs)
+        let clip = Clip(id: "pilot", name: String(repeating: "✈️", count: 20), duration: 2)
+        #expect(clip.buttonTitle.utf16.count <= 40)
+    }
     @Test func acceptsPairingFromCompanion() throws {
         let pairing = try Pairing.parse(" \n" + link + "\n")
         #expect(pairing.host == "192.168.1.10")

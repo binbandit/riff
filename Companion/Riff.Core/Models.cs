@@ -16,6 +16,7 @@ public record LaunchTargetInfo(string Id, string Name);
 public record DeckUpdate(int Version, List<Deck> Decks);
 public record Trigger(string PadId, string RequestId);
 public record AudioSettings(string OutputId, float Volume);
+public record ClipRename(int Version, string Name);
 public record SavedState(int Version, List<Deck> Decks, List<Clip> Clips, string OutputId, float Volume, List<LaunchTarget> Apps);
 
 public static class Wire

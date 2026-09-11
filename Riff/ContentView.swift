@@ -79,7 +79,7 @@ struct ContentView: View {
             .toolbarBackground(.visible, for: .navigationBar)
         }
         .sheet(item: $destination, onDismiss: {
-            if let clip = pendingClip { pendingClip = nil; editor = Pad(title: clip.name, icon: "waveform", value: clip.id) }
+            if let clip = pendingClip { pendingClip = nil; editor = Pad(title: clip.buttonTitle, icon: "waveform", value: clip.id) }
         }) { choice in
             switch choice {
             case .connection: ConnectionView()
@@ -108,7 +108,7 @@ struct ContentView: View {
             DesignPreview.orient()
             switch DesignPreview.screen {
             case "grid": destination = .grid
-            case "sounds": destination = .sounds
+            case "sounds", "rename", "import": destination = .sounds
             case "recording": destination = .recording
             case "settings": destination = .settings
             case "connection": destination = .connection
@@ -196,17 +196,20 @@ struct ContentView: View {
                         let start = number * layout.capacity
                         let end = min(start + layout.capacity, pads.count)
                         let shown = Array(pads[start..<end])
-                        ScrollView([.horizontal, .vertical]) {
-                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: layout.gap), count: layout.columns), spacing: layout.gap) {
-                                ForEach(shown) { pad in
-                                    tile(pad, pads: pads).frame(height: layout.padHeight)
+                        GeometryReader { viewport in
+                            ScrollView([.horizontal, .vertical]) {
+                                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: layout.gap), count: layout.columns), spacing: layout.gap) {
+                                    ForEach(shown) { pad in
+                                        tile(pad, pads: pads).frame(height: layout.padHeight)
+                                    }
                                 }
+                                .frame(width: layout.gridWidth)
+                                .frame(minHeight: max(0, viewport.size.height - 24))
+                                .padding(.horizontal, layout.margin)
+                                .padding(.vertical, 12)
                             }
-                            .frame(width: layout.gridWidth)
-                            .padding(.horizontal, layout.margin)
-                            .padding(.vertical, 12)
+                            .defaultScrollAnchor(.topLeading)
                         }
-                        .defaultScrollAnchor(.center)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                         .tag(number)
                     }
@@ -233,6 +236,8 @@ struct ContentView: View {
         .modifier(PadReordering(enabled: store.editing, id: pad.id) { id in Task { await store.movePad(id, to: pad.id) } })
         .contextMenu {
             Button("Edit button", systemImage: "pencil") { editor = pad }.disabled(!store.connected)
+            Button("Duplicate button", systemImage: "plus.square.on.square") { editor = pad.duplicated() }
+                .disabled(!store.connected || pads.count >= 48)
             Button("Rearrange buttons", systemImage: "hand.draw") { store.editing = true }.disabled(!store.connected)
             if let index = pads.firstIndex(where: { $0.id == pad.id }) {
                 if index > 0 {

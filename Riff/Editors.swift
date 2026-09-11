@@ -16,6 +16,7 @@ struct PadEditor: View {
                         PadTile(pad: pad).frame(width: 130, height: 130).disabled(true)
                         VStack(alignment: .leading, spacing: 14) {
                             TextField("Button name", text: $pad.title).font(.title3.weight(.semibold))
+                            if pad.title.utf16.count > 40 { Text("Use 40 characters or fewer.").font(.caption).foregroundStyle(.red) }
                             NavigationLink { PadAppearanceEditor(pad: $pad) } label: {
                                 Label("Icon & color", systemImage: "paintpalette").font(.subheadline)
                             }
@@ -52,11 +53,11 @@ struct PadEditor: View {
                 }
             }
             .scrollContentBackground(.hidden).background(Palette.background)
-            .navigationTitle("Edit button").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(store.snapshot.decks.flatMap(\.pads).contains(where: { $0.id == pad.id }) ? "Edit button" : "Add button").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(saving ? "Saving…" : "Save") { save() }.fontWeight(.semibold).disabled(saving || pad.title.trimmingCharacters(in: .whitespaces).isEmpty)
+                    Button(saving ? "Saving…" : "Save") { save() }.fontWeight(.semibold).disabled(saving || pad.title.trimmingCharacters(in: .whitespaces).isEmpty || pad.title.utf16.count > 40)
                 }
             }
             .onChange(of: pad.kind) { _, kind in

@@ -162,6 +162,9 @@ import Observation
     }
     func upload(_ url: URL, name: String) async throws -> Clip {
         guard let client, connected else { throw RiffError.message("Connect your PC before adding sounds.") }
+        if let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > 20 * 1024 * 1024 {
+            throw RiffError.message("Choose a sound smaller than 20 MB.")
+        }
         let data = try Data(contentsOf: url)
         guard data.count <= 20 * 1024 * 1024 else { throw RiffError.message("Choose a sound smaller than 20 MB.") }
         var query = URLComponents(); query.queryItems = [URLQueryItem(name: "name", value: name), URLQueryItem(name: "ext", value: url.pathExtension.lowercased())]
@@ -176,6 +179,19 @@ import Observation
             let state: Snapshot = try await client.request("/api/clips/\(clip.id)", method: "DELETE")
             apply(state); message("Sound deleted")
         } catch { self.error = error.localizedDescription }
+    }
+    func renameClip(_ clip: Clip, name: String) async throws {
+        guard let client, connected else { throw RiffError.message("Connect your PC to rename sounds.") }
+        guard !busy else { throw RiffError.message("Wait for the current change to finish.") }
+        busy = true; epoch += 1; defer { busy = false }
+        struct Rename: Encodable { let version: Int; let name: String }
+        do {
+            let state: Snapshot = try await client.request("/api/clips/\(clip.id)", method: "PUT", body: JSONEncoder().encode(Rename(version: snapshot.version, name: name)))
+            apply(state); message("Sound renamed")
+        } catch {
+            if let fresh: Snapshot = try? await client.request("/api/state") { apply(fresh) }
+            throw error
+        }
     }
     func preview(_ clip: Clip) async {
         if let client, connected {

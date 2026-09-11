@@ -58,6 +58,21 @@ public sealed class StateStore
             Save(State with { Apps = [.. State.Apps, new(Guid.NewGuid().ToString("N"), Path.GetFileNameWithoutExtension(path), path)], Version = State.Version + 1 });
         }
     }
+    public void RenameClip(string id, ClipRename rename)
+    {
+        lock (Gate)
+        {
+            if (rename.Version != State.Version) throw new StateConflictException();
+            var name = rename.Name?.Trim() ?? "";
+            Rules.CheckText(name, 60, "Sound name");
+            if (!State.Clips.Any(c => c.Id == id)) throw new ArgumentException("Sound not found.");
+            Save(State with
+            {
+                Clips = State.Clips.Select(c => c.Id == id ? c with { Name = name } : c).ToList(),
+                Version = State.Version + 1
+            });
+        }
+    }
     public void RemoveApp(string id)
     {
         lock (Gate)

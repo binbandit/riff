@@ -7,7 +7,8 @@ struct LibraryView: View {
     @State private var search = ""
     @State private var importing = false
     @State private var recording = false
-    @State private var working = false
+    @State private var naming: SoundNameTarget?
+    @State private var failure: String?
     @State private var deleteClip: Clip?
     @State private var recorded: Clip?
     private var clips: [Clip] { store.snapshot.clips.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) } }
@@ -31,21 +32,33 @@ struct LibraryView: View {
                         Button { onAssign(clip) } label: { Image(systemName: "plus.circle.fill").font(.title2).padding(8) }
                             .buttonStyle(.borderless).disabled(!store.connected).accessibilityLabel("Add \(clip.name) to deck")
                     }.padding(.vertical, 6)
-                        .swipeActions { Button("Delete", role: .destructive) { deleteClip = clip }.disabled(!store.connected) }
-                        .contextMenu { Button("Delete sound", role: .destructive) { deleteClip = clip }.disabled(!store.connected) }
+                        .swipeActions(allowsFullSwipe: false) {
+                            Button("Delete", role: .destructive) { deleteClip = clip }.disabled(!store.connected)
+                            Button("Rename") { naming = .existing(clip) }.tint(Palette.accent).disabled(!store.connected)
+                        }
+                        .contextMenu {
+                            Button("Rename sound", systemImage: "pencil") { naming = .existing(clip) }.disabled(!store.connected)
+                            Button("Delete sound", role: .destructive) { deleteClip = clip }.disabled(!store.connected)
+                        }
                 }
             } header: { Text("\(store.snapshot.clips.count) sounds") }
-            if working { HStack { ProgressView(); Text("Importing sound…") } }
+
         }
         .scrollContentBackground(.hidden).background(Palette.background)
         .searchable(text: $search, prompt: "Find a sound")
+#if DEBUG
+        .task {
+            if DesignPreview.screen == "rename", let clip = store.snapshot.clips.first { naming = .existing(clip) }
+            if DesignPreview.screen == "import", let url = Bundle.main.url(forResource: "level-up", withExtension: "wav") { naming = .imported(url) }
+        }
+#endif
         .overlay { if clips.isEmpty && !search.isEmpty { ContentUnavailableView.search(text: search) } }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Menu {
                     Button("Record sound", systemImage: "mic") { recording = true }
                     Button("Import audio", systemImage: "folder") { importing = true }
-                } label: { Image(systemName: "plus") }.disabled(!store.connected || working).accessibilityLabel("Add sound")
+                } label: { Image(systemName: "plus") }.disabled(!store.connected).accessibilityLabel("Add sound")
             }
         }
         .sheet(isPresented: $recording, onDismiss: { if let recorded { self.recorded = nil; onAssign(recorded) } }) {
@@ -53,24 +66,91 @@ struct LibraryView: View {
         }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.wav, .mp3, .mpeg4Audio, .aiff, UTType(filenameExtension: "aac") ?? .audio]) { result in
             switch result {
-            case .success(let url):
-                working = true
-                Task {
-                    let access = url.startAccessingSecurityScopedResource()
-                    defer { if access { url.stopAccessingSecurityScopedResource() }; working = false }
-                    do {
-                        let clip = try await store.upload(url, name: String(url.deletingPathExtension().lastPathComponent.prefix(60)))
-                        onAssign(clip)
-                    } catch { store.error = error.localizedDescription }
-                }
-            case .failure(let error): store.error = error.localizedDescription
+            case .success(let url): naming = .imported(url)
+            case .failure(let error): failure = error.localizedDescription
             }
         }
+        .sheet(item: $naming, onDismiss: {
+            if let recorded { self.recorded = nil; onAssign(recorded) }
+        }) { target in
+            SoundNameEditor(name: target.name, importing: target.isImport) { name in
+                switch target {
+                case .imported(let url):
+                    let access = url.startAccessingSecurityScopedResource()
+                    defer { if access { url.stopAccessingSecurityScopedResource() } }
+                    recorded = try await store.upload(url, name: name)
+                case .existing(let clip): try await store.renameClip(clip, name: name)
+                }
+            }
+        }
+        .alert("Couldn’t open sound", isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+            Button("OK") { failure = nil }
+        } message: { Text(failure ?? "") }
+
         .confirmationDialog("Delete \(deleteClip?.name ?? "sound")?", isPresented: Binding(get: { deleteClip != nil }, set: { if !$0 { deleteClip = nil } }), titleVisibility: .visible) {
             Button("Delete sound", role: .destructive) {
                 if let clip = deleteClip { Task { await store.deleteClip(clip) } }; deleteClip = nil
             }
         } message: { Text("Remove this sound from any buttons before deleting it.") }
+    }
+}
+
+enum SoundNameTarget: Identifiable {
+    case imported(URL)
+    case existing(Clip)
+    var id: String {
+        switch self { case .imported(let url): url.absoluteString; case .existing(let clip): clip.id }
+    }
+    var name: String {
+        switch self {
+        case .imported(let url): String(url.deletingPathExtension().lastPathComponent.prefix(60))
+        case .existing(let clip): clip.name
+        }
+    }
+    var isImport: Bool { if case .imported = self { true } else { false } }
+}
+
+struct SoundNameEditor: View {
+    @Environment(\.dismiss) private var dismiss
+    @State var name: String
+    let importing: Bool
+    let save: (String) async throws -> Void
+    @State private var saving = false
+    @State private var failure: String?
+    @FocusState private var focused: Bool
+    private var trimmed: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Sound name", text: $name).focused($focused).submitLabel(.done)
+                        .onSubmit { if valid { submit() } }
+                    Text("\(trimmed.utf16.count)/60").font(.caption).foregroundStyle(trimmed.utf16.count > 60 ? .red : .secondary)
+                } header: { Text("Name your sound") } footer: {
+                    Text(importing ? "Use a name you’ll recognize while playing. Next, customize its button. Audio can be up to 60 seconds and 20 MB." : "This changes the library name. Your buttons keep their own names and still play the same sound.")
+                }
+                if saving { HStack { ProgressView(); Text(importing ? "Importing sound…" : "Saving name…") } }
+                if let failure { Section { Text(failure).foregroundStyle(.red) } }
+            }
+            .scrollContentBackground(.hidden).background(Palette.background)
+            .navigationTitle(importing ? "Import sound" : "Rename sound").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(importing ? "Import" : "Save") { submit() }.fontWeight(.semibold).disabled(!valid)
+                }
+            }
+            .onAppear { focused = true }
+        }.interactiveDismissDisabled(saving)
+    }
+    private var valid: Bool { !saving && !trimmed.isEmpty && trimmed.utf16.count <= 60 }
+    private func submit() {
+        saving = true; failure = nil; focused = false
+        Task {
+            do { try await save(trimmed); dismiss() }
+            catch { failure = error.localizedDescription }
+            saving = false
+        }
     }
 }
 
@@ -103,12 +183,13 @@ struct RecordingView: View {
                     if recorder.url != nil && !recorder.recording {
                         TextField("Sound name", text: $name).font(.title3).multilineTextAlignment(.center)
                             .padding(18).background(Palette.panel, in: RoundedRectangle(cornerRadius: 16)).frame(maxWidth: 360)
+                        if name.utf16.count > 60 { Text("Use 60 characters or fewer.").font(.caption).foregroundStyle(.red) }
                         HStack(spacing: 12) {
                             Button { recorder.listen() } label: { Label("Listen", systemImage: "play.fill") }.buttonStyle(QuietButtonStyle())
                             Button { Task { await recorder.start() } } label: { Label("Retake", systemImage: "arrow.counterclockwise") }.buttonStyle(QuietButtonStyle())
                         }
                         Button { upload() } label: { Text(uploading ? "Saving…" : "Save & add button") }.buttonStyle(AccentButtonStyle())
-                            .disabled(uploading || name.trimmingCharacters(in: .whitespaces).isEmpty)
+                            .disabled(uploading || name.trimmingCharacters(in: .whitespaces).isEmpty || name.utf16.count > 60)
                     } else {
                         Button {
                             if recorder.recording { recorder.stop() } else { Task { await recorder.start() } }
