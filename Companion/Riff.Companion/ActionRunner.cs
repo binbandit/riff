@@ -8,8 +8,14 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
     readonly SemaphoreSlim actionGate = new(1, 1);
     readonly object cancelGate = new();
     CancellationTokenSource cancellation = new();
-    public async Task Run(Pad pad)
+    public async Task Run(Pad pad, bool toggle = false, string? soundMode = null)
     {
+        if (soundMode is not (null or "overlap" or "single")) throw new ArgumentException("Choose Overlap or One at a time.");
+        if (pad.Kind == "sound")
+        {
+            lock (cancelGate) Execute(pad.Kind, pad.Value, cancellation.Token, pad.Id == "preview" ? "" : pad.Id, toggle, soundMode);
+            return;
+        }
         if (!await actionGate.WaitAsync(0)) throw new ArgumentException("An action sequence is running. Stop it or wait for it to finish.");
         CancellationToken token;
         lock (cancelGate) token = cancellation.Token;
@@ -27,7 +33,7 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
         }
         finally { actionGate.Release(); }
     }
-    void Execute(string kind, string value, CancellationToken token)
+    void Execute(string kind, string value, CancellationToken token, string padId = "", bool toggle = false, string? mode = null)
     {
         // Serialize cancellation with starting an action so Stop All cannot be overtaken by a late sound.
         lock (cancelGate)
@@ -39,7 +45,7 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
                     lock (store.Gate)
                     {
                         if (!store.State.Clips.Any(c => c.Id == value)) throw new ArgumentException("This sound no longer exists.");
-                        audio.Play(store.ClipPath(value), store.State.OutputId);
+                        audio.Play(store.ClipPath(value), store.State.OutputId, padId, toggle, mode);
                     }
                     break;
                 case "hotkey": WindowsInput.Hotkey(value); break;

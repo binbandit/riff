@@ -32,9 +32,16 @@ public class CompanionIntegrationTests
                 };
                 using var client = new HttpClient(handler) { BaseAddress = new Uri($"https://localhost:{PairingIdentity.Port}") };
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
+                Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/playback")).StatusCode);
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", identity.Token);
                 var snapshot = (await client.GetFromJsonAsync<Snapshot>("/api/state", Wire.Json))!;
                 Assert.Equal(2, snapshot.Decks.Count);
+                Assert.Contains("soundboard-playback-v1", snapshot.Capabilities!);
+                var playback = (await client.GetFromJsonAsync<PlaybackState>("/api/playback", Wire.Json))!;
+                Assert.Empty(playback.PadIds);
+                Assert.False(string.IsNullOrWhiteSpace(playback.SessionId));
+                Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/trigger",
+                    new Trigger(snapshot.Decks[0].Pads[0].Id, Guid.NewGuid().ToString(), true, "invalid"), Wire.Json)).StatusCode);
                 var decks = snapshot.Decks.ToList();
                 decks[0] = decks[0] with { Name = "Game night", SteamAppId = "730", Pads = decks[0].Pads.AsEnumerable().Reverse().ToList() };
                 var response = await client.PutAsJsonAsync("/api/decks", new DeckUpdate(snapshot.Version, decks), Wire.Json);

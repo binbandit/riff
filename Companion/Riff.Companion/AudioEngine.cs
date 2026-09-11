@@ -7,11 +7,15 @@ namespace Riff.Companion;
 public sealed class AudioEngine : IDisposable
 {
     readonly object gate = new();
+    readonly object controlGate = new();
+    readonly string sessionId = Guid.NewGuid().ToString("N");
+    long revision;
+    string soundMode = "overlap";
     readonly List<Playback> playing = [];
     float volume = .75f;
-    sealed record Playback(WasapiOut Output, AudioFileReader Reader, MMDevice Device) : IDisposable
+    sealed record Playback(string Id, string PadId, WasapiOut Output, AudioFileReader Reader, MMDevice Device) : IDisposable
     {
-        public void Dispose() { Output.Dispose(); Reader.Dispose(); Device.Dispose(); }
+        public void Dispose() { try { Output.Dispose(); } finally { try { Reader.Dispose(); } finally { Device.Dispose(); } } }
     }
     public List<DeviceInfo> Devices()
     {
@@ -25,37 +29,80 @@ public sealed class AudioEngine : IDisposable
     {
         lock (gate) { volume = value; foreach (var item in playing) item.Reader.Volume = volume; }
     }
-    public void Play(string path, string outputId)
+    public Riff.Core.PlaybackState Status()
     {
-        lock (gate)
+        lock (gate) return new(sessionId, revision, playing.Select(p => p.PadId).Where(id => id.Length > 0).Distinct().ToList());
+    }
+    public void Play(string path, string outputId, string padId = "", bool toggle = false, string? mode = null)
+    {
+        lock (controlGate)
         {
-            if (playing.Count >= 16) throw new ArgumentException("16 sounds are already playing. Stop a few before starting another.");
+            Playback[] stopped;
+            PlaybackPlan plan;
+            lock (gate)
+            {
+                var selectedMode = mode ?? soundMode;
+                plan = PlaybackPolicy.Plan(playing.Select(p => new ActiveSound(p.Id, p.PadId)).ToList(), padId, toggle, selectedMode);
+                soundMode = selectedMode;
+                stopped = playing.Where(p => plan.StopIds.Contains(p.Id)).ToArray();
+                foreach (var item in stopped) playing.Remove(item);
+                if (stopped.Length > 0) revision++;
+            }
+            Stop(stopped);
+            if (!plan.Start) return;
             using var enumerator = new MMDeviceEnumerator();
             var device = outputId == "" ? enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia) : enumerator.GetDevice(outputId);
             AudioFileReader? reader = null;
             WasapiOut? output = null;
+            var registered = false;
             try
             {
                 reader = new AudioFileReader(path) { Volume = volume };
                 output = new WasapiOut(device, AudioClientShareMode.Shared, true, 40);
-                var playback = new Playback(output, reader, device);
+                var playback = new Playback(Guid.NewGuid().ToString("N"), padId, output, reader, device);
                 output.Init(reader);
-                output.PlaybackStopped += (_, _) => { lock (gate) { if (playing.Remove(playback)) playback.Dispose(); } };
-                playing.Add(playback);
+                output.PlaybackStopped += (_, _) =>
+                {
+                    bool removed;
+                    lock (gate) { removed = playing.Remove(playback); if (removed) revision++; }
+                    // NAudio can invoke this on its render thread; Dispose joins that thread.
+                    if (removed) ThreadPool.QueueUserWorkItem(_ =>
+                    {
+                        try { playback.Dispose(); }
+                        catch (Exception error) { System.Diagnostics.Trace.TraceError("Audio cleanup failed: {0}", error); }
+                    });
+                };
+                lock (gate) { reader.Volume = volume; playing.Add(playback); revision++; registered = true; }
                 output.Play();
             }
             catch
             {
-                playing.RemoveAll(p => ReferenceEquals(p.Output, output));
-                output?.Dispose(); reader?.Dispose(); device.Dispose(); throw;
+                bool owned;
+                lock (gate) { owned = playing.RemoveAll(p => ReferenceEquals(p.Output, output)) > 0; if (owned) revision++; }
+                // Before registering playback, this method still owns all resources.
+                if (!registered || owned) { output?.Dispose(); reader?.Dispose(); device.Dispose(); }
+                throw;
             }
         }
     }
+    static void Stop(IEnumerable<Playback> items)
+    {
+        List<Exception> errors = [];
+        foreach (var item in items)
+        {
+            try { item.Dispose(); }
+            catch (Exception error) { errors.Add(error); }
+        }
+        if (errors.Count > 0) throw new AggregateException("Could not close every audio output.", errors);
+    }
     public void StopAll()
     {
-        Playback[] items;
-        lock (gate) { items = playing.ToArray(); playing.Clear(); }
-        foreach (var item in items) { item.Output.Stop(); item.Dispose(); }
+        lock (controlGate)
+        {
+            Playback[] items;
+            lock (gate) { items = playing.ToArray(); playing.Clear(); if (items.Length > 0) revision++; }
+            Stop(items);
+        }
     }
     public void Dispose() => StopAll();
 

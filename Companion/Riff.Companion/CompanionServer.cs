@@ -26,7 +26,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             var s = store.State;
             return new(s.Version, s.Decks, s.Clips, audio.Devices(), s.OutputId, s.Volume,
                 s.Apps.Select(a => new LaunchTargetInfo(a.Id, a.Name)).ToList(), Environment.MachineName,
-                presence.Games, presence.Id, presence.Name);
+                presence.Games, presence.Id, presence.Name, ["soundboard-playback-v1"]);
         }
     }
     public async Task Start()
@@ -74,6 +74,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             await next();
         });
         app.MapGet("/api/state", () => Snapshot());
+        app.MapGet("/api/playback", () => audio.Status());
         app.MapPut("/api/decks", (DeckUpdate update) => { store.UpdateDecks(update); Activity?.Invoke("Deck layout saved"); return Snapshot(); });
         app.MapPost("/api/trigger", async (Trigger trigger) =>
         {
@@ -84,13 +85,13 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             lock (store.Gate) pad = store.State.Decks.SelectMany(d => d.Pads).FirstOrDefault(p => p.Id == trigger.PadId);
             if (pad is null) throw new ArgumentException("This button no longer exists. Refresh your decks.");
             if (!received.TryAdd(trigger.RequestId, DateTime.UtcNow)) throw new ArgumentException("This action was already received; it will not run again.");
-            await runner.Run(pad); Activity?.Invoke($"Played action: {pad.Title}"); return new { ok = true };
+            await runner.Run(pad, trigger.Toggle, trigger.SoundMode); Activity?.Invoke($"Sound/action: {pad.Title}"); return new { ok = true, playback = audio.Status() };
         });
-        app.MapPost("/api/stop", () => { runner.Stop(); Activity?.Invoke("All sounds and sequences stopped"); return new { ok = true }; });
+        app.MapPost("/api/stop", () => { runner.Stop(); Activity?.Invoke("All sounds and sequences stopped"); return new { ok = true, playback = audio.Status() }; });
         app.MapPost("/api/preview", async (PreviewRequest preview) =>
         {
-            await runner.Run(new("preview", "Preview", "waveform", "orange", "sound", preview.ClipId, []));
-            return new { ok = true };
+            await runner.Run(new("preview", "Preview", "waveform", "orange", "sound", preview.ClipId, []), soundMode: preview.SoundMode);
+            return new { ok = true, playback = audio.Status() };
         });
         app.MapPut("/api/audio", (AudioSettings settings) =>
         {
@@ -137,5 +138,5 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
         await app.StartAsync();
     }
     public async Task Stop() { runner.Stop(); if (app is not null) { await app.StopAsync(); await app.DisposeAsync(); } }
-    public record PreviewRequest(string ClipId);
+    public record PreviewRequest(string ClipId, string? SoundMode = null);
 }
