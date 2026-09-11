@@ -1,0 +1,9 @@
+# App icon
+
+The iPad icon lives in `Riff/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png`. It is an opaque 1024 × 1024 PNG. Its background fills the square; iPadOS applies the home-screen mask.
+
+Created with the built-in image generation tool, then resized to the asset catalog's required dimensions. The four pads use the app's playful palette and a waveform to suggest its soundboard controls.
+
+## Generation prompt
+
+Use case: logo-brand. Asset type: final production iPad app icon for Riff, a playful native soundboard and control deck. Create one square 1024x1024 icon image, full bleed opaque background to all four corners, no outer rounded rectangle or surrounding canvas (iPadOS applies its own mask). Background is rich warm tomato red, approximately #BA382F, with a very subtle soft light gradient. Center a bold compact 2x2 arrangement of four tactile softly rounded square sound pads, viewed straight-on with just a hint of thickness and short soft shadows. The arrangement occupies about 68 percent of the canvas, generous equal safe margins; gaps clean and consistent. Pads in buttery golden yellow (top left), soft lavender (top right), blush pink (bottom left), and pale sky blue (bottom right), matching a warm friendly soundboard. A single dark warm charcoal audio waveform glyph made of three thick round-ended vertical bars, short-tall-medium, centered on ONLY the yellow pad. Other three pads are completely blank. The pads have beautifully controlled subtle satin material highlights and smooth contours, contemporary independent Apple app craft, restrained tactile depth, very legible at tiny home screen size. Precisely balanced and charming, not a dashboard or corporate logo. No text, letters, borders, symbols on other pads, sparkles, extra objects, noisy textures, excessive gloss, or watermark. Render the final icon artwork only.
