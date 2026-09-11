@@ -48,10 +48,8 @@ struct AudioControlsView: View {
                 if let failure { Section { Text(failure).foregroundStyle(.red) } }
                 Section {
                     NavigationLink {
-                        Form { GameChatInstructions() }
-                            .scrollContentBackground(.hidden).background(Palette.background)
-                            .navigationTitle("Game chat setup").navigationBarTitleDisplayMode(.inline)
-                    } label: { Label("Game chat setup", systemImage: "mic") }
+                        AudioSetupView()
+                    } label: { Label("Microphone, sounds & music", systemImage: "mic") }
                 }
             }
             .scrollContentBackground(.hidden).background(Palette.background)

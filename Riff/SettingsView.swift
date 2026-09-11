@@ -103,7 +103,11 @@ struct SettingsView: View {
                     }
                     if let failure { Text(failure).foregroundStyle(.red) }
                 } header: { Text("Audio routing") } footer: { Text("Apply changes before testing. New sounds use the selected output. Stop existing sounds before switching devices.") }
-                Section("Make sounds your voice") { GameChatInstructions() }
+                Section {
+                    NavigationLink { AudioSetupView() } label: {
+                        Label("Microphone, sounds & music", systemImage: "mic")
+                    }
+                }
                 Section("Make it yours") {
                     NavigationLink { AppearanceView() } label: {
                         Label("Appearance", systemImage: "paintpalette")
@@ -131,20 +135,6 @@ struct SettingsView: View {
 #if DEBUG
                 .navigationDestination(isPresented: .constant(DesignPreview.screen == "appearance")) { AppearanceView() }
 #endif
-        }
-    }
-}
-
-struct GameChatInstructions: View {
-    var body: some View {
-        Group {
-                    Label("1. Install a virtual audio cable on Windows.", systemImage: "cable.connector")
-                    Label("2. Select CABLE Input in Riff’s Sound output controls.", systemImage: "speaker.wave.2")
-                    Label("3. Select CABLE Output as your game or Discord microphone.", systemImage: "mic")
-                    Label("4. Use voice activation, or hold your game’s push-to-talk key while the sound plays.", systemImage: "waveform")
-                    Text("If a clip is cut off, lower the input threshold and disable noise suppression or automatic voice processing in your chat app. To hear it yourself, use Windows’ Listen to this device option on CABLE Output, with headphones as the playback device.").font(.caption).foregroundStyle(.secondary)
-                    Text("This sends prerecorded sounds instead of your physical microphone. To mix your live voice with sounds, use a mixer such as Voicemeeter.").font(.caption).foregroundStyle(.secondary)
-                    Link("Get VB-CABLE", destination: URL(string: "https://vb-audio.com/Cable/")!)
         }
     }
 }
