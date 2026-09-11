@@ -110,7 +110,7 @@ struct SettingsView: View {
                     Link("Get VB-CABLE", destination: URL(string: "https://vb-audio.com/Cable/")!)
                 }
                 Section("Layout") {
-                    Picker("Columns", selection: $store.columns) { Text("Automatic").tag(0); Text("2").tag(2); Text("3").tag(3); Text("4").tag(4); Text("5").tag(5) }
+                    NavigationLink("Grid size") { GridLayoutView() }
                     Toggle("Follow my Steam game", isOn: $store.autoSwitch)
                     Text("Link a game in Deck settings. Riff switches when a new game starts, and pauses switching while you edit. You can always choose another deck manually.").font(.caption).foregroundStyle(.secondary)
                 }

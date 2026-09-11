@@ -22,13 +22,13 @@ struct ContentView: View {
     @State private var picker = false
     @State private var pendingClip: Clip?
     enum Destination: String, Identifiable {
-        case connection, recording, settings, sounds
+        case connection, recording, settings, sounds, grid
         var id: String { rawValue }
     }
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
-                let layout = BoardLayout(size: geometry.size, preferredColumns: store.columns)
+                let layout = BoardLayout(size: geometry.size, preferences: store.grid)
                 VStack(spacing: 0) {
                     deckHeading
                         .padding(.horizontal, layout.margin)
@@ -64,6 +64,7 @@ struct ContentView: View {
                         Button { destination = .sounds } label: { Image(systemName: "waveform.path") }.accessibilityLabel("Sounds")
                         Menu {
                             Button("Edit buttons", systemImage: "square.grid.2x2") { store.editing = true }.disabled(!store.connected)
+                            Button("Grid size", systemImage: "square.grid.3x3") { destination = .grid }
                             Button("Deck settings", systemImage: "pencil") { editDeck = store.selectedDeck }.disabled(!store.connected)
                             Divider()
                             Button("Settings", systemImage: "gearshape") { destination = .settings }
@@ -84,6 +85,7 @@ struct ContentView: View {
             case .connection: ConnectionView()
             case .recording: RecordingView { clip in pendingClip = clip; destination = nil }
             case .settings: SettingsView()
+            case .grid: NavigationStack { GridLayoutView() }
             case .sounds:
                 NavigationStack {
                     LibraryView(onAssign: { clip in pendingClip = clip; destination = nil })
@@ -98,13 +100,14 @@ struct ContentView: View {
             Button("OK", role: .cancel) { store.error = nil }
         } message: { Text(store.error ?? "") }
         .onChange(of: store.selectedDeckId) { _, _ in page = 0 }
-        .onChange(of: store.columns) { _, _ in page = 0 }
+        .onChange(of: store.grid) { _, _ in page = 0 }
         .onChange(of: editor != nil || editDeck != nil || destination != nil || picker) { _, presented in store.interacting = presented }
 #if DEBUG
         .task {
             try? await Task.sleep(for: .milliseconds(600))
             DesignPreview.orient()
             switch DesignPreview.screen {
+            case "grid": destination = .grid
             case "sounds": destination = .sounds
             case "recording": destination = .recording
             case "settings": destination = .settings
@@ -193,13 +196,17 @@ struct ContentView: View {
                         let start = number * layout.capacity
                         let end = min(start + layout.capacity, pads.count)
                         let shown = Array(pads[start..<end])
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: layout.gap), count: layout.columns), spacing: layout.gap) {
-                            ForEach(shown) { pad in
-                                tile(pad, pads: pads).frame(height: layout.padHeight)
+                        ScrollView([.horizontal, .vertical]) {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: layout.gap), count: layout.columns), spacing: layout.gap) {
+                                ForEach(shown) { pad in
+                                    tile(pad, pads: pads).frame(height: layout.padHeight)
+                                }
                             }
+                            .frame(width: layout.gridWidth)
+                            .padding(.horizontal, layout.margin)
+                            .padding(.vertical, 12)
                         }
-                        .padding(.horizontal, layout.margin)
-                        .padding(.vertical, 12)
+                        .defaultScrollAnchor(.center)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                         .tag(number)
                     }
@@ -208,12 +215,13 @@ struct ContentView: View {
                 .onChange(of: layout.capacity) { _, _ in page = 0 }
             }
             if pages > 1 {
-                HStack(spacing: 10) {
-                    ForEach(0..<pages, id: \.self) { index in
-                        Button { withAnimation { page = index } } label: {
-                            Circle().fill(index == page ? Color.primary : Color.secondary.opacity(0.25)).frame(width: 7, height: 7).padding(.vertical, 12)
-                        }.accessibilityLabel("Page \(index + 1) of \(pages)").accessibilityAddTraits(index == page ? .isSelected : [])
-                    }
+                HStack(spacing: 20) {
+                    Button { withAnimation { page = max(0, page - 1) } } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44) }
+                        .disabled(page == 0).accessibilityLabel("Previous page")
+                    Text("\(page + 1) of \(pages)").font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
+                        .accessibilityLabel("Page \(page + 1) of \(pages)")
+                    Button { withAnimation { page = min(pages - 1, page + 1) } } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44) }
+                        .disabled(page == pages - 1).accessibilityLabel("Next page")
                 }
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -267,25 +275,6 @@ struct ContentView: View {
         Button { Task { await store.stopAll() } } label: {
             Label("Stop all", systemImage: "stop.fill").font(.body.weight(.medium)).padding(.horizontal, 20).padding(.vertical, 15)
         }.foregroundStyle(.primary).background(Palette.panel, in: Capsule()).buttonStyle(PadPressStyle())
-    }
-}
-
-struct BoardLayout {
-    let columns: Int
-    let capacity: Int
-    let padHeight: CGFloat
-    let margin: CGFloat
-    let gap: CGFloat
-    init(size: CGSize, preferredColumns: Int) {
-        let portrait = size.height > size.width
-        columns = size.width < 520 ? 2 : preferredColumns == 0 ? (portrait ? 2 : 3) : min(5, max(2, preferredColumns))
-        let rows = portrait ? 3 : 2
-        capacity = columns * rows
-        margin = size.width < 520 ? 20 : portrait ? 48 : 44
-        gap = size.width < 520 ? 14 : 22
-        let width = (size.width - margin * 2 - gap * CGFloat(columns - 1)) / CGFloat(columns)
-        let height = (size.height - 220 - gap * CGFloat(rows - 1)) / CGFloat(rows)
-        padHeight = max(104, min(width * 0.96, height))
     }
 }
 

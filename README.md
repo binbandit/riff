@@ -9,7 +9,7 @@ Your iPad, your control room. A native SwiftUI control deck and a Windows 11 com
 - Import WAV, MP3, M4A, AAC or AIFF audio (20 MB / 60 seconds maximum), on iPad or PC.
 - Send clips into game voice chat using a virtual microphone.
 - Create, rename, duplicate, and delete decks. Drag buttons to rearrange them in Edit mode. The long-press menu also offers Move earlier/later.
-- Choose 3, 4, or 5 columns; compact windows use two columns.
+- Open **… → Grid size** to choose 1–6 columns and rows, with a live preview and buttons-per-page count. Layouts are saved per deck on this iPad. Automatic uses 2 × 3 in portrait and 3 × 2 in landscape. Extra buttons move to additional pages; dense grids scroll in small windows.
 - Link decks to Steam games and optionally switch when Steam reports a game running.
 - Assign keyboard shortcuts, typed text, media controls, websites, locally approved applications, or sequences of up to 20 actions.
 - Stop all playing sounds and cancel remaining sequence steps immediately.

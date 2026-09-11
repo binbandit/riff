@@ -17,8 +17,18 @@ import Observation
     var autoSwitch = UserDefaults.standard.object(forKey: "autoSwitch") as? Bool ?? true {
         didSet { UserDefaults.standard.set(autoSwitch, forKey: "autoSwitch") }
     }
-    var columns = UserDefaults.standard.object(forKey: "columns") as? Int ?? 0 {
-        didSet { UserDefaults.standard.set(columns, forKey: "columns") }
+    private var gridLayouts: [String: GridPreferences] = {
+        guard let data = UserDefaults.standard.data(forKey: "gridLayouts"),
+              let saved = try? JSONDecoder().decode([String: GridPreferences].self, from: data) else { return [:] }
+        return saved
+    }() {
+        didSet {
+            if let data = try? JSONEncoder().encode(gridLayouts) { UserDefaults.standard.set(data, forKey: "gridLayouts") }
+        }
+    }
+    var grid: GridPreferences {
+        get { gridLayouts[selectedDeckId] ?? GridPreferences(columns: UserDefaults.standard.integer(forKey: "columns")) }
+        set { gridLayouts[selectedDeckId] = newValue }
     }
     private var client: CompanionClient?
     private var player: AVAudioPlayer?
