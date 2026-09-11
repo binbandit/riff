@@ -97,7 +97,7 @@ public class CompanionIntegrationTests
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", identity.Token);
                 (await client.GetAsync("/api/state")).EnsureSuccessStatusCode();
             }
-            finally { await server.Stop(); }
+            finally { await server.Stop(); await server.Stop(); }
         }
         finally { Directory.Delete(folder, true); }
     }

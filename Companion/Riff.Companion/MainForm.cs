@@ -202,7 +202,10 @@ public sealed class MainForm : Form
         if (stopping) return;
         args.Cancel = true;
         if (!exiting) { Hide(); tray.ShowBalloonTip(2000, "Riff is still running", "Open Riff from the system tray. Choose Quit Riff there to exit.", ToolTipIcon.Info); return; }
+        if (!Enabled) return;
         Enabled = false; timer.Stop();
-        await server.Stop(); stopping = true; tray.Visible = false; tray.Dispose(); timer.Dispose(); qr.Image?.Dispose(); Close();
+        try { await server.Stop(); }
+        catch (Exception error) { AddLog("Could not finish cleanup: " + error.Message); }
+        finally { stopping = true; tray.Visible = false; tray.Dispose(); timer.Dispose(); qr.Image?.Dispose(); Close(); }
     }
 }

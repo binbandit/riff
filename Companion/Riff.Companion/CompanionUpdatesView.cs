@@ -5,7 +5,7 @@ namespace Riff.Companion;
 
 public sealed class CompanionUpdatesView : UserControl
 {
-    readonly HttpClient http = new(new HttpClientHandler { UseCookies = false });
+    readonly HttpClient http;
     readonly CancellationTokenSource lifetime = new();
     readonly Label heading = new() { AutoSize = true, Text = "Keep your companion in tune.", Font = new("Segoe UI", 22, FontStyle.Bold), Margin = new(0, 0, 0, 10) };
     readonly Label versions = new() { AutoSize = true, ForeColor = Color.Silver, Margin = new(0, 0, 0, 12) };
@@ -20,8 +20,9 @@ public sealed class CompanionUpdatesView : UserControl
     bool checking;
     public event Action<bool>? UpdateAvailable;
 
-    public CompanionUpdatesView()
+    public CompanionUpdatesView(HttpMessageHandler? updateHandler = null)
     {
+        http = new HttpClient(updateHandler ?? new HttpClientHandler { UseCookies = false });
         Dock = DockStyle.Fill; BackColor = Color.FromArgb(24, 28, 34); ForeColor = Color.White;
         var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, Padding = new(24) };
         layout.ColumnStyles.Add(new(SizeType.Percent, 100));
@@ -76,12 +77,12 @@ public sealed class CompanionUpdatesView : UserControl
                 notes.Rtf = ReleaseMarkdown.ToRtf(markdown, latest.Page);
                 notes.Select(0, 0); notes.ScrollToCaret();
             }
-            catch (Exception ex) when (ex is HttpRequestException or IOException or System.Text.Json.JsonException or OperationCanceledException or System.Text.DecoderFallbackException)
+            catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidDataException or System.Text.Json.JsonException or OperationCanceledException or System.Text.DecoderFallbackException)
             {
                 if (!lifetime.IsCancellationRequested) notes.Text = ex is OperationCanceledException ? "The release notes took too long to load. Check again, or open the release on GitHub." : ex.Message;
             }
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or System.Text.Json.JsonException or OperationCanceledException)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidDataException or System.Text.Json.JsonException or OperationCanceledException)
         {
             if (!lifetime.IsCancellationRequested)
             {
@@ -111,7 +112,7 @@ public sealed class CompanionUpdatesView : UserControl
     }
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { lifetime.Cancel(); timer.Dispose(); http.Dispose(); lifetime.Dispose(); }
+        if (disposing && !IsDisposed) { lifetime.Cancel(); timer.Dispose(); http.Dispose(); lifetime.Dispose(); }
         base.Dispose(disposing);
     }
 }

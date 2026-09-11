@@ -115,7 +115,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
                 var clip = AudioEngine.Import(temporary, name, store);
                 Activity?.Invoke($"Imported sound: {clip.Name}"); return clip;
             }
-            finally { if (temporary is not null) File.Delete(temporary); importGate.Release(); }
+            finally { try { DeleteTemporaryUpload(temporary); } finally { importGate.Release(); } }
         });
         app.MapPut("/api/clips/{id}", (string id, ClipRename rename) =>
         {
@@ -137,6 +137,28 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
         });
         await app.StartAsync();
     }
-    public async Task Stop() { runner.Stop(); if (app is not null) { await app.StopAsync(); await app.DisposeAsync(); } }
+    static void DeleteTemporaryUpload(string? path)
+    {
+        if (path is null) return;
+        try { File.Delete(path); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            // A scanner can hold a completed upload briefly. Do not turn a saved clip into a failed import.
+            System.Diagnostics.Trace.TraceWarning("Could not remove a temporary sound upload: {0}", error.Message);
+        }
+    }
+    public async Task Stop()
+    {
+        try { runner.Stop(); }
+        finally
+        {
+            var running = Interlocked.Exchange(ref app, null);
+            if (running is not null)
+            {
+                try { await running.StopAsync(); }
+                finally { await running.DisposeAsync(); }
+            }
+        }
+    }
     public record PreviewRequest(string ClipId, string? SoundMode = null);
 }
