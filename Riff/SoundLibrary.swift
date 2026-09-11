@@ -5,15 +5,21 @@ struct LibraryView: View {
     @Environment(RiffStore.self) private var store
     var onAssign: (Clip) -> Void
     @State private var search = ""
+    @State private var scope = SoundScope.all
     @State private var importing = false
     @State private var recording = false
     @State private var naming: SoundNameTarget?
     @State private var failure: String?
     @State private var deleteClip: Clip?
     @State private var recorded: Clip?
-    private var clips: [Clip] { store.snapshot.clips.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) } }
+    private var clips: [Clip] { SoundCatalog.visible(store.snapshot.clips, query: search, scope: scope, favorites: store.favoriteClipIDs, deck: store.selectedDeck) }
     var body: some View {
         List {
+            Section {
+                Picker("Show sounds", selection: $scope) {
+                    ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0) }
+                }.pickerStyle(.segmented).listRowBackground(Color.clear)
+            }
             if !store.connected {
                 Section { Text("Preview sounds here. Connect your PC to record, import, or add them to a deck.").font(.subheadline).foregroundStyle(.secondary) }
             }
@@ -25,7 +31,10 @@ struct LibraryView: View {
                                 .frame(width: 48, height: 48).background(Palette.accent.opacity(0.09), in: Circle())
                         }.buttonStyle(.borderless).accessibilityLabel("Play \(clip.name)")
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(clip.name).font(.body.weight(.medium))
+                            HStack(spacing: 6) {
+                                Text(clip.name).font(.body.weight(.medium))
+                                if store.favoriteClipIDs.contains(clip.id) { Image(systemName: "star.fill").font(.caption).foregroundStyle(Palette.accent).accessibilityLabel("Favorite") }
+                            }
                             Text(String(format: "%.1f sec", clip.duration)).font(.subheadline).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -36,12 +45,21 @@ struct LibraryView: View {
                             Button("Delete", role: .destructive) { deleteClip = clip }.disabled(!store.connected)
                             Button("Rename") { naming = .existing(clip) }.tint(Palette.accent).disabled(!store.connected)
                         }
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button { store.toggleFavorite(clip) } label: {
+                                Label(store.favoriteClipIDs.contains(clip.id) ? "Unfavorite" : "Favorite", systemImage: "star")
+                            }.tint(Palette.accent)
+                        }
                         .contextMenu {
+                            Button(store.favoriteClipIDs.contains(clip.id) ? "Remove favorite" : "Add to favorites", systemImage: "star") { store.toggleFavorite(clip) }
                             Button("Rename sound", systemImage: "pencil") { naming = .existing(clip) }.disabled(!store.connected)
                             Button("Delete sound", role: .destructive) { deleteClip = clip }.disabled(!store.connected)
                         }
                 }
-            } header: { Text("\(store.snapshot.clips.count) sounds") }
+            } header: { Text("\(clips.count) sounds") }
+            if clips.isEmpty {
+                SoundEmptyView(scope: scope, searching: !search.isEmpty).listRowBackground(Color.clear)
+            }
 
         }
         .scrollContentBackground(.hidden).background(Palette.background)
@@ -52,7 +70,7 @@ struct LibraryView: View {
             if DesignPreview.screen == "import", let url = Bundle.main.url(forResource: "level-up", withExtension: "wav") { naming = .imported(url) }
         }
 #endif
-        .overlay { if clips.isEmpty && !search.isEmpty { ContentUnavailableView.search(text: search) } }
+        .safeAreaInset(edge: .bottom) { SoundPreviewBar() }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Menu {

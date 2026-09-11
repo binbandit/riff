@@ -22,7 +22,7 @@ struct ContentView: View {
     @State private var picker = false
     @State private var pendingClip: Clip?
     enum Destination: String, Identifiable {
-        case connection, recording, settings, sounds, grid
+        case connection, recording, settings, sounds, grid, audio
         var id: String { rawValue }
     }
     var body: some View {
@@ -65,6 +65,7 @@ struct ContentView: View {
                         Menu {
                             Button("Edit buttons", systemImage: "square.grid.2x2") { store.editing = true }.disabled(!store.connected)
                             Button("Grid size", systemImage: "square.grid.3x3") { destination = .grid }
+                            Button("Sound output", systemImage: "speaker.wave.2") { destination = .audio }
                             Button("Deck settings", systemImage: "pencil") { editDeck = store.selectedDeck }.disabled(!store.connected)
                             Divider()
                             Button("Settings", systemImage: "gearshape") { destination = .settings }
@@ -85,6 +86,7 @@ struct ContentView: View {
             case .connection: ConnectionView()
             case .recording: RecordingView { clip in pendingClip = clip; destination = nil }
             case .settings: SettingsView()
+            case .audio: AudioControlsView()
             case .grid: NavigationStack { GridLayoutView() }
             case .sounds:
                 NavigationStack {
@@ -108,6 +110,7 @@ struct ContentView: View {
             DesignPreview.orient()
             switch DesignPreview.screen {
             case "grid": destination = .grid
+            case "audio": destination = .audio
             case "sounds", "rename", "import": destination = .sounds
             case "recording": destination = .recording
             case "settings": destination = .settings
@@ -271,7 +274,7 @@ struct ContentView: View {
         .foregroundStyle(.white).background(Palette.accent, in: Capsule()).buttonStyle(PadPressStyle())
     }
     private var outputButton: some View {
-        Button { destination = .settings } label: {
+        Button { destination = .audio } label: {
             Label(store.connected ? store.outputName : "iPad speakers", systemImage: store.cableSelected ? "mic" : "speaker.wave.2")
                 .font(.subheadline).lineLimit(1).truncationMode(.middle).frame(maxWidth: 270)
         }.foregroundStyle(.secondary).buttonStyle(.plain)

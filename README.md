@@ -8,8 +8,10 @@ Your iPad, your control room. A native SwiftUI control deck and a Windows 11 com
 - Record up to 60 seconds on the iPad, listen back, name the clip, and turn it into a button.
 - Import WAV, MP3, M4A, AAC or AIFF audio (20 MB / 60 seconds maximum), on iPad or PC.
 - Send clips into game voice chat using a virtual microphone.
+- Find clips with **All**, **Favorites**, and **This deck** filters. Swipe right or hold a sound to favorite it; favorites are saved on this iPad. Button editors use the same searchable sound browser with preview playback.
+- Tap the output label below your deck, or **… → Sound output**, for volume and routing. Sound browsers show the preview destination and keep **Stop all** visible.
 - Name imported sounds before adding them, or swipe a library sound and choose **Rename**. Renaming preserves its button links and custom button labels.
-- Long-press a button and choose **Duplicate button** to customize a copy before saving.
+- Long-press a button and choose **Duplicate button** to customize a copy before saving. Change **Deck** in the editor to move an existing button or save a copy to another deck.
 - Create, rename, duplicate, and delete decks. Drag buttons to rearrange them in Edit mode. The long-press menu also offers Move earlier/later.
 - Open **… → Grid size** to choose 1–6 columns and rows, with a live preview and buttons-per-page count. Layouts are saved per deck on this iPad. Automatic uses 2 × 3 in portrait and 3 × 2 in landscape. Extra buttons move to additional pages; dense grids scroll in small windows.
 - Link decks to Steam games and optionally switch when Steam reports a game running.

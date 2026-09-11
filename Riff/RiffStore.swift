@@ -14,6 +14,13 @@ import Observation
     var activePad: String?
     var editing = false
     var interacting = false
+    private(set) var favoriteClipIDs = Set(UserDefaults.standard.stringArray(forKey: "favoriteClipIDs") ?? []) {
+        didSet { UserDefaults.standard.set(favoriteClipIDs.sorted(), forKey: "favoriteClipIDs") }
+    }
+    func toggleFavorite(_ clip: Clip) {
+        if favoriteClipIDs.contains(clip.id) { favoriteClipIDs.remove(clip.id) }
+        else { favoriteClipIDs.insert(clip.id) }
+    }
     var autoSwitch = UserDefaults.standard.object(forKey: "autoSwitch") as? Bool ?? true {
         didSet { UserDefaults.standard.set(autoSwitch, forKey: "autoSwitch") }
     }
@@ -138,11 +145,9 @@ import Observation
         }
     }
     func savePad(_ pad: Pad, in deckId: String) async throws {
-        var decks = snapshot.decks
-        guard let index = decks.firstIndex(where: { $0.id == deckId }) else { throw RiffError.message("This deck no longer exists.") }
-        if let padIndex = decks[index].pads.firstIndex(where: { $0.id == pad.id }) { decks[index].pads[padIndex] = pad }
-        else { decks[index].pads.append(pad) }
-        try await saveDecks(decks)
+        try await saveDecks(snapshot.decksSaving(pad, in: deckId))
+        selectedDeckId = deckId
+        message("Saved \(pad.title)")
     }
     func movePad(_ id: String, to target: String) async {
         var decks = snapshot.decks

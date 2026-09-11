@@ -5,6 +5,7 @@ struct PadEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State var pad: Pad
     let deckId: String
+    @State private var targetDeckId: String?
     @State private var saving = false
     @State private var failure: String?
     @State private var confirmDelete = false
@@ -22,6 +23,15 @@ struct PadEditor: View {
                             }
                         }
                     }.padding(.vertical, 10)
+                }
+                Section {
+                    Picker("Deck", selection: Binding(get: { targetDeckId ?? deckId }, set: { targetDeckId = $0 })) {
+                        ForEach(store.snapshot.decks) { Text($0.name).tag($0.id) }
+                    }
+                } footer: {
+                    if (targetDeckId ?? deckId) != deckId && store.snapshot.decks.flatMap(\.pads).contains(where: { $0.id == pad.id }) {
+                        Text("This button moves to the selected deck when you save. To keep both, cancel and choose Duplicate button instead.")
+                    }
                 }
                 Section("Action") {
                     Picker("Action", selection: $pad.kind) { ForEach(ActionKind.allCases) { kind in Label(kind.label, systemImage: kind.icon).tag(kind.rawValue) } }
@@ -86,7 +96,7 @@ struct PadEditor: View {
     }
     private func save() {
         saving = true; failure = nil; pad.title = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        Task { do { try await store.savePad(pad, in: deckId); dismiss() } catch { failure = error.localizedDescription }; saving = false }
+        Task { do { try await store.savePad(pad, in: targetDeckId ?? deckId); dismiss() } catch { failure = error.localizedDescription }; saving = false }
     }
 }
 
@@ -97,7 +107,11 @@ struct ActionFields: View {
     var body: some View {
         switch kind {
         case "sound":
-            Picker("Sound", selection: $value) { ForEach(store.snapshot.clips) { Text($0.name).tag($0.id) } }
+            NavigationLink {
+                SoundPickerView(selection: $value)
+            } label: {
+                LabeledContent("Sound", value: store.snapshot.clips.first(where: { $0.id == value })?.name ?? "Choose a sound")
+            }
             Text("Plays through the output selected in Audio settings. For game chat, choose your virtual cable.").font(.caption).foregroundStyle(.secondary)
         case "hotkey":
             TextField("Ctrl+Shift+M", text: $value).textInputAutocapitalization(.never).autocorrectionDisabled()

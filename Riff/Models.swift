@@ -62,6 +62,18 @@ struct Snapshot: Codable {
     var games: [SteamGame]
     var activeGameId: String
     var activeGameName: String
+    func decksSaving(_ pad: Pad, in deckId: String) throws -> [Deck] {
+        var result = decks
+        guard let target = result.firstIndex(where: { $0.id == deckId }) else { throw RiffError.message("This deck no longer exists.") }
+        if let existing = result[target].pads.firstIndex(where: { $0.id == pad.id }) {
+            result[target].pads[existing] = pad
+        } else {
+            guard result[target].pads.count < 48 else { throw RiffError.message("This deck has 48 buttons. Choose another deck or remove a button first.") }
+            for index in result.indices where index != target { result[index].pads.removeAll { $0.id == pad.id } }
+            result[target].pads.append(pad)
+        }
+        return result
+    }
 }
 enum ActionKind: String, CaseIterable, Identifiable {
     case sound, hotkey, text, url, app, media, macro
