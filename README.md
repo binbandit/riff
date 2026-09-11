@@ -1,163 +1,160 @@
 # Riff
 
-Your iPad, your control room. A native SwiftUI control deck and a Windows 11 companion, with no account or subscription.
+Riff turns your iPad into a soundboard and control deck for your Windows PC. Play clips in game chat, trigger keyboard shortcuts, launch apps, or put a few repetitive actions behind one button.
 
-## What you can do
+It's a native SwiftUI app with a Windows companion. Both run on your own devices, over your local network. No account or subscription required.
 
-- Tap large color-coded pads to play sounds on your PC. A playing sound shows a stop symbol; tap it again to stop just that button.
-- Record up to 60 seconds on the iPad, listen back, name the clip, and turn it into a button.
-- Import WAV, MP3, M4A, AAC or AIFF audio from iPad Files or Windows. Direct PC imports are limited to 20 MB / 60 seconds; longer iPad imports can be trimmed before upload.
-- Send clips into game voice chat using a virtual microphone.
-- Find clips with **All**, **Favorites**, and **This deck** filters. Swipe right or hold a sound to favorite it; favorites are saved on this iPad. Button editors use the same searchable sound browser with preview playback.
-- Tap the output label below your deck, or **… → Sound controls**, for playback mode, volume, and routing. Sound browsers show the preview destination and keep **Stop all** visible.
-- Trim imported audio or a new recording with an actual waveform, start point, and clip length. **Listen on iPad** previews the selection privately; **Save & add** uploads only that section. iPad imports accept source files up to 10 minutes / 100 MB (96 kHz or below), trimmed to 60 seconds. The original file is unchanged.
-- Name imported sounds before adding them, or swipe a library sound and choose **Rename**. Renaming preserves its button links and custom button labels.
-- Long-press a button and choose **Duplicate button** to customize a copy before saving. Change **Deck** in the editor to move an existing button or save a copy to another deck.
-- In **Sounds → Select**, pick several clips (up to 48), then **Add to deck**. Choose an existing deck or name a new one. Search and Favorites keep your selection; buttons follow selection order. Existing sound buttons are skipped and space is checked before saving the whole change. Riff opens the destination deck when finished.
-- Customize buttons with aviation symbols and emoji, including takeoff, landing, helicopters, and radio. New decks can use flying or gaming icons.
-- Create, rename, duplicate, and delete decks. Drag buttons to rearrange them in Edit mode. The long-press menu also offers Move earlier/later.
-- Open **… → Grid size** to choose 1–6 columns and rows, with a live preview and buttons-per-page count. Layouts are saved per deck on this iPad. Automatic uses 2 × 3 in portrait and 3 × 2 in landscape. Extra buttons move to additional pages; dense grids scroll in small windows.
-- Link decks to Steam games and optionally switch when Steam reports a game running.
-- Assign keyboard shortcuts, typed text, media controls, websites, locally approved applications, or sequences of up to 20 actions.
-- Stop all playing sounds and cancel remaining sequence steps immediately.
+<p align="center">
+  <img src="docs/screenshots/ipad-preview.png" alt="Riff on iPad, showing six colorful sound buttons and recording and playback controls" width="420">
+</p>
 
-Six original synthesized sounds are included. Choose **Overlap** for layered effects (up to 16 at once), or **One at a time** for voice lines that replace each other. The choice is saved on this iPad and sent with the next sound tap or library preview. Update both applications to use these controls on Windows. The iPad stays awake while Riff is in the foreground. Without a PC connection, the starter sounds can be previewed on the iPad; PC actions and editing require a connection.
+## What it does
 
-This implements common control-deck actions. It does not run Elgato plugins or provide every proprietary Stream Deck integration. OBS and other apps can be controlled through their configured keyboard shortcuts; a dedicated OBS API integration is not included.
+- **Soundboard:** play overlapping clips or one at a time, tap a playing button to stop it, or stop everything at once. Six original sounds are included.
+- **Recording and imports:** record on your iPad or import WAV, MP3, M4A, AAC, and AIFF files. Trim clips with a waveform editor and listen before saving.
+- **Custom decks:** choose button colors, symbols, and emoji; rearrange buttons; adjust the grid; and add several sounds to a deck at once.
+- **PC controls:** send keyboard shortcuts, type text, control media, open websites, and launch apps you've approved on Windows. Chain up to 20 actions into a sequence.
+- **Steam decks:** link a deck to a Steam game and switch to it automatically when the game starts.
+- **Voice chat:** send clips to a virtual microphone for Discord or in-game chat. This needs a separate audio driver; setup is below.
 
-## Install on Windows 11
+Riff is still early. Builds and automated tests cover parts of the app, but physical iPad and Windows testing is still needed. The [verification notes](docs/VERIFICATION.md) track those gaps. Bug reports and device-testing feedback are welcome.
 
-Download `Riff-<version>-win-x64.zip` for Intel/AMD PCs or `Riff-<version>-win-arm64.zip` for ARM PCs from [GitHub Releases](https://github.com/binbandit/riff/releases/latest).
-For development builds, open [Build and release Windows companion](https://github.com/binbandit/riff/actions/workflows/companion.yml), select a run with a successful Windows job, and download its ZIP under **Artifacts** (GitHub sign-in required). PR artifacts are previews of the next version, not published releases.
+## Get started
 
-1. Extract the whole ZIP, keeping the `Sounds` folder beside `Riff.Companion.exe`.
-2. Run `Riff.Companion.exe`. The package includes .NET, so no separate runtime is needed.
+You'll need an iPad running **iPadOS 17 or later** and a **Windows 11** PC on the same local network. The iPad app needs to stay open while you use it as a control deck.
+
+### Windows
+
+Download the companion from [GitHub Releases](https://github.com/binbandit/riff/releases/latest):
+
+- `Riff-<version>-win-x64.zip` for Intel or AMD PCs.
+- `Riff-<version>-win-arm64.zip` for ARM PCs.
+
+1. Extract the whole ZIP. Keep the `Sounds` folder beside `Riff.Companion.exe`.
+2. Run `Riff.Companion.exe`. The download includes .NET, so you don't need to install a runtime.
 3. Allow Riff through Windows Firewall on **Private** networks.
-4. In **Connect iPad**, select your PC's home Wi-Fi/Ethernet address. Use this address rather than a VPN address.
-5. Leave the companion running. Closing its window minimizes it to the system tray; use the tray's **Quit Riff** command to exit.
+4. Under **Connect iPad**, select your PC's home Wi-Fi or Ethernet address, rather than a VPN address.
 
-This personal build is unsigned. No driver is installed by Riff.
+The Windows build is unsigned. Closing the window leaves Riff running in the system tray; choose **Quit Riff** from the tray menu to exit.
 
-If no firewall prompt appears, use Windows Security to allow the executable on private networks. Alternatively, the optional `scripts/allow-private-network.ps1` can create a rule restricted to this executable, TCP port 49321, private networks, and the local subnet. Run it in an administrator PowerShell and pass the full executable path. Do not open this port on your router.
+If a release isn't available yet, development downloads are attached to successful runs of [Build and release Windows companion](https://github.com/binbandit/riff/actions/workflows/companion.yml). Downloading workflow artifacts requires a GitHub account.
 
-## Install on your iPad
+### iPad
 
-### From your Windows PC
+The iPad app currently needs signing with your own Apple account. There are two ways to install it.
 
-The provided `Riff-iPad-unsigned.ipa` is a device build that needs signing with your own Apple account before installation.
+**From a Mac:** clone this repository and open `Riff.xcodeproj` in Xcode. Choose your Apple development team under **Signing & Capabilities**, changing the bundle identifier if Xcode requests it. Connect your iPad, select it as the run destination, and run the app. Use Xcode with Swift 6.2 or later.
 
-1. Download [Sideloadly for Windows from its official site](https://sideloadly.io/) and follow its current requirements for Apple device drivers.
-2. Connect your iPad by USB, unlock it, and trust your PC.
-3. Open Sideloadly, select your iPad, and load `Riff-iPad-unsigned.ipa`.
-4. Complete signing locally using your own Apple account, then install. Do not share your password or verification codes in this repository or chat.
-5. Follow the iPad prompts to trust your development app and enable Developer Mode if requested. Open Riff and allow local-network access.
+**From Windows:** download `Riff-iPad-unsigned.ipa` from a successful [Build and test iPad](https://github.com/binbandit/riff/actions/workflows/build.yml) run. Install [Sideloadly](https://sideloadly.io/), follow its device-driver setup instructions, then connect your iPad by USB and trust the PC. Load the IPA in Sideloadly and sign it with your Apple account. This installation route still needs physical-device testing for Riff.
 
-Sideloadly is a separate third-party tool. Its physical installation flow has not been tested in this workspace. Its [official FAQ](https://sideloadly.io/faq) documents free signing and the seven-day renewal requirement; its auto-refresh feature can help with renewals while your devices are reachable. No paid Stream Deck software is involved.
+Enable Developer Mode and trust the development app if prompted. Allow local-network access when you open Riff; microphone and camera permissions are requested when you record or scan a pairing code.
 
-### From a Mac with Xcode
+Free Apple signing expires after **7 days**, so you'll need to sign the app again or set up a refresh tool. See [Apple's account details](https://developer.apple.com/help/account/basics/about-your-developer-account) and the [Sideloadly FAQ](https://sideloadly.io/faq) for signing and refresh requirements.
 
-The native app must be signed for your device. The project targets iPadOS 17 or later, including the current iPadOS, and uses Swift 6.2-era build features. Use Xcode 26 or newer; this workspace was built with Xcode 27.
+### Connect your PC
 
-1. On your Mac, open `Riff.xcodeproj` in Xcode.
-2. In the Riff target's **Signing & Capabilities**, choose your own Apple development team. Change the bundle identifier if Xcode requests a unique identifier.
-3. Connect your iPad, trust the Mac, and enable Developer Mode when requested.
-4. Select your iPad as the run destination and run the app.
-5. Allow local-network access. Microphone and camera permission are requested only when you record or scan a pairing code.
+On iPad, tap **Connect your PC**, scan the companion's QR code, then tap **Connect PC**. You can also paste the pairing link if scanning isn't available.
 
-A free Apple Personal Team can install the app for personal testing, but its provisioning profiles expire after **7 days**, requiring signing/installation again (or a sideloading refresh). A paid developer account is not required for this personal testing route. This is an Apple distribution restriction, not a Riff subscription. See [Apple's account comparison](https://developer.apple.com/help/account/basics/about-your-developer-account).
+Keep that link and QR code private: they grant access to your PC controls. Pairing uses an access key and HTTPS with certificate pinning. The iPad stores the pairing details in Keychain; Windows protects its key with your Windows user account. Use **Revoke paired devices** in the companion to invalidate old links.
 
-## Pair the devices
+If the connection fails, check that both devices are on the same network, local-network permission is enabled on iPad, and Windows Firewall allows Riff on private networks. Guest Wi-Fi may block devices from reaching each other. If the PC's IP address changes, scan a new pairing code.
 
-Put the iPad and PC on the same trusted local network. In Riff on iPad, tap **Connect your PC**, scan the companion's QR code, then tap **Connect PC**. If scanning is unavailable, transfer the pairing link privately and paste it.
+An optional [firewall script](scripts/allow-private-network.ps1) can add a rule for the executable on TCP port 49321, limited to private networks and the local subnet. Run it in an administrator PowerShell with the full executable path. Riff is intended for your local network; don't forward that port on your router.
 
-The link contains your PC address, a random access key, and a certificate fingerprint. HTTPS is pinned to that fingerprint, including self-signed certificates. The iPad stores pairing in Keychain; Windows protects its identity and key using the current user's Windows data protection. No account, cloud relay, or internet access is required after installation.
+## Using the soundboard
 
-If your PC's IP address changes, scan a new link. **Revoke paired devices** on Windows invalidates old pairing links. Pairing gives your iPad control of the PC, so keep the link and QR code private. Avoid guest Wi-Fi with client isolation.
+Tap the output label below the deck, or open **… → Sound controls**, to choose volume, output, and playback mode. **Overlap** layers effects; **One at a time** replaces the previous clip. **Stop all** stops sounds and cancels any remaining sequence steps.
 
-## Play soundboard clips as your voice
+Recordings and saved clips can be up to 60 seconds long. On iPad, you can import a file up to 10 minutes long and 100 MB in size, at 96 kHz or below, then trim it before upload. Direct Windows imports are limited to 20 MB and 60 seconds. Trimming leaves the original file unchanged.
 
-The complete route is:
+Use **Sounds → Select → Add to deck** to build a deck from several clips. Favorites and search help you find them again. Long-press a button to duplicate it, or change its deck in the editor to move it. **… → Grid size** sets the rows and columns for each deck.
 
-**iPad button → Riff on Windows → CABLE Input → CABLE Output → game microphone input**
+Without a PC connection, you can try the starter sounds on the iPad. Editing and PC actions need a connection.
 
-1. Install [VB-CABLE](https://vb-audio.com/Cable/) on Windows and restart. It is an optional donationware virtual audio driver, installed separately.
-2. In Riff's audio settings, choose **CABLE Input** as the sound output and apply.
-3. In the game or Discord, choose **CABLE Output** as the microphone/input device.
-4. Start the chat app's microphone test and play a Riff sound.
-5. Use voice activation, or hold the game's push-to-talk key for the duration of the clip. Riff currently sends shortcut taps, not held push-to-talk keys.
+### Send clips to voice chat
 
-If a clip is cut off, adjust the game's voice threshold and turn off noise suppression, echo cancellation, or automatic voice processing as needed. Games may intentionally process or filter non-speech audio.
+With [VB-CABLE](https://vb-audio.com/Cable/) installed on Windows, the audio route is:
 
-To monitor the sounds in your headphones, use **Windows Sound → More sound settings → Recording → CABLE Output → Properties → Listen**, enable **Listen to this device**, and select your headphones. This monitoring path can add latency. Riff has one selected playback output, not a built-in mixer. Use an optional mixer such as [Voicemeeter](https://vb-audio.com/Voicemeeter/) if you want to combine your real microphone with the clips.
+**Riff → CABLE Input → CABLE Output → your chat app's microphone input**
 
-The audio test plays through the selected PC output. If it is a virtual cable, you will see it in your chat app's microphone test, rather than hear it through speakers unless monitoring is enabled. Apply output changes before testing; stop existing clips before changing output.
+1. In Riff's Windows audio settings, select **CABLE Input** and apply the change.
+2. In Discord or your game, select **CABLE Output** as the microphone.
+3. Open the chat app's microphone test and play a sound from Riff.
+4. Use voice activation, or hold your push-to-talk key while the clip plays. Riff sends shortcut taps, so it can't hold that key for you.
 
-## Playing without streaming
+If clips get cut off, check the chat app's voice threshold and noise suppression settings. To hear the clips yourself, enable **Listen to this device** for **CABLE Output** in Windows sound settings and select your headphones. Monitoring this way can add latency.
 
-No streaming software is needed. Use headphones or speakers for your own soundboard, or route sounds to a virtual microphone for game chat. **One at a time** suits pilot callouts and spoken memes; **Overlap** lets you layer effects. **Stop all** remains available below the deck and in sound browsers. Playing indicators follow the PC's playback state and clear when a clip ends; they require a connection to the current companion. Offline starter sounds use the same playback controls on the iPad.
+Riff has one playback output and doesn't mix your microphone with clips. For both at once, you'll need a separate mixer, such as [Voicemeeter](https://vb-audio.com/Voicemeeter/). These audio tools are separate downloads and aren't bundled with Riff.
 
-## Game-specific layouts
+### Steam and other controls
 
-Create or duplicate a deck, choose **Deck settings**, and link a Steam game. Enable **Follow my Steam game** in Settings. Installed game names are read from Steam's local library manifests, and running state is read from Steam's local registry. No Steam password or Web API key is required.
+Link a game under **Deck settings**, then enable **Follow my Steam game** in Settings. Riff reads Steam's local library and running-game data; it doesn't need your Steam login or an API key. Detection is best effort. If several games are running, select a deck manually.
 
-Detection checks every few seconds while the iPad is active. Riff switches when a new linked game is detected. It pauses switching while editing or using sheets. Manual deck selection lasts until the next detected game change. If multiple games are running, no game is detected, or the game has no linked deck, the current deck stays selected. One deck can be linked to each game. Steam library names refresh about once a minute.
+Keyboard shortcuts and typed text go to the focused Windows app. To launch an application, first add its `.exe` under **Allowed apps** in the companion. Riff doesn't accept arbitrary shell commands from the iPad.
 
-Steam's local registry format is not a stable public API, so detection is best effort and may need updating after Steam changes. A running game is not necessarily the foreground window. Non-Steam games use manual deck selection in this version.
+Riff doesn't run Elgato plugins or include a dedicated OBS integration. You can control OBS through its configured hotkeys. Elevated applications and protected games may block simulated input.
 
-## Other controls
+## Updates and backups
 
-- **Keyboard shortcut:** `Ctrl+Shift+M`, `Win+D`, `Win+Shift+S`, `F13`, and similar combinations. Input goes to the focused Windows app. Configure OBS hotkeys there, then assign matching Riff buttons.
-- **Type text:** writes to the focused field. It does not press Enter automatically. A sequence can type text and then tap Enter.
-- **Launch app:** first add the `.exe` under **Allowed apps** on Windows, then select it on iPad. Arbitrary shell commands and app paths are not accepted through the API.
-- **Website:** opens an HTTP/HTTPS address in the PC's default browser.
-- **Sequence:** ordered actions with a delay before each step; up to 20 steps and 30 seconds of total delays. Other shortcuts and sequences are rejected while a sequence is running; sound buttons remain available. Stop All cancels the remaining steps, but cannot undo apps opened or text already typed.
+The iPad checks GitHub for new companion releases while Riff is open and paired. You can also check under **Settings → Companion updates**. To update Windows, quit Riff from the tray, extract the new ZIP into a new folder, and run the new executable. Your decks and clips stay in place. See [companion update details](docs/COMPANION-UPDATES.md).
 
-Windows can block simulated input into elevated applications or protected games. See Microsoft's [SendInput restrictions](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput). The app does not bypass anti-cheat protection.
+Playback and PC controls work without internet access. Update checks contact GitHub, but don't send your pairing key, PC address, decks, or sounds.
 
-## Data and backups
+Windows stores decks, clips, settings, and approved app paths in `%LOCALAPPDATA%\Riff`. Close Riff before backing up that folder. To move to another PC or Windows account, copy `state.json` and `clips` into a fresh Riff data folder, then pair again. Don't copy the protected identity files. App paths and audio-device settings may need updating.
 
-Decks, sounds, output settings, and the app allowlist live in `%LOCALAPPDATA%\Riff`. Close Riff before backing up this folder. `state.json` is written atomically; clips are normalized to PCM WAV in `clips`. The iPad keeps a cached snapshot so it can display your decks while disconnected.
+## Development
 
-Windows pairing identity is protected for the current Windows user. For a new PC or Windows account, copy `state.json` and `clips` into a fresh Riff data folder, then pair again; do not copy the protected identity/key files. App paths and sound-device IDs may need updating on a different PC. A corrupt state file is reported at startup rather than silently overwritten.
+The iPad app lives in `Riff/`, the C# Windows companion in `Companion/`, and the bundled sounds in `Shared/Sounds/`. Swift tests are in `Tests/`; companion tests live alongside the C# projects.
 
-## Build and test
+Clone the repository first:
 
-Windows, with the .NET 10 SDK:
-
-```powershell
-./scripts/build-windows.ps1
-# Optional ARM build:
-./scripts/build-windows.ps1 -Runtime win-arm64
+```sh
+git clone https://github.com/binbandit/riff.git
+cd riff
 ```
 
-The script runs core tests and the Windows HTTPS integration test, then publishes a self-contained ZIP. Close the running companion before the Windows integration test because it uses the same local port.
+### iPad and shared Swift code
 
-On a Mac:
+On a Mac with Xcode and Swift 6.2 or later:
 
 ```sh
 swift test
-dotnet test Companion/Riff.Tests
 xcodebuild -project Riff.xcodeproj -scheme Riff -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 ```
 
-`./scripts/build-ipad.sh` creates an unsigned device IPA on a Mac. The separate [iPad workflow](https://github.com/binbandit/riff/actions/workflows/build.yml) tests and builds the iPad app when its sources or build inputs change, and attaches the unsigned IPA. Dependencies and notices are documented in [THIRD-PARTY.md](docs/THIRD-PARTY.md).
+Run `./scripts/build-ipad.sh` to create an unsigned device build at `artifacts/Riff-iPad-unsigned.ipa`. Installing it on a physical iPad requires signing.
 
-### GitHub builds and releases
+### Windows companion
 
-The companion workflow runs for changes to `Companion/**`, `Shared/Sounds/**`, the Windows packaging/release scripts and configuration, bundled documentation/licenses, or root .NET build configuration. iPad-only changes and edits to this README do not build or release a companion. Pull requests produce test builds; relevant pushes to `main` automatically publish a new GitHub release after both Windows builds pass. Manual runs on `main` can retry a failed release. Runs with no unreleased companion changes skip the Windows builds and release.
+On Windows with the .NET 10 SDK:
 
-Companion versions are independent of iPad builds, starting at **0.1.0** with tags such as `companion-v0.1.0`. [git-cliff](https://git-cliff.org/docs/usage/bump-version/) calculates the next semantic version from commits touching the companion's inputs since its last release:
+```powershell
+./scripts/build-windows.ps1
+# For ARM PCs:
+./scripts/build-windows.ps1 -Runtime win-arm64
+```
 
-- `fix(companion): restore audio output` increments PATCH, for example `0.1.0` to `0.1.1`.
-- `feat(companion): add output selection` increments MINOR, for example `0.1.0` to `0.2.0`.
-- A `!` after the type/scope or a `BREAKING CHANGE:` footer increments MAJOR, including `0.1.0` to `1.0.0`.
-- Other relevant changes, including build fixes and commits without a conventional prefix, increment PATCH.
+The script runs core and Windows HTTPS integration tests, then creates a self-contained ZIP under `artifacts/`. Close any running companion before testing because the integration test uses the same port. ARM64 packages are cross-compiled; they still need a launch check on an ARM PC.
 
-Use clear, user-facing commit subjects; these become changelog entries. The scope is descriptive: changed file paths determine whether a commit belongs to the companion. iPad-only breaking changes do not bump the companion. Do not manually create companion version tags; the workflow tags the exact tested source commit only when publishing. Releases run serially and published assets are not replaced on retries. GitHub's built-in token needs permission to create releases and tags; no extra secret or automated source commit is needed.
+The core C# tests also run on macOS with the .NET 10 SDK:
 
-Each release has versioned Windows x64/ARM64 ZIPs and a full **CHANGELOG.md** download. The identical `CHANGELOG.md` is bundled beside `Riff.Companion.exe`, ready for the app to read from `AppContext.BaseDirectory`. It contains dated version sections with Added, Fixed, Changed, and breaking-change entries; the GitHub release body contains only that version's changes. Changelogs are generated from Git history during the build, not maintained by hand or committed back to `main`. The version is also embedded in the Windows executable's metadata. Displaying this file in the app UI is a separate change.
+```sh
+dotnet test Companion/Riff.Tests
+```
 
-Both packages run the core and HTTPS integration tests on the x64 Windows runner before publishing; ARM64 is cross-compiled and still needs a launch check on an ARM PC. Packages include .NET, starter sounds, the quickstart, and license notices. Local builds default to `0.0.0-dev`. To reproduce release metadata locally, install git-cliff 2.14.1 and jq, then run `bash scripts/prepare-companion-release.sh` from a full checkout. This writes the changelog, release notes, and version to `artifacts/companion-release/`. Pass that version and `-ChangelogPath artifacts/companion-release/CHANGELOG.md` to the Windows build script for a versioned local package.
+### Releases
 
-See [verification and device checks](docs/VERIFICATION.md) for what has been tested locally and the physical Windows/iPad checks still needed.
+The [Windows workflow](.github/workflows/companion.yml) tests and packages relevant pull requests. Relevant pushes to `main` publish a companion release after both Windows builds pass. iPad builds use a [separate workflow](.github/workflows/build.yml); iPad-only changes and README edits don't trigger companion releases.
+
+Companion versions use tags such as `companion-v0.1.0`. Commit messages determine the version bump: `fix(companion): ...` bumps patch, `feat(companion): ...` bumps minor, and `!` or a `BREAKING CHANGE:` footer bumps major. Changed file paths determine which commits belong to a companion release. Other relevant changes bump patch.
+
+The workflow generates release notes and changelogs from Git history. Use clear commit subjects, and let the workflow create version tags and changelogs.
+
+## Contributing
+
+[Issues](https://github.com/binbandit/riff/issues) and pull requests are welcome. For a bug, include your iPadOS and Windows versions, the companion version, what you expected, and the steps to reproduce it. Screenshots help with UI problems; leave pairing links and QR codes out of them.
+
+For a larger change, open an issue first so we can talk through it. Keep pull requests focused, run the tests for the code you change, and say what you tested on real devices versus a simulator. If you have an iPad and Windows PC, working through the [device checks](docs/VERIFICATION.md) is a useful way to help.
+
+Dependency licenses and notices are listed in [THIRD-PARTY.md](docs/THIRD-PARTY.md).
