@@ -17,8 +17,8 @@ struct ConnectionView: View {
                         Image(systemName: "link").font(.title2).foregroundStyle(Palette.accent)
                         Image(systemName: "desktopcomputer").font(.system(size: 40, weight: .light))
                     }.frame(maxWidth: .infinity).padding(.vertical, 22)
-                    Text(store.connected ? "You’re connected." : "Meet your other half.").font(.system(size: 32, weight: .semibold, design: .rounded))
-                    Text("Riff on your PC turns your taps into sounds, shortcuts, and a little bit of magic.").foregroundStyle(.secondary)
+                    Text(store.connected ? "Connected to your PC" : "Connect your PC").font(.system(size: 32, weight: .semibold, design: .rounded))
+                    Text("Open Riff on Windows, then scan its pairing code with your iPad.").foregroundStyle(.secondary)
                     instruction("1", "Open Riff on Windows", "Run Riff.Companion.exe, then leave it open in the system tray.")
                     instruction("2", "Join the same network", "Connect your iPad and PC to the same home network. Allow Riff through Windows Firewall on private networks.")
                     instruction("3", "Scan the code on your PC", "Select your home-network address in the companion, then scan its pairing code. You can also copy and privately transfer the pairing link.")
@@ -31,7 +31,7 @@ struct ConnectionView: View {
                         } label: { Label("Scan pairing code", systemImage: "qrcode.viewfinder").frame(maxWidth: .infinity) }.buttonStyle(AccentButtonStyle())
                     }
                     TextField("riff://connect?host=…", text: $link, axis: .vertical)
-                        .lineLimit(3...5).textInputAutocapitalization(.never).autocorrectionDisabled().font(.caption.monospaced())
+                        .lineLimit(3...5).textInputAutocapitalization(.never).autocorrectionDisabled().font(.subheadline)
                         .padding(16).background(Palette.raised, in: RoundedRectangle(cornerRadius: 12)).privacySensitive()
                     HStack {
                         PasteButton(payloadType: String.self) { values in if let value = values.first { link = value } }.labelStyle(.titleOnly)
@@ -109,12 +109,12 @@ struct SettingsView: View {
                     Text("This sends prerecorded sounds instead of your physical microphone. To mix your live voice with sounds, use a mixer such as Voicemeeter.").font(.caption).foregroundStyle(.secondary)
                     Link("Get VB-CABLE", destination: URL(string: "https://vb-audio.com/Cable/")!)
                 }
-                Section("Make the deck fit you") {
-                    Picker("Columns", selection: $store.columns) { Text("3 · Large").tag(3); Text("4 · Balanced").tag(4); Text("5 · More buttons").tag(5) }
+                Section("Layout") {
+                    Picker("Columns", selection: $store.columns) { Text("Automatic").tag(0); Text("2").tag(2); Text("3").tag(3); Text("4").tag(4); Text("5").tag(5) }
                     Toggle("Follow my Steam game", isOn: $store.autoSwitch)
                     Text("Link a game in Deck settings. Riff switches when a new game starts, and pauses switching while you edit. You can always choose another deck manually.").font(.caption).foregroundStyle(.secondary)
                 }
-                Section { Text("Riff · Your controls, your rules.\nNo account. No subscription. Built for your own setup.").font(.caption).foregroundStyle(.secondary) }
+                Section { Text("Riff 1.0").foregroundStyle(.secondary) }
             }.scrollContentBackground(.hidden).background(Palette.background)
                 .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }

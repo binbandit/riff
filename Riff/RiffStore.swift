@@ -17,7 +17,7 @@ import Observation
     var autoSwitch = UserDefaults.standard.object(forKey: "autoSwitch") as? Bool ?? true {
         didSet { UserDefaults.standard.set(autoSwitch, forKey: "autoSwitch") }
     }
-    var columns = UserDefaults.standard.object(forKey: "columns") as? Int ?? 3 {
+    var columns = UserDefaults.standard.object(forKey: "columns") as? Int ?? 0 {
         didSet { UserDefaults.standard.set(columns, forKey: "columns") }
     }
     private var client: CompanionClient?

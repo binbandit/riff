@@ -8,32 +8,41 @@ struct PadEditor: View {
     @State private var saving = false
     @State private var failure: String?
     @State private var confirmDelete = false
+    private let emoji = ["✨", "😂", "😭", "😎", "💀", "👀", "🫡", "🤡", "🔥", "❤️", "🎉", "💸", "🚨", "⏰", "👏", "🎮"]
     private let icons = ["sparkles", "waveform", "theatermasks", "hand.raised", "timer", "circle.circle", "light.beacon.max", "gamecontroller", "bolt", "heart", "star", "speaker.wave.2", "mic", "playpause", "forward.end", "command", "desktopcomputer", "viewfinder", "text.bubble", "globe", "app", "square.stack.3d.up", "speaker.slash", "flame"]
     var body: some View {
         NavigationStack {
             Form {
-                Section { HStack { Spacer(); PadTile(pad: pad).frame(width: 210).disabled(true); Spacer() }.listRowBackground(Color.clear) }
-                Section("Make it yours") {
+                Section { HStack { Spacer(); PadTile(pad: pad).frame(width: 210, height: 190).disabled(true); Spacer() }.listRowBackground(Color.clear) }
+                Section("Appearance") {
                     TextField("Button name", text: $pad.title)
                     HStack(spacing: 18) {
                         ForEach(Palette.colors, id: \.self) { color in
                             Button { pad.color = color } label: {
                                 Circle().fill(Palette.color(color)).frame(width: 32, height: 32)
-                                    .overlay { if pad.color == color { Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.black) } }
+                                    .overlay { if pad.color == color { Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(Palette.ink) } }
                             }.buttonStyle(.plain).accessibilityLabel("\(color) button color").accessibilityAddTraits(pad.color == color ? .isSelected : [])
                         }
                     }.padding(.vertical, 5)
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 8), spacing: 14) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44), spacing: 8)], spacing: 10) {
+                        ForEach(emoji, id: \.self) { item in
+                            Button { pad.icon = "emoji:" + item } label: {
+                                Text(item).font(.title).frame(width: 42, height: 44)
+                                    .background(pad.icon == "emoji:" + item ? Palette.raised : .clear, in: RoundedRectangle(cornerRadius: 10))
+                            }.buttonStyle(.plain).accessibilityLabel(item)
+                        }
+                    }.padding(.vertical, 8)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44), spacing: 8)], spacing: 14) {
                         ForEach(icons, id: \.self) { icon in
                             Button { pad.icon = icon } label: {
                                 Image(systemName: icon).font(.system(size: 20)).frame(width: 40, height: 40)
-                                    .foregroundStyle(pad.icon == icon ? pad.tint : .gray)
+                                    .foregroundStyle(pad.icon == icon ? Palette.accent : .secondary)
                                     .background(pad.icon == icon ? pad.tint.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 9))
                             }.buttonStyle(.plain).accessibilityLabel(icon.replacingOccurrences(of: ".", with: " "))
                         }
                     }.padding(.vertical, 8)
                 }
-                Section("What happens when you tap") {
+                Section("Action") {
                     Picker("Action", selection: $pad.kind) { ForEach(ActionKind.allCases) { kind in Label(kind.label, systemImage: kind.icon).tag(kind.rawValue) } }
                     ActionFields(kind: pad.kind, value: $pad.value)
                 }
@@ -42,7 +51,7 @@ struct PadEditor: View {
                         ForEach($pad.steps) { $step in
                             VStack(alignment: .leading, spacing: 10) {
                                 HStack {
-                                    Text("STEP \((pad.steps.firstIndex(where: { $0.id == step.id }) ?? 0) + 1)").font(.caption.monospaced()).foregroundStyle(.secondary)
+                                    Text("Step \((pad.steps.firstIndex(where: { $0.id == step.id }) ?? 0) + 1)").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
                                     Spacer()
                                     if let index = pad.steps.firstIndex(where: { $0.id == step.id }), index > 0 { Button { pad.steps.swapAt(index, index - 1) } label: { Image(systemName: "arrow.up") }.accessibilityLabel("Move step earlier") }
                                     Button(role: .destructive) { pad.steps.removeAll { $0.id == step.id } } label: { Image(systemName: "minus.circle") }.accessibilityLabel("Remove step")
@@ -63,7 +72,7 @@ struct PadEditor: View {
                 }
             }
             .scrollContentBackground(.hidden).background(Palette.background)
-            .navigationTitle("Customize button").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Edit button").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
                 ToolbarItem(placement: .confirmationAction) {

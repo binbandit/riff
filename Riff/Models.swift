@@ -74,18 +74,32 @@ enum ActionKind: String, CaseIterable, Identifiable {
     }
 }
 enum Palette {
-    static let background = Color(red: 0.055, green: 0.064, blue: 0.080)
-    static let panel = Color(red: 0.084, green: 0.096, blue: 0.115)
-    static let raised = Color(red: 0.12, green: 0.135, blue: 0.16)
-    static let accent = Color(red: 1, green: 0.55, blue: 0.31)
+    static let background = Color("Canvas")
+    static let panel = Color("Surface")
+    static let raised = Color("Inset")
+    static let accent = Color(red: 0.84, green: 0.23, blue: 0.20)
+    static let ink = Color(red: 0.19, green: 0.16, blue: 0.15)
     static let colors = ["orange", "purple", "blue", "green", "pink"]
     static func color(_ name: String) -> Color {
         switch name {
-        case "purple": Color(red: 0.70, green: 0.59, blue: 1)
-        case "blue": Color(red: 0.43, green: 0.72, blue: 1)
-        case "green": Color(red: 0.52, green: 0.84, blue: 0.65)
-        case "pink": Color(red: 0.98, green: 0.54, blue: 0.66)
-        default: accent
+        case "purple": Color(red: 0.81, green: 0.75, blue: 0.95)
+        case "blue": Color(red: 0.68, green: 0.83, blue: 0.94)
+        case "green": Color(red: 0.75, green: 0.86, blue: 0.62)
+        case "pink": Color(red: 0.98, green: 0.70, blue: 0.72)
+        default: Color(red: 1.0, green: 0.76, blue: 0.38)
+        }
+    }
+}
+
+struct PadGlyph: View {
+    let icon: String
+    var size: CGFloat = 64
+    var body: some View {
+        if icon.hasPrefix("emoji:") {
+            Text(String(icon.dropFirst(6))).font(.system(size: size))
+        } else {
+            Image(systemName: icon).font(.system(size: size, weight: .medium, design: .rounded))
+                .symbolRenderingMode(.hierarchical)
         }
     }
 }
