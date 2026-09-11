@@ -26,7 +26,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             var s = store.State;
             return new(s.Version, s.Decks, s.Clips, audio.Devices(), s.OutputId, s.Volume,
                 s.Apps.Select(a => new LaunchTargetInfo(a.Id, a.Name)).ToList(), Environment.MachineName,
-                presence.Games, presence.Id, presence.Name, ["soundboard-playback-v1", "soundboard-only-v1"], CompanionBuild.Version, s.SoundboardOnly);
+                presence.Games, presence.Id, presence.Name, ["soundboard-playback-v1", "sound-packs-v1", "soundboard-only-v1"], CompanionBuild.Version, s.SoundboardOnly);
         }
     }
     public async Task Start()
@@ -114,6 +114,34 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
                     await request.Body.CopyToAsync(file, request.HttpContext.RequestAborted);
                 var clip = AudioEngine.Import(temporary, name, store);
                 Activity?.Invoke($"Imported sound: {clip.Name}"); return clip;
+            }
+            finally { try { DeleteTemporaryUpload(temporary); } finally { importGate.Release(); } }
+        });
+        app.MapPost("/api/packs/{packId}/sounds/{soundId}", async (string packId, string soundId, HttpRequest request) =>
+        {
+            var sound = SoundPacks.Find(packId, soundId);
+            if (!await importGate.WaitAsync(0)) throw new ArgumentException("Another sound is importing. Try again shortly.");
+            string? temporary = null;
+            try
+            {
+                // A retry after a lost response returns the original clip, including any user rename.
+                lock (store.Gate)
+                    if (store.State.Clips.Any(c => c.Id == sound.ClipId)) return Snapshot();
+                using var bytes = new MemoryStream();
+                var buffer = new byte[16384];
+                int read;
+                while ((read = await request.Body.ReadAsync(buffer, request.HttpContext.RequestAborted)) > 0)
+                {
+                    if (bytes.Length + read > sound.ByteCount) throw new ArgumentException("The sound download is larger than expected.");
+                    bytes.Write(buffer, 0, read);
+                }
+                sound.Validate(bytes.GetBuffer().AsSpan(0, (int)bytes.Length));
+                request.HttpContext.RequestAborted.ThrowIfCancellationRequested();
+                temporary = Path.Combine(store.Folder, Guid.NewGuid().ToString("N") + ".mp3");
+                await File.WriteAllBytesAsync(temporary, bytes.ToArray(), request.HttpContext.RequestAborted);
+                AudioEngine.Import(temporary, sound.Name, store, sound.ClipId);
+                Activity?.Invoke($"Installed pack sound: {sound.Name}");
+                return Snapshot();
             }
             finally { try { DeleteTemporaryUpload(temporary); } finally { importGate.Release(); } }
         });

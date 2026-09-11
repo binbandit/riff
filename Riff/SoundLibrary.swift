@@ -5,6 +5,7 @@ struct LibraryView: View {
     @Environment(RiffStore.self) private var store
     var onAssign: (Clip) -> Void
     var onAdded: () -> Void
+    @State private var showPacks = false
     @State private var selecting = false
     @State private var selectedIDs: [String] = []
     @State private var addingSounds = false
@@ -20,6 +21,21 @@ struct LibraryView: View {
     private var clips: [Clip] { SoundCatalog.visible(store.snapshot.clips, query: search, scope: scope, favorites: store.favoriteClipIDs, deck: store.selectedDeck) }
     var body: some View {
         List {
+            if !selecting {
+                Section {
+                    Button { showPacks = true } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "square.stack.3d.up.fill").font(.title2).foregroundStyle(Palette.accent)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Explore sound packs").font(.headline).foregroundStyle(.primary)
+                                Text("Streamer favorites & meme classics. Download only what you want.").font(.subheadline).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        }.padding(.vertical, 8)
+                    }.buttonStyle(.plain)
+                }
+            }
             Section {
                 Picker("Show sounds", selection: $scope) {
                     ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0) }
@@ -88,8 +104,10 @@ struct LibraryView: View {
         .listSectionSpacing(12)
         .scrollContentBackground(.hidden).background(Palette.background)
         .searchable(text: $search, prompt: "Find a sound")
+        .navigationDestination(isPresented: $showPacks) { SoundPacksView(onAdded: onAdded) }
 #if DEBUG
         .task {
+            if ["packs", "pack-detail"].contains(DesignPreview.screen) { showPacks = true }
             if DesignPreview.screen == "sound-selection" || DesignPreview.screen == "add-sounds" {
                 selecting = true; selectedIDs = Array(store.snapshot.clips.prefix(3).map(\.id))
                 if DesignPreview.screen == "add-sounds" { addingSounds = true }

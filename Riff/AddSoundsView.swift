@@ -4,6 +4,7 @@ struct AddSoundsView: View {
     @Environment(RiffStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let clipIDs: [String]
+    var suggestedName: String? = nil
     let onAdded: () -> Void
     @State private var targetID = ""
     @State private var newDeckID = UUID().uuidString
@@ -75,7 +76,10 @@ struct AddSoundsView: View {
                         .fontWeight(.semibold).disabled(!canSave)
                 }
             }
-            .onAppear { targetID = store.selectedDeckId }
+            .onAppear {
+                targetID = suggestedName == nil ? store.selectedDeckId : ""
+                if let suggestedName { name = suggestedName }
+            }
 #if DEBUG
             .task {
                 if DesignPreview.screen == "add-sounds" { targetID = ""; name = "Game night"; icon = "gamecontroller" }

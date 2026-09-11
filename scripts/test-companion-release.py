@@ -82,6 +82,7 @@ class CompanionReleaseTests(unittest.TestCase):
         self.run_command("git", "tag", "companion-v0.1.0")
         for index, path in enumerate([
             "Shared/Sounds/test.wav", "scripts/build-windows.ps1",
+            "Riff/Resources/sound-packs.json",
             "docs/licenses/notice.txt", "Directory.Build.props",
         ], start=1):
             with self.subTest(path=path):

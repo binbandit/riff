@@ -1,0 +1,33 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+
+namespace Riff.Core;
+
+public record PackSound(string Id, string Name, string Url, string SourceURL, string Provider,
+    string Uploader, string Rights, int ByteCount, string Sha256, double Duration)
+{
+    public string? OriginalDownloadURL { get; init; }
+    public string? Acquisition { get; init; }
+    public string ClipId => "pack-" + Id;
+    public void Validate(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length != ByteCount || !Convert.ToHexString(SHA256.HashData(bytes)).Equals(Sha256, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException($"The download for {Name} changed or is incomplete. Update Riff and try again.");
+    }
+}
+public record SoundPack(string Id, string Name, string Description, string Icon, string Color, List<PackSound> Sounds);
+
+public static class SoundPacks
+{
+    public static readonly IReadOnlyList<SoundPack> Catalog = Load();
+    static List<SoundPack> Load()
+    {
+        using var stream = typeof(SoundPacks).Assembly.GetManifestResourceStream("Riff.SoundPacks.json")
+            ?? throw new InvalidDataException("The sound pack catalog is missing.");
+        return JsonSerializer.Deserialize<List<SoundPack>>(stream, Wire.Json)
+            ?? throw new InvalidDataException("The sound pack catalog is invalid.");
+    }
+    public static PackSound Find(string packId, string soundId) =>
+        Catalog.FirstOrDefault(p => p.Id == packId)?.Sounds.FirstOrDefault(s => s.Id == soundId)
+        ?? throw new ArgumentException("This sound pack is unavailable. Update both Riff apps and try again.");
+}

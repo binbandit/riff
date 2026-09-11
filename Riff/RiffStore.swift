@@ -4,6 +4,53 @@ import Observation
 
 @MainActor @Observable final class RiffStore {
     let updates = CompanionUpdates()
+    var installingPackID: String?
+    var packInstallProgress = 0
+    var packInstallStatus = ""
+    var packInstallError: String?
+    private var packInstallTask: Task<Void, Never>?
+    var supportsPacks: Bool { snapshot.capabilities?.contains("sound-packs-v1") == true }
+
+    func installPack(_ pack: SoundPack) {
+        guard packInstallTask == nil, !busy, let client, connected, supportsPacks else { return }
+        let missing = pack.sounds.count - pack.installed(in: snapshot.clips).count
+        guard snapshot.clips.count + missing <= 500 else {
+            packInstallError = "This pack needs \(missing) library spaces. Remove some sounds from your PC library, then try again."
+            return
+        }
+        busy = true; epoch += 1
+        let generation = epoch
+        installingPackID = pack.id; packInstallError = nil
+        packInstallProgress = pack.installed(in: snapshot.clips).count
+        packInstallTask = Task {
+            defer { busy = false; installingPackID = nil; packInstallTask = nil; packInstallStatus = "" }
+            do {
+                for sound in pack.sounds {
+                    try Task.checkCancellation()
+                    guard generation == epoch, connected else { throw RiffError.message("Reconnect your PC, then resume this pack.") }
+                    if snapshot.clips.contains(where: { $0.id == sound.clipID }) { continue }
+                    packInstallStatus = "Downloading \(sound.name)…"
+                    let data = try await SoundPacks.download(sound)
+                    try Task.checkCancellation()
+                    guard generation == epoch, connected else { throw RiffError.message("Reconnect your PC, then resume this pack.") }
+                    packInstallStatus = "Saving \(sound.name) to PC…"
+                    let next: Snapshot = try await client.request("/api/packs/\(pack.id)/sounds/\(sound.id)", method: "POST", body: data, contentType: "application/octet-stream")
+                    guard generation == epoch, connected else { throw RiffError.message("Reconnect your PC, then resume this pack.") }
+                    apply(next)
+                    packInstallProgress = pack.installed(in: snapshot.clips).count
+                }
+                message("\(pack.name) installed. Add it to a deck to start playing.")
+            } catch {
+                let cancelled = Task.isCancelled
+                // Refresh after an interrupted upload; the PC may have saved it before the response was lost.
+                if generation == epoch, let next: Snapshot = try? await client.request("/api/state") { apply(next) }
+                if cancelled { message("Download paused. Installed sounds are kept.") }
+                else { packInstallError = "\(error.localizedDescription) Installed sounds are kept; resume to finish the pack." }
+            }
+        }
+    }
+    func cancelPackInstall() { packInstallTask?.cancel() }
+
     var snapshot = Snapshot.starter
     var selectedDeckId = "soundboard"
     var connected = false
@@ -108,6 +155,7 @@ import Observation
         message("Connected to \(state.computerName)")
     }
     func disconnect() {
+        cancelPackInstall()
         epoch += 1; client = nil; connected = false; connectionIssue = nil; PairingVault.delete(); stopLocalSounds(); playback = SoundPlaybackTracker()
     }
     func refresh() async {

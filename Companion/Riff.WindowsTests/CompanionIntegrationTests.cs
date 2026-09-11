@@ -92,6 +92,24 @@ public class CompanionIntegrationTests
                 Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"/api/clips/{clip.Id}", new ClipRename(renamed.Version, new string('x', 61)), Wire.Json)).StatusCode);
                 Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync("/api/clips/missing", new ClipRename(renamed.Version, "Missing"), Wire.Json)).StatusCode);
                 (await client.PostAsync("/api/stop", null)).EnsureSuccessStatusCode();
+                Assert.Contains("sound-packs-v1", server.Snapshot().Capabilities!);
+                var beforePack = server.Snapshot();
+                Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/packs/missing/sounds/missing", new ByteArrayContent([]))).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/packs/epic-fails/sounds/sad-violin", new ByteArrayContent([1, 2, 3]))).StatusCode);
+                Assert.Equal(beforePack.Version, server.Snapshot().Version);
+                Assert.Equal(beforePack.Clips.Count, server.Snapshot().Clips.Count);
+                // Exercise normalization/persistence with an existing WAV, then simulate a lost install response.
+                var packSound = SoundPacks.Find("epic-fails", "sad-violin");
+                var importedPackClip = AudioEngine.Import(store.ClipPath(clip.Id), "My renamed reaction", store, packSound.ClipId);
+                var afterPack = server.Snapshot();
+                var retry = await client.PostAsync("/api/packs/epic-fails/sounds/sad-violin", new ByteArrayContent([]));
+                retry.EnsureSuccessStatusCode();
+                var retried = (await retry.Content.ReadFromJsonAsync<Snapshot>(Wire.Json))!;
+                Assert.Equal(afterPack.Version, retried.Version);
+                Assert.Equal(afterPack.Clips.Count, retried.Clips.Count);
+                Assert.Equal("My renamed reaction", retried.Clips.Single(c => c.Id == packSound.ClipId).Name);
+                Assert.True(File.Exists(store.ClipPath(importedPackClip.Id)));
+                Assert.Contains(new StateStore(folder).State.Clips, c => c.Id == packSound.ClipId);
                 identity.RotateToken();
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", identity.Token);

@@ -106,14 +106,15 @@ public sealed class AudioEngine : IDisposable
     }
     public void Dispose() => StopAll();
 
-    public static Clip Import(string source, string name, StateStore store)
+    public static Clip Import(string source, string name, StateStore store, string? packClipId = null)
     {
         Rules.CheckText(name, 60, "Sound name");
         lock (store.Gate)
         {
+            if (packClipId is not null && store.State.Clips.FirstOrDefault(c => c.Id == packClipId) is { } existing) return existing;
             if (store.State.Clips.Count >= 500) throw new ArgumentException("The library can hold up to 500 sounds.");
         }
-        var id = Guid.NewGuid().ToString("N");
+        var id = packClipId ?? Guid.NewGuid().ToString("N");
         var destination = store.ClipPath(id);
         try
         {
