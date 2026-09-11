@@ -11,6 +11,8 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
     public async Task Run(Pad pad, bool toggle = false, string? soundMode = null)
     {
         if (soundMode is not (null or "overlap" or "single")) throw new ArgumentException("Choose Overlap or One at a time.");
+        lock (cancelGate)
+            lock (store.Gate) SoundboardPolicy.EnsureAllowed(pad.Kind, store.State.SoundboardOnly);
         if (pad.Kind == "sound")
         {
             lock (cancelGate) Execute(pad.Kind, pad.Value, cancellation.Token, pad.Id == "preview" ? "" : pad.Id, toggle, soundMode);
@@ -39,6 +41,7 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
         lock (cancelGate)
         {
             token.ThrowIfCancellationRequested();
+            lock (store.Gate) SoundboardPolicy.EnsureAllowed(kind, store.State.SoundboardOnly);
             switch (kind)
             {
                 case "sound":
@@ -59,6 +62,19 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
                     Process.Start(new ProcessStartInfo(target.Path) { UseShellExecute = true }); break;
                 default: throw new ArgumentException("Unknown action.");
             }
+        }
+    }
+    public void SetSoundboardOnly(bool enabled)
+    {
+        lock (cancelGate)
+        {
+            lock (store.Gate)
+            {
+                if (store.State.SoundboardOnly == enabled) return;
+                store.Save(store.State with { SoundboardOnly = enabled, Version = store.State.Version + 1 });
+            }
+            // Cancel waiting sequence steps before releasing the same gate used to execute them.
+            cancellation.Cancel(); cancellation.Dispose(); cancellation = new();
         }
     }
     public void Stop()

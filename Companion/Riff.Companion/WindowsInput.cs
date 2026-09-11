@@ -25,7 +25,7 @@ public static class WindowsInput
     static void Send(Input[] inputs)
     {
         if (SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<Input>()) != inputs.Length)
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows blocked the shortcut. Keep the target app at the same permission level as Riff.");
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows blocked the shortcut. Riff does not bypass app or game input restrictions.");
     }
     public static void Hotkey(string shortcut) => Chord(Hotkeys.Parse(shortcut));
     static void Chord(ushort[] keys)

@@ -36,6 +36,25 @@ public class CompanionIntegrationTests
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", identity.Token);
                 var snapshot = (await client.GetFromJsonAsync<Snapshot>("/api/state", Wire.Json))!;
                 Assert.Equal(2, snapshot.Decks.Count);
+                Assert.True(snapshot.SoundboardOnly);
+                Assert.Contains("soundboard-only-v1", snapshot.Capabilities!);
+                foreach (var pad in snapshot.Decks.SelectMany(d => d.Pads).Where(p => p.Kind != "sound"))
+                {
+                    var blocked = await client.PostAsJsonAsync("/api/trigger", new Trigger(pad.Id, Guid.NewGuid().ToString()), Wire.Json);
+                    Assert.Equal(HttpStatusCode.BadRequest, blocked.StatusCode);
+                    Assert.Contains("Soundboard mode is on", await blocked.Content.ReadAsStringAsync());
+                }
+                // A delayed automation must not execute after mode is re-enabled, even if enabled again.
+                runner.SetSoundboardOnly(false);
+                Assert.False(server.Snapshot().SoundboardOnly);
+                Assert.False(new StateStore(folder).State.SoundboardOnly);
+                var pending = runner.Run(new("cancel-check", "Cancel check", "command", "blue", "macro", "", [new("text", "should never type", 5000)]));
+                runner.SetSoundboardOnly(true);
+                runner.SetSoundboardOnly(false);
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+                runner.SetSoundboardOnly(true);
+                Assert.True(new StateStore(folder).State.SoundboardOnly);
+                snapshot = server.Snapshot();
                 Assert.Equal(CompanionBuild.Version, snapshot.CompanionVersion);
                 Assert.True(Version.TryParse(snapshot.CompanionVersion!.Split('-')[0], out _));
                 Assert.Contains("soundboard-playback-v1", snapshot.Capabilities!);

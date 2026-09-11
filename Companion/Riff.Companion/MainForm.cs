@@ -38,7 +38,7 @@ public sealed class MainForm : Form
         header.Controls.Add(new Label { Text = "riff", Font = new("Segoe UI", 32, FontStyle.Bold), ForeColor = Accent, AutoSize = true });
         header.Controls.Add(new Label { Text = "YOUR IPAD. YOUR CONTROL ROOM.\nWindows companion", AutoSize = true, ForeColor = Color.Silver, Margin = new(24, 17, 0, 0) });
         var tabs = new TabControl { Dock = DockStyle.Fill, Padding = new(22, 10) };
-        tabs.TabPages.Add(PairPage()); tabs.TabPages.Add(AudioPage()); tabs.TabPages.Add(AppsPage());
+        tabs.TabPages.Add(PairPage()); tabs.TabPages.Add(ControlsPage()); tabs.TabPages.Add(AudioPage()); tabs.TabPages.Add(AppsPage());
         var activity = new TabPage("Activity") { BackColor = PanelColor, Padding = new(18) }; activity.Controls.Add(log); tabs.TabPages.Add(activity);
         layout.Controls.Add(header, 0, 0); layout.Controls.Add(tabs, 0, 1);
         var footer = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new(0, 12, 0, 0) }; footer.Controls.Add(status); layout.Controls.Add(footer, 0, 2); Controls.Add(layout);
@@ -110,6 +110,32 @@ public sealed class MainForm : Form
             if (new FileInfo(dialog.FileName).Length > 20 * 1024 * 1024) throw new ArgumentException("Choose a file smaller than 20 MB.");
             var clip = AudioEngine.Import(dialog.FileName, Path.GetFileNameWithoutExtension(dialog.FileName), store); AddLog("Imported: " + clip.Name);
         }));
+        page.Controls.Add(flow); return page;
+    }
+    TabPage ControlsPage()
+    {
+        var page = new TabPage("Controls") { BackColor = PanelColor, Padding = new(22), AutoScroll = true };
+        var flow = Flow(); flow.Controls.Add(Heading("Just sounds while you play."));
+        flow.Controls.Add(Body("Soundboard mode keeps your sound buttons, recording, imports, volume, and Stop all available. It blocks keyboard shortcuts, typed text, media keys, app and website launches, and every sequence, so Riff sends no simulated keyboard input."));
+        var soundboard = new CheckBox { Text = "Soundboard mode (recommended for games)", AutoSize = true, Checked = store.State.SoundboardOnly, Margin = new(0, 0, 0, 18) };
+        soundboard.CheckedChanged += (_, _) =>
+        {
+            try
+            {
+                runner.SetSoundboardOnly(soundboard.Checked);
+                AddLog(soundboard.Checked ? "Soundboard mode on. Desktop automation is blocked." : "Desktop automation enabled. Use Soundboard mode before playing a game.");
+            }
+            catch (Exception ex)
+            {
+                soundboard.Checked = store.State.SoundboardOnly;
+                AddLog(ex.Message); MessageBox.Show(this, ex.Message, "Could not change controls");
+            }
+        };
+        flow.Controls.Add(soundboard);
+        flow.Controls.Add(Body("Turn this off on your PC when you want desktop shortcuts. The iPad cannot change this setting. Changing modes cancels pending sequence steps. Your choice stays saved when Riff restarts."));
+        flow.Controls.Add(Heading("Built to stay outside the game"));
+        flow.Controls.Add(Body("Riff does not inject code, inspect game memory, install hooks, or modify game files. Steam deck switching only reads Steam's local library files and running-game registry flags.\n\nFor voice chat, select a virtual audio device in your game's microphone settings. Hold your physical push-to-talk key yourself, or use voice activation where allowed."));
+        flow.Controls.Add(Body("No app can promise that every game or server will allow it. Soundboard mode reduces automation risk; it is not anti-cheat approval. Follow your game's rules for third-party audio and voice-chat behavior. Never bypass anti-cheat blocks or enable automation to gain a gameplay advantage."));
         page.Controls.Add(flow); return page;
     }
     TabPage AppsPage()
