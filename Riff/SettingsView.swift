@@ -104,6 +104,11 @@ struct SettingsView: View {
                     if let failure { Text(failure).foregroundStyle(.red) }
                 } header: { Text("Audio routing") } footer: { Text("Apply changes before testing. New sounds use the selected output. Stop existing sounds before switching devices.") }
                 Section("Make sounds your voice") { GameChatInstructions() }
+                Section("Make it yours") {
+                    NavigationLink { AppearanceView() } label: {
+                        Label("Appearance", systemImage: "paintpalette")
+                    }
+                }
                 Section("Layout") {
                     NavigationLink("Grid size") { GridLayoutView() }
                     Toggle("Follow my Steam game", isOn: $store.autoSwitch)
@@ -123,6 +128,9 @@ struct SettingsView: View {
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
                 .onAppear { output = store.snapshot.outputId; volume = store.snapshot.volume }
                 .sheet(isPresented: $connection) { ConnectionView() }
+#if DEBUG
+                .navigationDestination(isPresented: .constant(DesignPreview.screen == "appearance")) { AppearanceView() }
+#endif
         }
     }
 }
