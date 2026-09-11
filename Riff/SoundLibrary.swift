@@ -91,16 +91,16 @@ struct LibraryView: View {
         .sheet(item: $naming, onDismiss: {
             if let recorded { self.recorded = nil; onAssign(recorded) }
         }) { target in
-            SoundNameEditor(name: target.name, importing: target.isImport) { name in
-                switch target {
-                case .imported(let url):
-                    let access = url.startAccessingSecurityScopedResource()
-                    defer { if access { url.stopAccessingSecurityScopedResource() } }
-                    recorded = try await store.upload(url, name: name)
-                case .existing(let clip): try await store.renameClip(clip, name: name)
+            switch target {
+            case .imported(let url):
+                NavigationStack {
+                    ClipEditorView(url: url, name: target.name) { clip in recorded = clip; naming = nil }
                 }
+            case .existing(let clip):
+                SoundNameEditor(name: clip.name) { name in try await store.renameClip(clip, name: name) }
             }
         }
+
         .alert("Couldn’t open sound", isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
             Button("OK") { failure = nil }
         } message: { Text(failure ?? "") }
@@ -125,13 +125,11 @@ enum SoundNameTarget: Identifiable {
         case .existing(let clip): clip.name
         }
     }
-    var isImport: Bool { if case .imported = self { true } else { false } }
 }
 
 struct SoundNameEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State var name: String
-    let importing: Bool
     let save: (String) async throws -> Void
     @State private var saving = false
     @State private var failure: String?
@@ -145,17 +143,17 @@ struct SoundNameEditor: View {
                         .onSubmit { if valid { submit() } }
                     Text("\(trimmed.utf16.count)/60").font(.caption).foregroundStyle(trimmed.utf16.count > 60 ? .red : .secondary)
                 } header: { Text("Name your sound") } footer: {
-                    Text(importing ? "Use a name you’ll recognize while playing. Next, customize its button. Audio can be up to 60 seconds and 20 MB." : "This changes the library name. Your buttons keep their own names and still play the same sound.")
+                    Text("This changes the library name. Your buttons keep their own names and still play the same sound.")
                 }
-                if saving { HStack { ProgressView(); Text(importing ? "Importing sound…" : "Saving name…") } }
+                if saving { HStack { ProgressView(); Text("Saving name…") } }
                 if let failure { Section { Text(failure).foregroundStyle(.red) } }
             }
             .scrollContentBackground(.hidden).background(Palette.background)
-            .navigationTitle(importing ? "Import sound" : "Rename sound").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Rename sound").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(importing ? "Import" : "Save") { submit() }.fontWeight(.semibold).disabled(!valid)
+                    Button("Save") { submit() }.fontWeight(.semibold).disabled(!valid)
                 }
             }
             .onAppear { focused = true }
@@ -178,8 +176,7 @@ struct RecordingView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var recorder = SnippetRecorder()
     @State private var name = ""
-    @State private var uploading = false
-    @State private var failure: String?
+    @State private var editingClip = false
     var onRecorded: (Clip) -> Void
     var body: some View {
         NavigationStack {
@@ -206,8 +203,8 @@ struct RecordingView: View {
                             Button { recorder.listen() } label: { Label("Listen", systemImage: "play.fill") }.buttonStyle(QuietButtonStyle())
                             Button { Task { await recorder.start() } } label: { Label("Retake", systemImage: "arrow.counterclockwise") }.buttonStyle(QuietButtonStyle())
                         }
-                        Button { upload() } label: { Text(uploading ? "Saving…" : "Save & add button") }.buttonStyle(AccentButtonStyle())
-                            .disabled(uploading || name.trimmingCharacters(in: .whitespaces).isEmpty || name.utf16.count > 60)
+                        Button { recorder.stopListening(); editingClip = true } label: { Text("Trim & add button") }.buttonStyle(AccentButtonStyle())
+                            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || name.utf16.count > 60)
                     } else {
                         Button {
                             if recorder.recording { recorder.stop() } else { Task { await recorder.start() } }
@@ -220,25 +217,27 @@ struct RecordingView: View {
                         }.buttonStyle(PadPressStyle()).accessibilityLabel(recorder.recording ? "Stop recording" : "Start recording")
                         Text("Up to 60 seconds").font(.subheadline).foregroundStyle(.secondary)
                     }
-                    if let text = failure ?? recorder.error { Text(text).font(.subheadline).foregroundStyle(.red).multilineTextAlignment(.center) }
+                    if let text = recorder.error { Text(text).font(.subheadline).foregroundStyle(.red).multilineTextAlignment(.center) }
                 }.padding(28).frame(maxWidth: .infinity)
             }.background(Palette.background)
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(uploading) } }
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+                .navigationDestination(isPresented: $editingClip) {
+                    if let url = recorder.url { ClipEditorView(url: url, name: name, onSaved: onRecorded) }
+                }
         }
-        .interactiveDismissDisabled(recorder.recording || uploading)
+        .interactiveDismissDisabled(recorder.recording)
+#if DEBUG
+        .task {
+            if DesignPreview.screen == "recording-trim", let source = Bundle.main.url(forResource: "level-up", withExtension: "wav") {
+                let copy = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".wav")
+                do {
+                    try FileManager.default.copyItem(at: source, to: copy)
+                    recorder.url = copy; name = "Level up"; editingClip = true
+                } catch { recorder.error = error.localizedDescription }
+            }
+        }
+#endif
         .onDisappear { recorder.cleanup() }
         .onChange(of: scenePhase) { _, phase in if phase != .active && recorder.recording { recorder.stop() } }
-        .disabled(uploading)
-    }
-    private func upload() {
-        guard let url = recorder.url else { return }
-        uploading = true; failure = nil
-        Task {
-            do {
-                let clip = try await store.upload(url, name: name.trimmingCharacters(in: .whitespacesAndNewlines))
-                onRecorded(clip)
-            } catch { failure = error.localizedDescription }
-            uploading = false
-        }
     }
 }

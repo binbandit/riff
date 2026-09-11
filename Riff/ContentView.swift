@@ -112,7 +112,7 @@ struct ContentView: View {
             case "grid": destination = .grid
             case "audio": destination = .audio
             case "sounds", "rename", "import": destination = .sounds
-            case "recording": destination = .recording
+            case "recording", "recording-trim": destination = .recording
             case "settings": destination = .settings
             case "connection": destination = .connection
             case "editor": editor = store.selectedDeck?.pads.first

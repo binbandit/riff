@@ -49,6 +49,7 @@ import Observation
             preview = try AVAudioPlayer(contentsOf: url); preview?.play()
         } catch { self.error = error.localizedDescription }
     }
+    func stopListening() { preview?.stop(); preview = nil }
     func cleanup() {
         stop(); preview?.stop()
         if let url { try? FileManager.default.removeItem(at: url) }
