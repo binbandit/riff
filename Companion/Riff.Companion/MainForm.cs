@@ -42,6 +42,8 @@ public sealed class MainForm : Form
         var activity = new TabPage("Activity") { BackColor = PanelColor, Padding = new(18) }; activity.Controls.Add(log); tabs.TabPages.Add(activity);
         layout.Controls.Add(header, 0, 0); layout.Controls.Add(tabs, 0, 1);
         var footer = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new(0, 12, 0, 0) }; footer.Controls.Add(status); layout.Controls.Add(footer, 0, 2); Controls.Add(layout);
+        // Data-bound lists need the form's BindingContext before selecting an item.
+        RefreshOutputs();
         var menu = new ContextMenuStrip();
         menu.Items.Add("Open Riff", null, (_, _) => ShowWindow());
         menu.Items.Add("Stop all sounds", null, (_, _) => runner.Stop());
@@ -89,7 +91,7 @@ public sealed class MainForm : Form
         var page = new TabPage("Audio & voice chat") { BackColor = PanelColor, Padding = new(22), AutoScroll = true };
         var flow = Flow(); flow.Controls.Add(Heading("Let your sounds do the talking."));
         flow.Controls.Add(Body("For game voice chat, install VB-CABLE, choose CABLE Input below, and choose CABLE Output as the microphone in your game or Discord."));
-        RefreshOutputs(); flow.Controls.Add(outputs); volume.Value = (int)(store.State.Volume * 100); flow.Controls.Add(volume);
+        flow.Controls.Add(outputs); volume.Value = (int)(store.State.Volume * 100); flow.Controls.Add(volume);
         var buttons = new FlowLayoutPanel { AutoSize = true, Width = 790 };
         buttons.Controls.Add(Button("Apply output & volume", () =>
         {
@@ -173,6 +175,16 @@ public sealed class MainForm : Form
         args.Cancel = true;
         if (!exiting) { Hide(); tray.ShowBalloonTip(2000, "Riff is still running", "Open Riff from the system tray. Choose Quit Riff there to exit.", ToolTipIcon.Info); return; }
         Enabled = false; timer.Stop();
-        await server.Stop(); stopping = true; tray.Visible = false; tray.Dispose(); timer.Dispose(); qr.Image?.Dispose(); Close();
+        await server.Stop(); stopping = true; Close();
+    }
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            server.Activity -= AddLog;
+            tray?.Dispose(); timer.Dispose();
+            var image = qr.Image; qr.Image = null; image?.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }
