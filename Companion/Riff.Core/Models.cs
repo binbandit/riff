@@ -10,7 +10,7 @@ public record Clip(string Id, string Name, double Duration);
 public record LaunchTarget(string Id, string Name, string Path);
 public record DeviceInfo(string Id, string Name);
 public record Snapshot(int Version, List<Deck> Decks, List<Clip> Clips, List<DeviceInfo> Outputs,
-    string OutputId, float Volume, List<LaunchTargetInfo> Apps, string ComputerName, List<SteamGame> Games, string ActiveGameId, string ActiveGameName, List<string>? Capabilities = null);
+    string OutputId, float Volume, List<LaunchTargetInfo> Apps, string ComputerName, List<SteamGame> Games, string ActiveGameId, string ActiveGameName, List<string>? Capabilities = null, string? CompanionVersion = null);
 public record SteamGame(string Id, string Name);
 public record LaunchTargetInfo(string Id, string Name);
 public record DeckUpdate(int Version, List<Deck> Decks);

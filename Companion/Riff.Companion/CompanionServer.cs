@@ -26,7 +26,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             var s = store.State;
             return new(s.Version, s.Decks, s.Clips, audio.Devices(), s.OutputId, s.Volume,
                 s.Apps.Select(a => new LaunchTargetInfo(a.Id, a.Name)).ToList(), Environment.MachineName,
-                presence.Games, presence.Id, presence.Name, ["soundboard-playback-v1"]);
+                presence.Games, presence.Id, presence.Name, ["soundboard-playback-v1"], CompanionBuild.Version);
         }
     }
     public async Task Start()

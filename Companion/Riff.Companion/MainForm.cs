@@ -29,7 +29,7 @@ public sealed class MainForm : Form
     public MainForm(StateStore store, PairingIdentity identity, AudioEngine audio, ActionRunner runner, CompanionServer server)
     {
         this.store = store; this.identity = identity; this.audio = audio; this.runner = runner; this.server = server;
-        Text = "Riff · Windows companion"; Size = new(950, 800); MinimumSize = new(780, 650);
+        Text = $"Riff {CompanionBuild.Version} · Windows companion"; Size = new(950, 800); MinimumSize = new(780, 650);
         StartPosition = FormStartPosition.CenterScreen; BackColor = BackgroundColor; ForeColor = Color.White;
         Font = new("Segoe UI", 10); Icon = SystemIcons.Application;
         var layout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 3, ColumnCount = 1, Padding = new(24) };

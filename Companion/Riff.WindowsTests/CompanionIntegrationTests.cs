@@ -36,6 +36,8 @@ public class CompanionIntegrationTests
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", identity.Token);
                 var snapshot = (await client.GetFromJsonAsync<Snapshot>("/api/state", Wire.Json))!;
                 Assert.Equal(2, snapshot.Decks.Count);
+                Assert.Equal(CompanionBuild.Version, snapshot.CompanionVersion);
+                Assert.True(Version.TryParse(snapshot.CompanionVersion!.Split('-')[0], out _));
                 Assert.Contains("soundboard-playback-v1", snapshot.Capabilities!);
                 var playback = (await client.GetFromJsonAsync<PlaybackState>("/api/playback", Wire.Json))!;
                 Assert.Empty(playback.PadIds);
