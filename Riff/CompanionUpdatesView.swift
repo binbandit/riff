@@ -2,6 +2,9 @@ import SwiftUI
 
 struct CompanionUpdatesView: View {
     @Environment(RiffStore.self) private var store
+#if DEBUG
+    @State private var previewChangelog = false
+#endif
     var body: some View {
         Form {
             Section("Windows companion") {
@@ -20,6 +23,18 @@ struct CompanionUpdatesView: View {
                     Text("This companion doesn’t report a readable version. Install a current release on Windows to enable version comparison.").font(.subheadline).foregroundStyle(.secondary)
                 }
                 if !store.connected { Text("Connect your PC to verify the version currently running.").font(.subheadline).foregroundStyle(.secondary) }
+            }
+            if let release = store.updates.release {
+                Section {
+                    NavigationLink { CompanionChangelogView(release: release) } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("What’s new")
+                                Text("Latest companion features and fixes").font(.caption).foregroundStyle(.secondary)
+                            }
+                        } icon: { Image(systemName: "sparkles") }
+                    }
+                }
             }
             Section {
                 Link("View GitHub release", destination: store.updates.release?.page ?? GitHubRelease.releasesPage)
@@ -47,6 +62,20 @@ struct CompanionUpdatesView: View {
         .listSectionSpacing(12)
         .scrollContentBackground(.hidden).background(Palette.background)
         .navigationTitle("Companion updates").navigationBarTitleDisplayMode(.inline)
-        .task { await store.updates.check() }
+        .task {
+#if DEBUG
+            await store.updates.check(force: ["changelog", "markdown"].contains(DesignPreview.screen))
+#else
+            await store.updates.check()
+#endif
+        }
+#if DEBUG
+        .navigationDestination(isPresented: $previewChangelog) {
+            if let release = store.updates.release { CompanionChangelogView(release: release) }
+        }
+        .onChange(of: store.updates.release?.changelogKey, initial: true) { _, key in
+            if ["changelog", "markdown"].contains(DesignPreview.screen), key != nil { previewChangelog = true }
+        }
+#endif
     }
 }

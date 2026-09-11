@@ -4,6 +4,31 @@ import SwiftUI
 // Launch-only preview settings for repeatable simulator captures. No simulated PC connection.
 enum DesignPreview {
     static let screen = ProcessInfo.processInfo.environment["RIFF_PREVIEW_SCREEN"] ?? ""
+    static let markdown = """
+    # Markdown preview
+
+    **Bold**, *italic*, ~~removed~~, and `inline code`.
+
+    - Layer sound effects
+      - Keep nested details readable
+    1. Pick a sound
+    2. Tap to play
+
+    > A quoted note with a [release link](https://github.com/binbandit/riff/releases).
+
+    ```text
+    Output: CABLE Input
+    Playback: One at a time
+    ```
+
+    | Mode | Behavior |
+    | --- | --- |
+    | Overlap | Layer sounds |
+    | Single | Replace the last sound |
+
+    - [x] Downloaded changelog
+    - [ ] Install companion update
+    """
     static var colorScheme: ColorScheme? {
         switch ProcessInfo.processInfo.environment["RIFF_PREVIEW_APPEARANCE"] {
         case "dark": .dark

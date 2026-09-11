@@ -1,6 +1,6 @@
 import Foundation
 
-struct ReleaseVersion: Comparable {
+nonisolated struct ReleaseVersion: Comparable, Sendable {
     let numbers: [Int]
     let prerelease: [String]
     init?(_ text: String) {
@@ -40,7 +40,18 @@ struct ReleaseVersion: Comparable {
 }
 
 struct GitHubRelease: Codable {
-    struct Asset: Codable { let name: String; let state: String; let size: Int64 }
+    struct Asset: Codable {
+        let name: String
+        let state: String
+        let size: Int64
+        var id: Int64? = nil
+        var updated_at: String? = nil
+    }
+    var changelogAsset: Asset? { assets.first { $0.name.lowercased() == "changelog.md" && $0.state == "uploaded" && $0.size > 0 } }
+    var changelogKey: String? {
+        guard isWindowsRelease, let asset = changelogAsset else { return nil }
+        return "\(tag_name)|\(asset.id.map(String.init) ?? asset.name)|\(asset.updated_at ?? "")|\(asset.size)"
+    }
     let tag_name: String
     let draft: Bool
     let prerelease: Bool

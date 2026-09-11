@@ -109,6 +109,14 @@ struct SettingsView: View {
                     Toggle("Follow my Steam game", isOn: $store.autoSwitch)
                     Text("Link a game in Deck settings. Riff switches when a new game starts, and pauses switching while you edit. You can always choose another deck manually.").font(.caption).foregroundStyle(.secondary)
                 }
+                Section {
+                    NavigationLink("Open-source licenses") {
+                        ScrollView {
+                            Text((Bundle.main.url(forResource: "MarkdownLicenses", withExtension: "txt").flatMap { try? String(contentsOf: $0, encoding: .utf8) }) ?? "Licenses could not be loaded.")
+                                .font(.footnote).textSelection(.enabled).padding(24)
+                        }.navigationTitle("Open-source licenses").navigationBarTitleDisplayMode(.inline)
+                    }
+                }
                 Section { Text("Riff \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")").foregroundStyle(.secondary) }
             }.scrollContentBackground(.hidden).background(Palette.background)
                 .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)

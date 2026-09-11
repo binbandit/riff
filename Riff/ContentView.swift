@@ -125,7 +125,7 @@ struct ContentView: View {
             case "sounds", "rename", "import", "sound-selection", "add-sounds": destination = .sounds
             case "recording", "recording-trim": destination = .recording
             case "settings": destination = .settings
-            case "updates": destination = .updates
+            case "updates", "changelog", "markdown": destination = .updates
             case "connection": destination = .connection
             case "editor": editor = store.selectedDeck?.pads.first
             case "decks": picker = true
