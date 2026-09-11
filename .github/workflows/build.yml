@@ -7,6 +7,7 @@ on:
       - 'Riff.xcodeproj/**'
       - 'Tests/**'
       - 'Shared/**'
+      - 'sound-packs/**'
       - 'Config/**'
       - 'Package.swift'
       - 'scripts/build-ipad.sh'
