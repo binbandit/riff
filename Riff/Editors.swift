@@ -148,6 +148,8 @@ struct DeckEditor: View {
                     Picker("Icon", selection: $deck.icon) {
                         Label("Soundboard", systemImage: "waveform").tag("waveform")
                         Label("Gaming", systemImage: "gamecontroller").tag("gamecontroller")
+                        Label("Flying", systemImage: "airplane").tag("airplane")
+                        Label("Just for fun", systemImage: "face.smiling").tag("face.smiling")
                         Label("Shortcuts", systemImage: "command").tag("command")
                         Label("Workspace", systemImage: "square.grid.2x2").tag("square.grid.2x2")
                         Label("Streaming", systemImage: "video").tag("video")
@@ -202,8 +204,8 @@ struct DeckEditor: View {
 
 struct PadAppearanceEditor: View {
     @Binding var pad: Pad
-    private let emoji = ["✨", "😂", "😭", "😎", "💀", "👀", "🫡", "🤡", "🔥", "❤️", "🎉", "💸", "🚨", "⏰", "👏", "🎮"]
-    private let icons = ["sparkles", "waveform", "theatermasks", "hand.raised", "timer", "circle.circle", "light.beacon.max", "gamecontroller", "bolt", "heart", "star", "speaker.wave.2", "mic", "playpause", "forward.end", "command", "desktopcomputer", "viewfinder", "text.bubble", "globe", "app", "square.stack.3d.up", "speaker.slash", "flame"]
+    private let emoji = ["✨", "😂", "😭", "😎", "💀", "👀", "🫡", "🤡", "🔥", "❤️", "🎉", "💸", "🚨", "⏰", "👏", "🎮", "✈️", "🛫", "🛬", "🚁", "📻"]
+    private let icons = ["sparkles", "waveform", "theatermasks", "hand.raised", "timer", "circle.circle", "light.beacon.max", "gamecontroller", "bolt", "heart", "star", "speaker.wave.2", "mic", "playpause", "forward.end", "command", "desktopcomputer", "viewfinder", "text.bubble", "globe", "app", "square.stack.3d.up", "speaker.slash", "flame", "airplane", "airplane.departure", "airplane.arrival", "antenna.radiowaves.left.and.right", "face.smiling"]
     var body: some View {
         Form {
             Section {

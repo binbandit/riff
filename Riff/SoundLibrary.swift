@@ -4,6 +4,11 @@ import UniformTypeIdentifiers
 struct LibraryView: View {
     @Environment(RiffStore.self) private var store
     var onAssign: (Clip) -> Void
+    var onAdded: () -> Void
+    @State private var selecting = false
+    @State private var selectedIDs: [String] = []
+    @State private var addingSounds = false
+    @State private var addedSounds = false
     @State private var search = ""
     @State private var scope = SoundScope.all
     @State private var importing = false
@@ -19,8 +24,18 @@ struct LibraryView: View {
                 Picker("Show sounds", selection: $scope) {
                     ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0) }
                 }.pickerStyle(.segmented).listRowBackground(Color.clear)
+                if selecting {
+                    HStack(spacing: 16) {
+                        Text("\(selectedIDs.count) selected").foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Select shown") {
+                            selectedIDs += clips.map(\.id).filter { !selectedIDs.contains($0) }
+                        }.disabled(clips.isEmpty || Set(selectedIDs).union(clips.map(\.id)).count > 48 || clips.allSatisfy { selectedIDs.contains($0.id) })
+                        Button("Clear") { selectedIDs.removeAll() }.disabled(selectedIDs.isEmpty)
+                    }.font(.subheadline).buttonStyle(.borderless).listRowBackground(Color.clear)
+                }
             }
-            if !store.connected {
+            if !store.connected && !selecting {
                 Section { Text("Preview sounds here. Connect your PC to record, import, or add them to a deck.").font(.subheadline).foregroundStyle(.secondary) }
             }
             Section {
@@ -30,16 +45,24 @@ struct LibraryView: View {
                             Image(systemName: "play.fill").font(.body).foregroundStyle(Palette.accent)
                                 .frame(width: 48, height: 48).background(Palette.accent.opacity(0.09), in: Circle())
                         }.buttonStyle(.borderless).accessibilityLabel("Play \(clip.name)")
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 6) {
-                                Text(clip.name).font(.body.weight(.medium))
-                                if store.favoriteClipIDs.contains(clip.id) { Image(systemName: "star.fill").font(.caption).foregroundStyle(Palette.accent).accessibilityLabel("Favorite") }
-                            }
-                            Text(String(format: "%.1f sec", clip.duration)).font(.subheadline).foregroundStyle(.secondary)
+                        if selecting {
+                            Button { toggleSelection(clip) } label: {
+                                HStack {
+                                    soundName(clip)
+                                    Spacer()
+                                    Image(systemName: selectedIDs.contains(clip.id) ? "checkmark.circle.fill" : "circle")
+                                        .font(.title2).foregroundStyle(selectedIDs.contains(clip.id) ? Palette.accent : .secondary)
+                                }.contentShape(Rectangle()).frame(minHeight: 48)
+                            }.buttonStyle(.plain)
+                                .disabled(selectedIDs.count >= 48 && !selectedIDs.contains(clip.id))
+                                .accessibilityLabel("Select \(clip.name)")
+                                .accessibilityAddTraits(selectedIDs.contains(clip.id) ? .isSelected : [])
+                        } else {
+                            soundName(clip)
+                            Spacer()
+                            Button { onAssign(clip) } label: { Image(systemName: "plus.circle.fill").font(.title2).padding(8) }
+                                .buttonStyle(.borderless).disabled(!store.connected).accessibilityLabel("Add \(clip.name) to deck")
                         }
-                        Spacer()
-                        Button { onAssign(clip) } label: { Image(systemName: "plus.circle.fill").font(.title2).padding(8) }
-                            .buttonStyle(.borderless).disabled(!store.connected).accessibilityLabel("Add \(clip.name) to deck")
                     }.padding(.vertical, 6)
                         .swipeActions(allowsFullSwipe: false) {
                             Button("Delete", role: .destructive) { deleteClip = clip }.disabled(!store.connected)
@@ -62,21 +85,55 @@ struct LibraryView: View {
             }
 
         }
+        .listSectionSpacing(12)
         .scrollContentBackground(.hidden).background(Palette.background)
         .searchable(text: $search, prompt: "Find a sound")
 #if DEBUG
         .task {
+            if DesignPreview.screen == "sound-selection" || DesignPreview.screen == "add-sounds" {
+                selecting = true; selectedIDs = Array(store.snapshot.clips.prefix(3).map(\.id))
+                if DesignPreview.screen == "add-sounds" { addingSounds = true }
+            }
             if DesignPreview.screen == "rename", let clip = store.snapshot.clips.first { naming = .existing(clip) }
             if DesignPreview.screen == "import", let url = Bundle.main.url(forResource: "level-up", withExtension: "wav") { naming = .imported(url) }
         }
 #endif
-        .safeAreaInset(edge: .bottom) { SoundPreviewBar() }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 0) {
+                if selecting {
+                    Button { addingSounds = true } label: {
+                        Label(selectedIDs.isEmpty ? "Select sounds to continue" : "Add \(selectedIDs.count) to deck", systemImage: "plus.square.on.square")
+                            .frame(maxWidth: .infinity)
+                    }.buttonStyle(AccentButtonStyle()).disabled(selectedIDs.isEmpty)
+                        .padding(.horizontal, 20).padding(.top, 12)
+                }
+                SoundPreviewBar()
+            }.background(.regularMaterial)
+        }
+        .sheet(isPresented: $addingSounds, onDismiss: {
+            if addedSounds { addedSounds = false; selecting = false; selectedIDs.removeAll(); onAdded() }
+        }) {
+            AddSoundsView(clipIDs: selectedIDs) { addedSounds = true }
+        }
+        .onChange(of: store.snapshot.clips.map(\.id)) { _, ids in
+            selectedIDs.removeAll { !ids.contains($0) }
+        }
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Menu {
-                    Button("Record sound", systemImage: "mic") { recording = true }
-                    Button("Import audio", systemImage: "folder") { importing = true }
-                } label: { Image(systemName: "plus") }.disabled(!store.connected).accessibilityLabel("Add sound")
+            if selecting {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { selecting = false; selectedIDs.removeAll() }
+                        .accessibilityLabel("Cancel sound selection")
+                }
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Select") { selecting = true; selectedIDs.removeAll() }
+                }
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        Button("Record sound", systemImage: "mic") { recording = true }
+                        Button("Import audio", systemImage: "folder") { importing = true }
+                    } label: { Image(systemName: "plus") }.disabled(!store.connected).accessibilityLabel("Add sound")
+                }
             }
         }
         .sheet(isPresented: $recording, onDismiss: { if let recorded { self.recorded = nil; onAssign(recorded) } }) {
@@ -110,6 +167,21 @@ struct LibraryView: View {
                 if let clip = deleteClip { Task { await store.deleteClip(clip) } }; deleteClip = nil
             }
         } message: { Text("Remove this sound from any buttons before deleting it.") }
+    }
+    private func toggleSelection(_ clip: Clip) {
+        if selectedIDs.contains(clip.id) { selectedIDs.removeAll { $0 == clip.id } }
+        else if selectedIDs.count < 48 { selectedIDs.append(clip.id) }
+    }
+    private func soundName(_ clip: Clip) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(clip.name).font(.body.weight(.medium)).foregroundStyle(.primary)
+                if store.favoriteClipIDs.contains(clip.id) {
+                    Image(systemName: "star.fill").font(.caption).foregroundStyle(Palette.accent).accessibilityLabel("Favorite")
+                }
+            }
+            Text(String(format: "%.1f sec", clip.duration)).font(.subheadline).foregroundStyle(.secondary)
+        }
     }
 }
 

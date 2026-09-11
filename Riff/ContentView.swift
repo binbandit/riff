@@ -90,7 +90,7 @@ struct ContentView: View {
             case .grid: NavigationStack { GridLayoutView() }
             case .sounds:
                 NavigationStack {
-                    LibraryView(onAssign: { clip in pendingClip = clip; destination = nil })
+                    LibraryView(onAssign: { clip in pendingClip = clip; destination = nil }, onAdded: { destination = nil })
                         .navigationTitle("Sounds")
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { destination = nil } } }
                 }
@@ -112,7 +112,7 @@ struct ContentView: View {
             case "grid": destination = .grid
             case "audio": destination = .audio
             case "playback-check": await DesignPreview.checkPlayback(store)
-            case "sounds", "rename", "import": destination = .sounds
+            case "sounds", "rename", "import", "sound-selection", "add-sounds": destination = .sounds
             case "recording", "recording-trim": destination = .recording
             case "settings": destination = .settings
             case "connection": destination = .connection
