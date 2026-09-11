@@ -65,7 +65,7 @@ struct ContentView: View {
                         Menu {
                             Button("Edit buttons", systemImage: "square.grid.2x2") { store.editing = true }.disabled(!store.connected)
                             Button("Grid size", systemImage: "square.grid.3x3") { destination = .grid }
-                            Button("Sound output", systemImage: "speaker.wave.2") { destination = .audio }
+                            Button("Sound controls", systemImage: "speaker.wave.2") { destination = .audio }
                             Button("Deck settings", systemImage: "pencil") { editDeck = store.selectedDeck }.disabled(!store.connected)
                             Divider()
                             Button("Settings", systemImage: "gearshape") { destination = .settings }
@@ -111,6 +111,7 @@ struct ContentView: View {
             switch DesignPreview.screen {
             case "grid": destination = .grid
             case "audio": destination = .audio
+            case "playback-check": await DesignPreview.checkPlayback(store)
             case "sounds", "rename", "import": destination = .sounds
             case "recording", "recording-trim": destination = .recording
             case "settings": destination = .settings
@@ -125,6 +126,10 @@ struct ContentView: View {
             UIApplication.shared.isIdleTimerDisabled = scenePhase == .active
             guard scenePhase == .active else { return }
             while !Task.isCancelled { await store.refresh(); try? await Task.sleep(for: .seconds(3)) }
+        }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            while !Task.isCancelled { await store.refreshPlayback(); try? await Task.sleep(for: .milliseconds(250)) }
         }
     }
     private var deckHeading: some View {
@@ -233,7 +238,7 @@ struct ContentView: View {
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     private func tile(_ pad: Pad, pads: [Pad]) -> some View {
-        PadTile(pad: pad, editing: store.editing, active: store.activePad == pad.id) {
+        PadTile(pad: pad, editing: store.editing, active: store.activePad == pad.id, playing: store.playingPadIDs.contains(pad.id)) {
             if store.editing { editor = pad } else { Task { await store.trigger(pad) } }
         }
         .modifier(PadReordering(enabled: store.editing, id: pad.id) { id in Task { await store.movePad(id, to: pad.id) } })
@@ -304,6 +309,7 @@ struct PadTile: View {
     let pad: Pad
     var editing = false
     var active = false
+    var playing = false
     var action: () -> Void = {}
     var body: some View {
         GeometryReader { geometry in
@@ -328,14 +334,19 @@ struct PadTile: View {
                         Image(systemName: "pencil").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink.opacity(0.6)).padding(18)
                     } else if active {
                         ProgressView().tint(Palette.ink).padding(18)
+                    } else if playing {
+                        Image(systemName: "stop.fill").font(.caption.weight(.bold))
+                            .foregroundStyle(Palette.ink).padding(10)
+                            .background(.white.opacity(0.45), in: Circle()).padding(12)
                     }
                 }
-                .overlay(RoundedRectangle(cornerRadius: compact ? 24 : 34).strokeBorder(.white.opacity(0.3), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: compact ? 24 : 34).strokeBorder(playing ? Palette.ink.opacity(0.6) : .white.opacity(0.3), lineWidth: playing ? 3 : 1))
                 .shadow(color: pad.tint.opacity(0.12), radius: 6, y: 4)
             }.buttonStyle(PadPressStyle())
                 .sensoryFeedback(.impact(weight: .light), trigger: active)
                 .accessibilityLabel("\(pad.title), \(pad.typeName)")
-                .accessibilityHint(editing ? "Customize this button" : "Run this action")
+                .accessibilityValue(playing ? "Playing" : "")
+                .accessibilityHint(editing ? "Customize this button" : playing ? "Tap again to stop this sound" : "Run this action")
         }
     }
 }

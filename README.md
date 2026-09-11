@@ -4,12 +4,12 @@ Your iPad, your control room. A native SwiftUI control deck and a Windows 11 com
 
 ## What you can do
 
-- Tap large color-coded pads to play sounds on your PC.
+- Tap large color-coded pads to play sounds on your PC. A playing sound shows a stop symbol; tap it again to stop just that button.
 - Record up to 60 seconds on the iPad, listen back, name the clip, and turn it into a button.
 - Import WAV, MP3, M4A, AAC or AIFF audio from iPad Files or Windows. Direct PC imports are limited to 20 MB / 60 seconds; longer iPad imports can be trimmed before upload.
 - Send clips into game voice chat using a virtual microphone.
 - Find clips with **All**, **Favorites**, and **This deck** filters. Swipe right or hold a sound to favorite it; favorites are saved on this iPad. Button editors use the same searchable sound browser with preview playback.
-- Tap the output label below your deck, or **… → Sound output**, for volume and routing. Sound browsers show the preview destination and keep **Stop all** visible.
+- Tap the output label below your deck, or **… → Sound controls**, for playback mode, volume, and routing. Sound browsers show the preview destination and keep **Stop all** visible.
 - Trim imported audio or a new recording with an actual waveform, start point, and clip length. **Listen on iPad** previews the selection privately; **Save & add** uploads only that section. iPad imports accept source files up to 10 minutes / 100 MB (96 kHz or below), trimmed to 60 seconds. The original file is unchanged.
 - Name imported sounds before adding them, or swipe a library sound and choose **Rename**. Renaming preserves its button links and custom button labels.
 - Long-press a button and choose **Duplicate button** to customize a copy before saving. Change **Deck** in the editor to move an existing button or save a copy to another deck.
@@ -19,7 +19,7 @@ Your iPad, your control room. A native SwiftUI control deck and a Windows 11 com
 - Assign keyboard shortcuts, typed text, media controls, websites, locally approved applications, or sequences of up to 20 actions.
 - Stop all playing sounds and cancel remaining sequence steps immediately.
 
-Six original synthesized sounds are included. Sound effects can overlap, with up to 16 playing at once. The iPad stays awake while Riff is in the foreground. Without a PC connection, the starter sounds can be previewed on the iPad; PC actions and editing require a connection.
+Six original synthesized sounds are included. Choose **Overlap** for layered effects (up to 16 at once), or **One at a time** for voice lines that replace each other. The choice is saved on this iPad and sent with the next sound tap or library preview. Update both applications to use these controls on Windows. The iPad stays awake while Riff is in the foreground. Without a PC connection, the starter sounds can be previewed on the iPad; PC actions and editing require a connection.
 
 This implements common control-deck actions. It does not run Elgato plugins or provide every proprietary Stream Deck integration. OBS and other apps can be controlled through their configured keyboard shortcuts; a dedicated OBS API integration is not included.
 
@@ -87,6 +87,10 @@ To monitor the sounds in your headphones, use **Windows Sound → More sound set
 
 The audio test plays through the selected PC output. If it is a virtual cable, you will see it in your chat app's microphone test, rather than hear it through speakers unless monitoring is enabled. Apply output changes before testing; stop existing clips before changing output.
 
+## Playing without streaming
+
+No streaming software is needed. Use headphones or speakers for your own soundboard, or route sounds to a virtual microphone for game chat. **One at a time** suits pilot callouts and spoken memes; **Overlap** lets you layer effects. **Stop all** remains available below the deck and in sound browsers. Playing indicators follow the PC's playback state and clear when a clip ends; they require a connection to the current companion. Offline starter sounds use the same playback controls on the iPad.
+
 ## Game-specific layouts
 
 Create or duplicate a deck, choose **Deck settings**, and link a Steam game. Enable **Follow my Steam game** in Settings. Installed game names are read from Steam's local library manifests, and running state is read from Steam's local registry. No Steam password or Web API key is required.
@@ -101,7 +105,7 @@ Steam's local registry format is not a stable public API, so detection is best e
 - **Type text:** writes to the focused field. It does not press Enter automatically. A sequence can type text and then tap Enter.
 - **Launch app:** first add the `.exe` under **Allowed apps** on Windows, then select it on iPad. Arbitrary shell commands and app paths are not accepted through the API.
 - **Website:** opens an HTTP/HTTPS address in the PC's default browser.
-- **Sequence:** ordered actions with a delay before each step; up to 20 steps and 30 seconds of total delays. Another action is rejected while a sequence is running. Stop All cancels the remaining steps, but cannot undo apps opened or text already typed.
+- **Sequence:** ordered actions with a delay before each step; up to 20 steps and 30 seconds of total delays. Other shortcuts and sequences are rejected while a sequence is running; sound buttons remain available. Stop All cancels the remaining steps, but cannot undo apps opened or text already typed.
 
 Windows can block simulated input into elevated applications or protected games. See Microsoft's [SendInput restrictions](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput). The app does not bypass anti-cheat protection.
 

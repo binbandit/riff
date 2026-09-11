@@ -72,6 +72,7 @@ final class PinnedSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecked 
         var request = URLRequest(url: url)
         request.httpMethod = method; request.httpBody = body
         if path == "/api/trigger" { request.timeoutInterval = 40 }
+        if path == "/api/playback" { request.timeoutInterval = 2 }
         request.setValue("Bearer \(pairing.token)", forHTTPHeaderField: "Authorization")
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
         let (data, response) = try await session.data(for: request)

@@ -12,6 +12,20 @@ struct AudioControlsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Picker("Playback", selection: Binding(get: { store.soundMode }, set: { store.soundMode = $0 })) {
+                        ForEach(SoundPlaybackMode.allCases) { Text($0.label).tag($0) }
+                    }.pickerStyle(.segmented)
+                        .disabled(store.connected && !store.supportsPlayback)
+                } header: { Text("When you tap a sound") } footer: {
+                    if store.connected && !store.supportsPlayback {
+                        Text("Update Riff on your PC to use these playback controls.")
+                    } else {
+                        Text(store.soundMode == .single
+                             ? "Each new sound stops the previous one. Tap a playing button again to stop it. This choice is saved automatically."
+                             : "Different sounds can play together. Tap a playing button again to stop just that sound. This choice is saved automatically.")
+                    }
+                }
                 if !store.connected {
                     Section {
                         Text("Connect your PC to choose where sounds play and adjust their volume.").foregroundStyle(.secondary)
@@ -41,9 +55,9 @@ struct AudioControlsView: View {
                 }
             }
             .scrollContentBackground(.hidden).background(Palette.background)
-            .navigationTitle("Sound output").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Sound controls").navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
+                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() }.disabled(saving) }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(saving ? "Applying…" : "Apply") {
                         saving = true; failure = nil

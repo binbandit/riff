@@ -38,7 +38,39 @@ import Observation
         set { gridLayouts[selectedDeckId] = newValue }
     }
     private var client: CompanionClient?
-    private var player: AVAudioPlayer?
+    private var players: [String: AVAudioPlayer] = [:]
+    private var playback = SoundPlaybackTracker()
+    private var playbackRefreshRunning = false
+    var playingPadIDs: Set<String> = []
+    var soundMode = SoundPlaybackMode(rawValue: UserDefaults.standard.string(forKey: "soundMode") ?? "") ?? .overlap {
+        didSet { UserDefaults.standard.set(soundMode.rawValue, forKey: "soundMode") }
+    }
+    var supportsPlayback: Bool { snapshot.capabilities?.contains("soundboard-playback-v1") == true }
+    private func stopLocalSounds() {
+        for player in players.values { player.stop() }
+        players.removeAll(); playingPadIDs.removeAll()
+    }
+    private func acceptPlayback(_ next: SoundPlaybackState?) {
+        guard let next else { return }
+        playback.accept(next); playingPadIDs = playback.padIDs
+    }
+    func refreshPlayback() async {
+        if !connected {
+            players = players.filter { $0.value.isPlaying }
+            playingPadIDs = Set(players.keys)
+            return
+        }
+        guard supportsPlayback, let client, !playbackRefreshRunning else { return }
+        playbackRefreshRunning = true; let generation = epoch
+        defer { playbackRefreshRunning = false }
+        do {
+            let state: SoundPlaybackState = try await client.request("/api/playback")
+            guard generation == epoch, connected else { return }
+            acceptPlayback(state)
+        } catch {
+            if generation == epoch { playingPadIDs.removeAll() }
+        }
+    }
     private var lastGame = ""
     private var toastTask: Task<Void, Never>?
     private var refreshRunning = false
@@ -65,11 +97,12 @@ import Observation
         let next = CompanionClient(pairing: pairing)
         let state: Snapshot = try await next.request("/api/state")
         try PairingVault.save(pairing)
+        stopLocalSounds(); playback = SoundPlaybackTracker()
         epoch += 1; client = next; apply(state); connected = true; connectionIssue = nil
         message("Connected to \(state.computerName)")
     }
     func disconnect() {
-        epoch += 1; client = nil; connected = false; connectionIssue = nil; PairingVault.delete(); player?.stop()
+        epoch += 1; client = nil; connected = false; connectionIssue = nil; PairingVault.delete(); stopLocalSounds(); playback = SoundPlaybackTracker()
     }
     func refresh() async {
         guard let client, !busy, !connecting, !refreshRunning else { return }
@@ -78,10 +111,11 @@ import Observation
         do {
             let state: Snapshot = try await client.request("/api/state")
             guard generation == epoch, !busy else { return }
+            if !connected { stopLocalSounds() }
             apply(state); connected = true; connectionIssue = nil
         } catch {
             if generation == epoch {
-                connected = false
+                connected = false; playingPadIDs.removeAll()
                 connectionIssue = error is RiffError ? error.localizedDescription : "Make sure Riff is open on your PC and both devices are on the same network."
             }
         }
@@ -109,25 +143,41 @@ import Observation
             do {
                 try AVAudioSession.sharedInstance().setCategory(.playback)
                 try AVAudioSession.sharedInstance().setActive(true)
-                player = try AVAudioPlayer(contentsOf: url); player?.volume = snapshot.volume; player?.play()
-                message("Preview on iPad: \(pad.title)")
+                players = players.filter { $0.value.isPlaying }
+                if let playing = players.removeValue(forKey: pad.id) {
+                    playing.stop(); playingPadIDs = Set(players.keys)
+                    message("Stopped \(pad.title)"); return
+                }
+                if soundMode == .single { stopLocalSounds() }
+                guard players.count < 16 else { throw RiffError.message("16 sounds are already playing. Stop a sound before starting another.") }
+                let player = try AVAudioPlayer(contentsOf: url)
+                player.volume = snapshot.volume
+                guard player.play() else { throw RiffError.message("This sound could not be played.") }
+                players[pad.id] = player; playingPadIDs = Set(players.keys)
+                message("Playing on iPad: \(pad.title)")
             } catch { self.error = error.localizedDescription }
             return
         }
         guard let client else { return }
+        let generation = epoch
         activePad = pad.id
         defer { if activePad == pad.id { activePad = nil } }
         do {
-            struct Trigger: Encodable { let padId: String; let requestId: String }
-            let _: Acknowledgement = try await client.request("/api/trigger", method: "POST", body: JSONEncoder().encode(Trigger(padId: pad.id, requestId: UUID().uuidString)))
-            message("\(pad.title) sent to PC")
+            struct Trigger: Encodable { let padId: String; let requestId: String; let toggle: Bool?; let soundMode: String? }
+            let result: Acknowledgement = try await client.request("/api/trigger", method: "POST", body: JSONEncoder().encode(Trigger(padId: pad.id, requestId: UUID().uuidString, toggle: supportsPlayback ? true : nil, soundMode: supportsPlayback ? soundMode.rawValue : nil)))
+            guard generation == epoch, connected else { return }
+            acceptPlayback(result.playback)
+            if pad.kind != "sound" || !supportsPlayback { message("\(pad.title) sent to PC") }
         } catch { self.error = "\(error.localizedDescription) The action was not retried, to avoid playing it twice." }
     }
     func stopAll() async {
-        player?.stop()
+        stopLocalSounds()
         guard let client, connected else { message("Preview stopped"); return }
+        let generation = epoch
         do {
-            let _: Acknowledgement = try await client.request("/api/stop", method: "POST")
+            let result: Acknowledgement = try await client.request("/api/stop", method: "POST")
+            guard generation == epoch, connected else { return }
+            acceptPlayback(result.playback)
             message("All sounds and sequences stopped")
         } catch { self.error = error.localizedDescription }
     }
@@ -201,11 +251,14 @@ import Observation
     func preview(_ clip: Clip) async {
         if let client, connected {
             do {
-                struct Preview: Encodable { let clipId: String }
-                let _: Acknowledgement = try await client.request("/api/preview", method: "POST", body: JSONEncoder().encode(Preview(clipId: clip.id)))
+                let generation = epoch
+                struct Preview: Encodable { let clipId: String; let soundMode: String? }
+                let result: Acknowledgement = try await client.request("/api/preview", method: "POST", body: JSONEncoder().encode(Preview(clipId: clip.id, soundMode: supportsPlayback ? soundMode.rawValue : nil)))
+                guard generation == epoch, connected else { return }
+                acceptPlayback(result.playback)
                 message("Playing on PC: \(clip.name)")
             } catch { self.error = error.localizedDescription }
-        } else { await trigger(Pad(title: clip.name, value: clip.id)) }
+        } else { await trigger(Pad(id: "preview-" + clip.id, title: clip.name, value: clip.id)) }
     }
 }
-struct Acknowledgement: Decodable { let ok: Bool }
+struct Acknowledgement: Decodable { let ok: Bool; let playback: SoundPlaybackState? }
