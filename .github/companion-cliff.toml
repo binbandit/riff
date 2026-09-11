@@ -24,7 +24,7 @@ filter_commits = false
 tag_pattern = '^companion-v[0-9]+\.[0-9]+\.[0-9]+$'
 sort_commits = "oldest"
 include_paths = [
-  "Companion/**", "Shared/Sounds/**",
+  "Companion/**", "Shared/Sounds/**", "Riff/Resources/sound-packs.json",
   "scripts/build-windows.ps1", "scripts/prepare-companion-release.sh",
   "scripts/test-companion-release.py",
   ".github/workflows/companion.yml", ".github/companion-cliff.toml",

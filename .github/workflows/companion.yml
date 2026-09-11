@@ -5,6 +5,7 @@ on:
     paths: &companion-paths
       - 'Companion/**'
       - 'Shared/Sounds/**'
+      - 'Riff/Resources/sound-packs.json'
       - 'scripts/build-windows.ps1'
       - 'scripts/prepare-companion-release.sh'
       - 'scripts/test-companion-release.py'
