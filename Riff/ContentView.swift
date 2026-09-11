@@ -22,7 +22,7 @@ struct ContentView: View {
     @State private var picker = false
     @State private var pendingClip: Clip?
     enum Destination: String, Identifiable {
-        case connection, recording, settings, sounds, grid, audio
+        case connection, recording, settings, sounds, grid, audio, updates
         var id: String { rawValue }
     }
     var body: some View {
@@ -34,6 +34,13 @@ struct ContentView: View {
                         .padding(.horizontal, layout.margin)
                         .padding(.top, 16)
                         .padding(.bottom, 12)
+                    if store.connected, let release = store.updates.release,
+                       release.isNewer(than: store.snapshot.companionVersion) || store.snapshot.companionVersion.flatMap(ReleaseVersion.init) == nil {
+                        Button { destination = .updates } label: {
+                            Label(release.isNewer(than: store.snapshot.companionVersion) ? "Update Windows companion · \(release.tag_name)" : "Check your Windows companion version", systemImage: "arrow.down.circle")
+                                .font(.subheadline).frame(maxWidth: .infinity, alignment: .leading)
+                        }.padding(.horizontal, layout.margin).padding(.bottom, 8)
+                    }
                     if store.editing {
                         HStack {
                             Text("Drag to move. Tap to edit.").foregroundStyle(.secondary)
@@ -86,6 +93,9 @@ struct ContentView: View {
             case .connection: ConnectionView()
             case .recording: RecordingView { clip in pendingClip = clip; destination = nil }
             case .settings: SettingsView()
+            case .updates: NavigationStack {
+                CompanionUpdatesView().toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { destination = nil } } }
+            }
             case .audio: AudioControlsView()
             case .grid: NavigationStack { GridLayoutView() }
             case .sounds:
@@ -115,6 +125,7 @@ struct ContentView: View {
             case "sounds", "rename", "import", "sound-selection", "add-sounds": destination = .sounds
             case "recording", "recording-trim": destination = .recording
             case "settings": destination = .settings
+            case "updates": destination = .updates
             case "connection": destination = .connection
             case "editor": editor = store.selectedDeck?.pads.first
             case "decks": picker = true
@@ -122,6 +133,10 @@ struct ContentView: View {
             }
         }
 #endif
+        .task(id: store.paired && scenePhase == .active) {
+            guard store.paired, scenePhase == .active else { return }
+            while !Task.isCancelled { await store.updates.check(); try? await Task.sleep(for: .seconds(60)) }
+        }
         .task(id: scenePhase) {
             UIApplication.shared.isIdleTimerDisabled = scenePhase == .active
             guard scenePhase == .active else { return }

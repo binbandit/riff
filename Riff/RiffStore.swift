@@ -3,6 +3,7 @@ import AVFoundation
 import Observation
 
 @MainActor @Observable final class RiffStore {
+    let updates = CompanionUpdates()
     var snapshot = Snapshot.starter
     var selectedDeckId = "soundboard"
     var connected = false

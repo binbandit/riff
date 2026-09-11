@@ -63,6 +63,7 @@ struct Snapshot: Codable {
     var activeGameId: String
     var activeGameName: String
     var capabilities: [String]? = nil
+    var companionVersion: String? = nil
     func decksSaving(_ pad: Pad, in deckId: String) throws -> [Deck] {
         var result = decks
         guard let target = result.firstIndex(where: { $0.id == deckId }) else { throw RiffError.message("This deck no longer exists.") }

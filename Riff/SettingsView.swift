@@ -83,6 +83,9 @@ struct SettingsView: View {
                 Section("Your PC") {
                     LabeledContent("Connection", value: store.connected ? store.snapshot.computerName : "Offline")
                     Button("Pair or change PC", systemImage: "link") { connection = true }
+                    NavigationLink { CompanionUpdatesView() } label: {
+                        Label(store.updates.release?.isNewer(than: store.snapshot.companionVersion) == true ? "Companion update available" : "Companion updates", systemImage: "arrow.down.circle")
+                    }
                 }
                 Section {
                     Picker("Play sounds through", selection: $output) {
@@ -106,7 +109,7 @@ struct SettingsView: View {
                     Toggle("Follow my Steam game", isOn: $store.autoSwitch)
                     Text("Link a game in Deck settings. Riff switches when a new game starts, and pauses switching while you edit. You can always choose another deck manually.").font(.caption).foregroundStyle(.secondary)
                 }
-                Section { Text("Riff 1.0").foregroundStyle(.secondary) }
+                Section { Text("Riff \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")").foregroundStyle(.secondary) }
             }.scrollContentBackground(.hidden).background(Palette.background)
                 .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
