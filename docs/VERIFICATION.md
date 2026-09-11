@@ -1,39 +1,40 @@
 # Verification
 
-## Completed in this workspace
+## Final local pass
 
-- Windows companion Debug build: successful, zero compiler warnings/errors.
-- Windows x64 Release publish: successful, self-contained executable produced with its starter sound assets.
-- Core rules: 25 tests passed, including action bounds, shortcut parsing, app allowlisting, invalid URL/path rejection, unique IDs, wire-format round trips, reordering preserving actions, stopping only the tapped button, overlap and replacement modes, mixer capacity, and legacy trigger requests.
-- Swift protocol, transport, and grid layout: 25 tests passed, covering pairing-link validation, malformed links, Steam/deck persistence, starter sound references, independent button duplication and long Unicode names, cross-deck moves and copies, full-deck handling, favorites/search filtering and sequence sound references, real PCM trimming with waveform peaks, stereo-to-mono export, unchanged source files and the 60-second boundary, grid rotation, custom capacity in small windows, per-deck settings serialization, and a live loopback HTTPS test of certificate pinning, invalid access keys, and redirect rejection, playback revision ordering, companion restarts, older snapshots without playback capabilities, batch deck creation in selection order, preserving custom buttons, duplicate sound handling, capacity, removed sounds/decks, and Unicode deck-name limits. The loopback server is a test fixture, not the Windows companion.
-- Native iPad simulator build: successful with Xcode 27 / iOS 27 SDK.
-- Native iPad device Release build: successful without code signing. An unsigned IPA was packaged for user signing. This is a compile/package check, not an installed physical-device build.
-- iPad app installed and launched in an iPad Pro 11-inch (M5) simulator. The redesigned main screen, sound library, recording sheet, grid-size sheet, sound-renaming sheet, updated library filters, quick audio controls with overlap/one-at-a-time selection, the waveform clip editor, multiple sound selection, and the new-deck confirmation screen were visually inspected. Grid interaction testing through computer use remains blocked by Device Hub attachment failures. See [the actual simulator capture](screenshots/ipad-preview.png). It is an offline preview, not a simulated PC connection.
-- A DEBUG simulator smoke check exercised the app store with real bundled audio: two overlapping sounds, stopping only the tapped sound, replacing playback in single mode, natural completion, and Stop All. All six assertions passed (including no playback errors). This invokes app actions directly; it is not a computer-use tap-through test.
-- Windows HTTPS integration-test project: compiled successfully. It must run on Windows; it was not executed on this Mac.
+The integrated working tree passed 59 Swift tests and 53 portable companion tests. The native iPad simulator build, unsigned iPad device Release build, and Windows x64 self-contained Release publish succeeded. Windows-only test projects compile; their tests require Windows and were not run on this Mac.
 
-Xcode emits an informational warning that App Intents metadata extraction is skipped because the app does not use AppIntents. There were no Swift compiler warnings.
+Meaningful regression checks in this pass:
 
-## Required device checks
+- Reproduced audio draft loss through real simulator NavigationStack push/pop. Both audio screens now preserve output and volume across navigation and canceled pairing. All eight after-fix assertions passed. Temporary DEBUG instrumentation was removed.
+- Reproduced a blank offline deck after the starter deck had been deleted. The actual store now selects an existing cached deck at startup.
+- Reproduced an upload racing a held background poll using the real store and pinned HTTPS client against a loopback companion-state fixture. The new clip and authoritative version are available when upload returns; stale polls cannot overwrite them. If the follow-up state request fails after a successful upload, the app retains the saved clip and reconnects instead of requesting a duplicate upload. The fixture is not the Windows companion and does not execute actions.
+- Reproduced invalid duplicated deck names containing emoji. Copies now fit Windows' UTF-16 name limit and retain their suffix and independent button identities.
+- Windows regression cases cover pending release assets, missing changelogs, retry recovery, repeated update-view disposal, and repeated server shutdown. They compile but still need execution on Windows. Temporary-file cleanup cannot hold the import gate or turn a saved clip into an apparent failed upload; HTTP shutdown runs even when audio cleanup fails.
 
-These need a Windows 11 PC and a physical iPad. They have not been claimed as completed here.
+Previously verified locally: certificate pinning and redirect rejection over loopback HTTPS; deck rules and stale-write checks; clip selection/export with real PCM samples; soundboard playback policy and real bundled-audio simulator smoke checks; release version comparison and bounded changelog downloads; native Markdown rendering; theme persistence/contrast; page navigation and capacity changes.
 
-1. Run `dotnet test Companion/Riff.WindowsTests` on Windows, with the normal companion closed. This uses the real HTTPS server and verifies authorization (including playback status), advertised playback capability, invalid playback-mode rejection, deck saves, stale-write rejection, sound renaming without changing button references, rename validation, persistence, invalid actions, upload-type rejection, Stop All, and pairing revocation. It does not send keyboard input or require game access.
-2. Sign and install the iPad app. Scan the PC's QR code, connect, close/reopen the app, and confirm automatic reconnection.
-3. Select speakers in audio settings, apply, and play a starter sound. Test overlap and one-at-a-time modes, tapping a playing pad again, natural completion indicators, library previews, volume, and Stop All. Confirm sounds can be stopped and played while a delayed sequence is running. Disconnect an output during playback and confirm Stop All and subsequent playback recover.
-4. Record a snippet, trim it, listen locally, save it, assign the resulting button, and play it on Windows. Verify trimming a longer imported clip, canceling the editor, changing selection during local preview, and returning to a recording without losing it. Import a short MP3/WAV. Confirm overlong or unsupported files produce a readable error.
-5. Configure VB-CABLE and verify a clip in the game's actual microphone test, then in a lobby. Check push-to-talk/voice activation and noise processing.
-6. Add and rearrange buttons. In Sounds, select clips across search and Favorites, preview without changing selection, and add to an existing or new deck. Check Select shown and Clear act independently, duplicate sounds keep their custom buttons, full decks show the capacity message, and a stale save offers a retry without discarding selections. Reopen both apps and confirm the order, names, colors, and actions persist.
-7. Link a Steam game, launch it from Steam, and verify its deck opens. Manually switch away and confirm it stays selected until a new game is detected. Test no Steam, an unlinked game, and multiple running games.
-8. In a text editor, test a shortcut and a text button. Add an approved application and test its launcher. Test a delayed sequence and cancel it halfway with Stop All.
-9. Revoke pairing on Windows and verify the previous link is rejected. Pair again. Disconnect Wi-Fi and verify clear offline status without queued/replayed actions.
-10. Check landscape, portrait, Split View, larger text sizes, VoiceOver, physical-device microphone/camera permissions, and drag/drop behavior. Only the first portrait screen has been visually inspected locally.
+## Visual and interaction coverage
 
-## Current limits
+Actual simulator captures cover the main board, Play mode, a three-page DEBUG preview, light/dark theme selection, library selection, grid settings, recording/trimming, microphone setup, and rendered release Markdown. See [Play mode](screenshots/ipad-play-mode.png), [appearance](screenshots/ipad-appearance-dark.png), and [microphone setup](screenshots/ipad-audio-setup.png).
 
-- The app must stay open on iPad to act as a control surface; it is not a background remote service.
-- One selected sound output. Dual-output monitoring and live-mic mixing use Windows or an external mixer.
-- Shortcut taps only; push-to-talk must be held physically or voice activation enabled.
-- Common button actions are implemented, not Elgato plugin compatibility, mouse controls, automatic foreground-app profiles, or a dedicated OBS API client.
-- Steam running-state detection uses an undocumented local registry layout and needs physical validation.
-- Local-network reachability, audio device behavior, Windows input permissions, and game anti-cheat restrictions cannot be established by a macOS cross-build.
+Device Hub computer-use attachment has timed out. Screenshots and the explicit lifecycle fixtures above are not a claim of a complete computer-use tap-through test. Physical vibration was not tested: iPad touchscreens do not provide iPhone-style vibration. Native feedback requests are paired with visual press feedback and may be ignored on unsupported hardware. See [touch feedback](HAPTICS.md).
+
+Xcode's only build warning is skipped App Intents metadata extraction because Riff does not use AppIntents.
+
+## Required Windows and physical-iPad checks
+
+1. Run `dotnet test Companion/Riff.WindowsTests -c Release` with the ordinary companion closed. Check startup, closing to tray, reopening, and quitting at normal and enlarged Windows display scaling.
+2. Sign and install the iPad app, pair by QR code, relaunch both apps, and verify reconnection. Test revoked pairing and a Wi-Fi interruption. Actions must not replay after reconnecting.
+3. Play, overlap, toggle-stop, replace, preview, and Stop all on actual Windows output devices. Unplug an active output and verify subsequent playback recovers.
+4. Record/import, trim, preview privately on iPad, save, assign, rename, and delete sounds. Add multiple sounds and rearrange/copy buttons. Reopen both apps to verify persistence.
+5. Use the chat app's microphone test to verify clips alone, then live microphone plus clips through the optional mixer. Test voice activation/push-to-talk and noise processing. Keep game/chat playback outside the microphone mix. See [audio setup](AUDIO-SETUP.md).
+6. Confirm Soundboard mode blocks every desktop action and sequence while sounds remain usable. Only opt into desktop automation for allowed uses. No game or anti-cheat vendor has approved Riff; see [game compatibility](GAME-COMPATIBILITY.md).
+7. Test Steam-linked switching, manual deck selection, multi-page swipes/direct jumps, portrait/landscape, small windows, VoiceOver, larger text, and Reduce Motion. Judge tactile feedback only on supported hardware.
+8. In the Windows Updates tab, test offline retry, a newer release, readable Markdown, friendly hyperlinks, and the GitHub download link. Test the equivalent iPad release screen.
+
+## Build and feature limits
+
+The iPad IPA is unsigned and requires signing before installation. The Windows preview is a development build, not a published release. Cross-compilation does not validate physical audio, Windows input permissions, firewall reachability, or anti-cheat compatibility.
+
+Riff uses one selected sound output. Live-mic mixing and music routing use a separately installed Windows mixer. Apple Music catalog browsing and iPad-to-PC music relay are not implemented. The iPad app must remain open as a control surface. Push-to-talk is held physically. Steam detection reads local data and is best effort. Riff does not implement Elgato plugins or a dedicated OBS API client.

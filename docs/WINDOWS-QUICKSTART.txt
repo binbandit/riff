@@ -6,7 +6,14 @@ RIFF - YOUR IPAD, YOUR CONTROL ROOM
 4. Open Riff on your iPad. Tap Connect your PC, scan the QR code, then Connect PC.
    Both devices must be on the same home network. Choose your Wi-Fi/Ethernet IP
    in the companion, rather than a VPN adapter.
-5. Tap a sound. Use Edit deck on the iPad to add, customize, or move buttons.
+5. Tap a sound. Use the + button or Deck options on iPad to customize your deck.
+
+SOUNDBOARD MODE
+
+Soundboard mode is on by default in the companion's Controls tab. Sounds work;
+keyboard shortcuts, media keys, app launches, and sequences are blocked. Only
+turn it off for permitted desktop automation. No app can guarantee approval by
+every game or anti-cheat system. Hold push-to-talk yourself when needed.
 
 TO PLAY SOUNDS AS YOUR VOICE IN GAME CHAT
 
@@ -22,12 +29,27 @@ Windows Sound > Recording > Properties > Listen; choose headphones for playback.
 This route uses clips instead of your real microphone. Mixing both requires an
 optional mixer such as Voicemeeter. VB-CABLE and Voicemeeter are separate products.
 
+KEEP YOUR REGULAR MIC TOO
+
+On iPad, open Sound controls > Game chat setup > My mic + sounds for step-by-step
+Voicemeeter setup. It combines your microphone and Riff into one game input.
+Keep game/chat output on your headphones to avoid sending other voices back.
+Music playback on Windows can use this mixer too; Riff does not browse an
+Apple Music account or relay Apple Music audio from your iPad.
+
 DECKS FOR DIFFERENT GAMES
 
 Create or duplicate a deck on iPad, then link a Steam game in Deck settings.
 Enable Follow my Steam game in Settings. Steam must be open. Detection is best
 effort using Steam's local data; if multiple games run, select a deck manually.
 Manual selection stays in place until another game is detected.
+
+On iPad, Play mode keeps the deck and Stop all easy to reach. Extra buttons
+create pages automatically; tap the page count to jump. Appearance in Settings
+offers four themes with system, light, or dark colours.
+
+The Windows Updates tab checks GitHub and shows formatted release notes. Open
+the download link when ready; updates are not installed automatically.
 
 Closing the companion window leaves Riff running in the tray. Use Quit Riff in
 its tray menu to stop it. Stop all cancels sounds and remaining sequence steps.

@@ -4,7 +4,7 @@ Riff pairs a restrained tactile language with its visual press response:
 
 - One light impact per deliberate pad activation, including local playback and tapping again to stop. It acknowledges the tap, not successful PC playback.
 - One light impact for Stop all on the board.
-- Selection feedback for a different deck or theme, page arrows, and entering or leaving Play mode.
+- Selection feedback for a different deck or theme, button icon/colour choices, page arrows, and entering or leaving Play mode.
 - Native pickers, sliders, and switches retain their system feedback without an extra layer.
 
 Network responses, playback ending, Steam switching decks, and connection refreshes stay quiet. Locked desktop actions stay quiet too. Pad bounce now follows the tap rather than the network spinner and respects Reduce Motion.
