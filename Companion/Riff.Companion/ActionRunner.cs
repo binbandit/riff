@@ -11,16 +11,18 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
     public async Task Run(Pad pad, bool toggle = false, string? soundMode = null)
     {
         if (soundMode is not (null or "overlap" or "single")) throw new ArgumentException("Choose Overlap or One at a time.");
+        CancellationToken token;
         lock (cancelGate)
+        {
             lock (store.Gate) SoundboardPolicy.EnsureAllowed(pad.Kind, store.State.SoundboardOnly);
+            token = cancellation.Token;
+        }
         if (pad.Kind == "sound")
         {
-            lock (cancelGate) Execute(pad.Kind, pad.Value, cancellation.Token, pad.Id == "preview" ? "" : pad.Id, toggle, soundMode);
+            lock (cancelGate) Execute(pad.Kind, pad.Value, token, pad.Id == "preview" ? "" : pad.Id, toggle, soundMode);
             return;
         }
         if (!await actionGate.WaitAsync(0)) throw new ArgumentException("An action sequence is running. Stop it or wait for it to finish.");
-        CancellationToken token;
-        lock (cancelGate) token = cancellation.Token;
         try
         {
             if (pad.Kind == "macro")
