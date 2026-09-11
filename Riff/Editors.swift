@@ -39,19 +39,19 @@ struct PadEditor: View {
                 }
                 if pad.kind == "macro" {
                     Section {
-                        ForEach(pad.steps.indices, id: \.self) { index in
+                        ForEach($pad.steps) { $step in
                             VStack(alignment: .leading, spacing: 10) {
                                 HStack {
-                                    Text("STEP \(index + 1)").font(.caption.monospaced()).foregroundStyle(.secondary)
+                                    Text("STEP \((pad.steps.firstIndex(where: { $0.id == step.id }) ?? 0) + 1)").font(.caption.monospaced()).foregroundStyle(.secondary)
                                     Spacer()
-                                    if index > 0 { Button { pad.steps.swapAt(index, index - 1) } label: { Image(systemName: "arrow.up") }.accessibilityLabel("Move step earlier") }
-                                    Button(role: .destructive) { pad.steps.remove(at: index) } label: { Image(systemName: "minus.circle") }.accessibilityLabel("Remove step")
+                                    if let index = pad.steps.firstIndex(where: { $0.id == step.id }), index > 0 { Button { pad.steps.swapAt(index, index - 1) } label: { Image(systemName: "arrow.up") }.accessibilityLabel("Move step earlier") }
+                                    Button(role: .destructive) { pad.steps.removeAll { $0.id == step.id } } label: { Image(systemName: "minus.circle") }.accessibilityLabel("Remove step")
                                 }.buttonStyle(.borderless)
-                                Picker("Action", selection: $pad.steps[index].kind) {
+                                Picker("Action", selection: $step.kind) {
                                     ForEach(ActionKind.allCases.filter { $0 != .macro }) { Text($0.label).tag($0.rawValue) }
-                                }.onChange(of: pad.steps[index].kind) { _, kind in pad.steps[index].value = defaultValue(kind) }
-                                ActionFields(kind: pad.steps[index].kind, value: $pad.steps[index].value)
-                                Stepper("Wait before: \(pad.steps[index].delayMs) ms", value: $pad.steps[index].delayMs, in: 0...5000, step: 100).font(.subheadline)
+                                }.onChange(of: step.kind) { _, kind in step.value = defaultValue(kind) }
+                                ActionFields(kind: step.kind, value: $step.value)
+                                Stepper("Wait before: \(step.delayMs) ms", value: $step.delayMs, in: 0...5000, step: 100).font(.subheadline)
                             }.padding(.vertical, 8)
                         }
                         Button("Add step", systemImage: "plus") { pad.steps.append(ActionStep()) }.disabled(pad.steps.count >= 20)

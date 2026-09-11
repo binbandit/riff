@@ -11,6 +11,7 @@ import Observation
     private var meterTask: Task<Void, Never>?
     private var preview: AVAudioPlayer?
     func start() async {
+        error = nil
         guard await AVAudioApplication.requestRecordPermission() else {
             error = "Allow microphone access in iPad Settings > Apps > Riff to record a snippet."; return
         }

@@ -34,12 +34,14 @@ public static class Rules
     {
         if (decks is null || decks.Count is < 1 or > 20) throw new ArgumentException("Keep between 1 and 20 decks.");
         var ids = new HashSet<string>();
+        var linkedGames = new HashSet<string>();
         foreach (var deck in decks)
         {
             CheckId(deck.Id, ids);
             CheckText(deck.Name, 40, "Deck name");
             CheckText(deck.Icon, 80, "Icon");
             if (deck.SteamAppId is null || deck.SteamAppId.Length > 12 || !deck.SteamAppId.All(char.IsAsciiDigit)) throw new ArgumentException("Invalid Steam game ID.");
+            if (deck.SteamAppId.Length > 0 && !linkedGames.Add(deck.SteamAppId)) throw new ArgumentException("This Steam game is already linked to another deck.");
             if (deck.Pads is null || deck.Pads.Count > 48) throw new ArgumentException("A deck can hold up to 48 buttons.");
             foreach (var pad in deck.Pads)
             {

@@ -170,7 +170,7 @@ struct ContentView: View {
                             Image(systemName: "personalhotspot").font(.title2).foregroundStyle(Palette.accent)
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(store.paired ? "Your PC is offline" : "Your iPad. Your new control room.").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                                Text(store.paired ? "Open Riff on your PC. We’ll reconnect automatically." : "Try a sound below, then connect your PC to take it live.").font(.caption).foregroundStyle(.secondary)
+                                Text(store.paired ? (store.connectionIssue ?? "Open Riff on your PC. We’ll reconnect automatically.") : "Try a sound below, then connect your PC to take it live.").font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
                             Image(systemName: "arrow.up.right").foregroundStyle(Palette.accent)

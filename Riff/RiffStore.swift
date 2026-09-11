@@ -7,6 +7,7 @@ import Observation
     var selectedDeckId = "soundboard"
     var connected = false
     var connecting = false
+    var connectionIssue: String?
     var busy = false
     var error: String?
     var toast: String?
@@ -25,13 +26,14 @@ import Observation
     private var toastTask: Task<Void, Never>?
     private var refreshRunning = false
     private var epoch = 0
+    private var cachedData: Data?
     var selectedDeck: Deck? { snapshot.decks.first { $0.id == selectedDeckId } }
     var paired: Bool { client != nil }
     var outputName: String { snapshot.outputs.first { $0.id == snapshot.outputId }?.name ?? "PC default output" }
     var cableSelected: Bool { outputName.localizedCaseInsensitiveContains("cable") || outputName.localizedCaseInsensitiveContains("voicemeeter") }
 
     init() {
-        if let data = try? Data(contentsOf: Self.cacheURL), let saved = try? JSONDecoder().decode(Snapshot.self, from: data) { snapshot = saved }
+        if let data = try? Data(contentsOf: Self.cacheURL), let saved = try? JSONDecoder().decode(Snapshot.self, from: data) { snapshot = saved; cachedData = data }
         if let pairing = PairingVault.load() { client = CompanionClient(pairing: pairing) }
     }
     static var cacheURL: URL { URL.applicationSupportDirectory.appendingPathComponent("snapshot.json") }
@@ -46,11 +48,11 @@ import Observation
         let next = CompanionClient(pairing: pairing)
         let state: Snapshot = try await next.request("/api/state")
         try PairingVault.save(pairing)
-        epoch += 1; client = next; apply(state); connected = true
+        epoch += 1; client = next; apply(state); connected = true; connectionIssue = nil
         message("Connected to \(state.computerName)")
     }
     func disconnect() {
-        epoch += 1; client = nil; connected = false; PairingVault.delete(); player?.stop()
+        epoch += 1; client = nil; connected = false; connectionIssue = nil; PairingVault.delete(); player?.stop()
     }
     func refresh() async {
         guard let client, !busy, !connecting, !refreshRunning else { return }
@@ -59,8 +61,13 @@ import Observation
         do {
             let state: Snapshot = try await client.request("/api/state")
             guard generation == epoch, !busy else { return }
-            apply(state); connected = true
-        } catch { if generation == epoch { connected = false } }
+            apply(state); connected = true; connectionIssue = nil
+        } catch {
+            if generation == epoch {
+                connected = false
+                connectionIssue = error is RiffError ? error.localizedDescription : "Make sure Riff is open on your PC and both devices are on the same network."
+            }
+        }
     }
     private func apply(_ state: Snapshot) {
         snapshot = state
@@ -72,7 +79,9 @@ import Observation
         if !editing && !interacting { lastGame = state.activeGameId }
         do {
             try FileManager.default.createDirectory(at: Self.cacheURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try JSONEncoder().encode(state).write(to: Self.cacheURL, options: .atomic)
+            let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+            let data = try encoder.encode(state)
+            if data != cachedData { try data.write(to: Self.cacheURL, options: .atomic); cachedData = data }
         } catch { /* Cache is optional; the companion remains authoritative. */ }
     }
     func trigger(_ pad: Pad) async {

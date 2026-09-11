@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 90;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXFileReference section */
@@ -88,7 +88,7 @@
 			);
 			mainGroup = 000000000000000000000001;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 90;
+			preferredProjectObjectVersion = 77;
 			productRefGroup = 000000000000000000000020 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -258,6 +258,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Scan the pairing code shown in Riff on your Windows PC.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Record soundboard snippets and assign them to your deck buttons.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connect securely to Riff on your Windows PC to play sounds and control apps.";
@@ -301,6 +302,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Scan the pairing code shown in Riff on your Windows PC.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Record soundboard snippets and assign them to your deck buttons.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connect securely to Riff on your Windows PC to play sounds and control apps.";
