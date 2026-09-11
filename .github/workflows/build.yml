@@ -1,36 +1,35 @@
-name: Build and test Riff
+name: Build and test iPad
 on:
   push:
+    branches: ['**']
+    paths: &ipad-paths
+      - 'Riff/**'
+      - 'Riff.xcodeproj/**'
+      - 'Tests/**'
+      - 'Shared/**'
+      - 'Config/**'
+      - 'Package.swift'
+      - 'scripts/build-ipad.sh'
+      - '.github/workflows/build.yml'
   pull_request:
+    paths: *ipad-paths
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-      - name: Test and package Windows companion
-        shell: pwsh
-        run: ./scripts/build-windows.ps1
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Riff-Windows-x64
-          path: artifacts/Riff-win-x64.zip
   ipad:
     runs-on: macos-26
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Test protocol and pairing validation
         run: swift test
       - name: Build iPad application
         run: xcodebuild -project Riff.xcodeproj -scheme Riff -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
       - name: Package unsigned iPad device build
         run: ./scripts/build-ipad.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
-          name: Riff-iPad-unsigned
           path: artifacts/Riff-iPad-unsigned.ipa
+          archive: false
+          if-no-files-found: error

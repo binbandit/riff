@@ -27,13 +27,16 @@ This implements common control-deck actions. It does not run Elgato plugins or p
 
 ## Install on Windows 11
 
-1. Extract `Riff-win-x64.zip`, keeping the `Sounds` folder beside `Riff.Companion.exe`.
+Download `Riff-<version>-win-x64.zip` for Intel/AMD PCs or `Riff-<version>-win-arm64.zip` for ARM PCs from [GitHub Releases](https://github.com/binbandit/riff/releases/latest).
+For development builds, open [Build and release Windows companion](https://github.com/binbandit/riff/actions/workflows/companion.yml), select a run with a successful Windows job, and download its ZIP under **Artifacts** (GitHub sign-in required). PR artifacts are previews of the next version, not published releases.
+
+1. Extract the whole ZIP, keeping the `Sounds` folder beside `Riff.Companion.exe`.
 2. Run `Riff.Companion.exe`. The package includes .NET, so no separate runtime is needed.
 3. Allow Riff through Windows Firewall on **Private** networks.
 4. In **Connect iPad**, select your PC's home Wi-Fi/Ethernet address. Use this address rather than a VPN address.
 5. Leave the companion running. Closing its window minimizes it to the system tray; use the tray's **Quit Riff** command to exit.
 
-This personal build is unsigned. ARM Windows users can build a `win-arm64` package with the script below. No driver is installed by Riff.
+This personal build is unsigned. No driver is installed by Riff.
 
 If no firewall prompt appears, use Windows Security to allow the executable on private networks. Alternatively, the optional `scripts/allow-private-network.ps1` can create a rule restricted to this executable, TCP port 49321, private networks, and the local subnet. Run it in an administrator PowerShell and pass the full executable path. Do not open this port on your router.
 
@@ -138,6 +141,23 @@ xcodebuild -project Riff.xcodeproj -scheme Riff -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 ```
 
-`./scripts/build-ipad.sh` creates an unsigned device IPA on a Mac. GitHub Actions builds both applications, runs the platform-appropriate tests, and attaches the Windows ZIP and unsigned iPad IPA. Dependencies and notices are documented in [THIRD-PARTY.md](docs/THIRD-PARTY.md).
+`./scripts/build-ipad.sh` creates an unsigned device IPA on a Mac. The separate [iPad workflow](https://github.com/binbandit/riff/actions/workflows/build.yml) tests and builds the iPad app when its sources or build inputs change, and attaches the unsigned IPA. Dependencies and notices are documented in [THIRD-PARTY.md](docs/THIRD-PARTY.md).
+
+### GitHub builds and releases
+
+The companion workflow runs for changes to `Companion/**`, `Shared/Sounds/**`, the Windows packaging/release scripts and configuration, bundled documentation/licenses, or root .NET build configuration. iPad-only changes and edits to this README do not build or release a companion. Pull requests produce test builds; relevant pushes to `main` automatically publish a new GitHub release after both Windows builds pass. Manual runs on `main` can retry a failed release. Runs with no unreleased companion changes skip the Windows builds and release.
+
+Companion versions are independent of iPad builds, starting at **0.1.0** with tags such as `companion-v0.1.0`. [git-cliff](https://git-cliff.org/docs/usage/bump-version/) calculates the next semantic version from commits touching the companion's inputs since its last release:
+
+- `fix(companion): restore audio output` increments PATCH, for example `0.1.0` to `0.1.1`.
+- `feat(companion): add output selection` increments MINOR, for example `0.1.0` to `0.2.0`.
+- A `!` after the type/scope or a `BREAKING CHANGE:` footer increments MAJOR, including `0.1.0` to `1.0.0`.
+- Other relevant changes, including build fixes and commits without a conventional prefix, increment PATCH.
+
+Use clear, user-facing commit subjects; these become changelog entries. The scope is descriptive: changed file paths determine whether a commit belongs to the companion. iPad-only breaking changes do not bump the companion. Do not manually create companion version tags; the workflow tags the exact tested source commit only when publishing. Releases run serially and published assets are not replaced on retries. GitHub's built-in token needs permission to create releases and tags; no extra secret or automated source commit is needed.
+
+Each release has versioned Windows x64/ARM64 ZIPs and a full **CHANGELOG.md** download. The identical `CHANGELOG.md` is bundled beside `Riff.Companion.exe`, ready for the app to read from `AppContext.BaseDirectory`. It contains dated version sections with Added, Fixed, Changed, and breaking-change entries; the GitHub release body contains only that version's changes. Changelogs are generated from Git history during the build, not maintained by hand or committed back to `main`. The version is also embedded in the Windows executable's metadata. Displaying this file in the app UI is a separate change.
+
+Both packages run the core and HTTPS integration tests on the x64 Windows runner before publishing; ARM64 is cross-compiled and still needs a launch check on an ARM PC. Packages include .NET, starter sounds, the quickstart, and license notices. Local builds default to `0.0.0-dev`. To reproduce release metadata locally, install git-cliff 2.14.1 and jq, then run `bash scripts/prepare-companion-release.sh` from a full checkout. This writes the changelog, release notes, and version to `artifacts/companion-release/`. Pass that version and `-ChangelogPath artifacts/companion-release/CHANGELOG.md` to the Windows build script for a versioned local package.
 
 See [verification and device checks](docs/VERIFICATION.md) for what has been tested locally and the physical Windows/iPad checks still needed.

@@ -9,7 +9,6 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="../Riff.Core/Riff.Core.csproj" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.0" />
     <PackageReference Include="QRCoder" Version="1.6.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <Content Include="../../Shared/Sounds/*.wav" Link="Sounds/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

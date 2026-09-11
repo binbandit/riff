@@ -1,0 +1,126 @@
+name: Build and release Windows companion
+on:
+  push:
+    branches: [main]
+    paths: &companion-paths
+      - 'Companion/**'
+      - 'Shared/Sounds/**'
+      - 'scripts/build-windows.ps1'
+      - 'scripts/prepare-companion-release.sh'
+      - 'scripts/test-companion-release.py'
+      - '.github/workflows/companion.yml'
+      - '.github/companion-cliff.toml'
+      - 'docs/WINDOWS-QUICKSTART.txt'
+      - 'docs/THIRD-PARTY.md'
+      - 'docs/licenses/**'
+      - 'global.json'
+      - 'NuGet.Config'
+      - 'nuget.config'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'Directory.Packages.props'
+  pull_request:
+    paths: *companion-paths
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: companion-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.release.outputs.has_changes }}
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff@2.14.1
+      - name: Test companion versioning and changelog rules
+        run: python3 scripts/test-companion-release.py
+      - name: Prepare version and changelog
+        id: release
+        run: bash scripts/prepare-companion-release.sh
+      - uses: actions/upload-artifact@v7
+        if: steps.release.outputs.has_changes == 'true'
+        with:
+          name: companion-release-metadata
+          path: |
+            artifacts/companion-release/CHANGELOG.md
+            artifacts/companion-release/release-notes.md
+            artifacts/companion-release/version.txt
+          if-no-files-found: error
+  windows:
+    name: Windows (${{ matrix.runtime }})
+    needs: prepare
+    if: needs.prepare.outputs.has_changes == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [win-x64, win-arm64]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/download-artifact@v8
+        with:
+          name: companion-release-metadata
+          path: artifacts/companion-release
+      - name: Test and package Windows companion
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: ./scripts/build-windows.ps1 -Runtime ${{ matrix.runtime }} -Version $env:RELEASE_VERSION -ChangelogPath artifacts/companion-release/CHANGELOG.md
+      - name: Upload Windows download
+        uses: actions/upload-artifact@v7
+        with:
+          path: artifacts/Riff-${{ needs.prepare.outputs.version }}-${{ matrix.runtime }}.zip
+          archive: false
+          if-no-files-found: error
+  release:
+    name: Publish companion release
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [prepare, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: companion-release-metadata
+          path: downloads
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: Riff-*.zip
+          path: downloads
+          merge-multiple: true
+          skip-decompress: true
+      - name: Publish versioned downloads and changelog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          assets=("downloads/Riff-$RELEASE_VERSION-win-x64.zip" "downloads/Riff-$RELEASE_VERSION-win-arm64.zip" downloads/CHANGELOG.md)
+          for asset in "${assets[@]}"; do test -s "$asset"; done
+          if gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft > is-draft.txt; then
+            if [[ "$(cat is-draft.txt)" == true ]]; then
+              gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+              gh release edit "$RELEASE_TAG" --draft=false --notes-file downloads/release-notes.md
+            fi
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --target "$RELEASE_SHA" --title "Riff Companion $RELEASE_VERSION" \
+              --notes-file downloads/release-notes.md
+          fi
