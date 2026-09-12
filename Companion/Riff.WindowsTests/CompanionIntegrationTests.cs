@@ -33,6 +33,7 @@ public class CompanionIntegrationTests
                 using var client = new HttpClient(handler) { BaseAddress = new Uri($"https://localhost:{PairingIdentity.Port}") };
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/playback")).StatusCode);
+                Assert.Equal(HttpStatusCode.Unauthorized, (await client.PutAsJsonAsync("/api/queue", new QueueUpdate("clear", "pc", 0), Wire.Json)).StatusCode);
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/clips/nope/audio")).StatusCode);
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/sound-suggestions", new SoundSuggestionRequest(["nope"], "Game night"), Wire.Json)).StatusCode);
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", identity.Token);
@@ -81,6 +82,7 @@ public class CompanionIntegrationTests
                 Assert.True(Version.TryParse(snapshot.CompanionVersion!.Split('-')[0], out _));
                 Assert.Contains("soundboard-playback-v1", snapshot.Capabilities!);
                 Assert.Contains("soundboard-queue-v1", snapshot.Capabilities!);
+                Assert.Contains("soundboard-queue-edit-v1", snapshot.Capabilities!);
                 Assert.Contains("clip-audio-v1", snapshot.Capabilities!);
                 var previewClip = snapshot.Clips.First();
                 var previewAudio = await client.GetAsync($"/api/clips/{previewClip.Id}/audio");
@@ -93,6 +95,14 @@ public class CompanionIntegrationTests
                 Assert.NotNull(playback.QueuedPadIds);
                 Assert.Empty(playback.QueuedPadIds);
                 Assert.False(string.IsNullOrWhiteSpace(playback.SessionId));
+                var clearQueue = await client.PutAsJsonAsync("/api/queue", new QueueUpdate("clear", playback.SessionId, playback.Revision), Wire.Json);
+                clearQueue.EnsureSuccessStatusCode();
+                var cleared = (await client.GetFromJsonAsync<PlaybackState>("/api/playback", Wire.Json))!;
+                Assert.True(cleared.Revision > playback.Revision);
+                Assert.Empty(cleared.QueuedPadIds!);
+                Assert.Equal(HttpStatusCode.Conflict, (await client.PutAsJsonAsync("/api/queue", new QueueUpdate("move", playback.SessionId, playback.Revision, 0, 1), Wire.Json)).StatusCode);
+                Assert.Equal(HttpStatusCode.Conflict, (await client.PutAsJsonAsync("/api/queue", new QueueUpdate("clear", "previous-session", cleared.Revision), Wire.Json)).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync("/api/queue", new QueueUpdate("remove", cleared.SessionId, cleared.Revision, 0), Wire.Json)).StatusCode);
                 Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/trigger",
                     new Trigger(snapshot.Decks[0].Pads[0].Id, Guid.NewGuid().ToString(), true, "invalid"), Wire.Json)).StatusCode);
                 var decks = snapshot.Decks.ToList();

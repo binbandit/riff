@@ -15,7 +15,7 @@ enum SoundPlaybackMode: String, CaseIterable, Identifiable {
         switch self {
         case .overlap: "Different sounds can play together. Tap a playing button again to stop just that sound."
         case .single: "Each new sound stops the previous one. Tap a playing button again to stop it."
-        case .queue: "Sounds play in the order you tap them. Tap a waiting sound to remove it, or a playing sound to skip it. Stop all clears the queue."
+        case .queue: "Sounds play in the order you tap them. Open the queue to reorder or clear waiting sounds. Tap a waiting sound to remove it, or a playing sound to skip it. Stop all also clears the queue."
         }
     }
 }
@@ -25,6 +25,12 @@ struct SoundPlaybackState: Codable, Equatable {
     let revision: Int64
     let padIds: [String]
     var queuedPadIds: [String]? = nil
+}
+
+struct SoundQueueContents: Equatable {
+    let padIDs: [String]
+    let sessionID: String?
+    let revision: Int64?
 }
 
 struct SoundPlaybackTracker {

@@ -58,6 +58,18 @@ public sealed class AudioEngine : IDisposable
     {
         lock (gate) return new(sessionId, revision, playing.Select(p => p.PadId).Where(id => id.Length > 0).Distinct().ToList(), queued.Select(p => p.PadId).ToList());
     }
+    public Riff.Core.PlaybackState UpdateQueue(QueueUpdate update)
+    {
+        lock (controlGate)
+        lock (gate)
+        {
+            if (update.SessionId != sessionId || update.Revision != revision)
+                throw new StateConflictException("The queue changed while you were editing it. Try again.");
+            QueueEditing.Apply(queued, update);
+            revision++;
+            return Status();
+        }
+    }
     public void Play(string path, string outputId, string padId = "", bool toggle = false, string? mode = null, string? monitorOutputId = null, float monitorVolume = .75f, bool loop = false)
     {
         lock (controlGate)

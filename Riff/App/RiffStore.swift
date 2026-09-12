@@ -156,6 +156,57 @@ import Observation
     func queuePosition(for padID: String) -> Int? { queuedPadIDs.firstIndex(of: padID).map { $0 + 1 } }
     var supportsMonitoring: Bool { snapshot.capabilities?.contains("audio-monitor-v1") == true }
     var supportsQueue: Bool { snapshot.capabilities?.contains("soundboard-queue-v1") == true }
+    var supportsQueueEditing: Bool { !connected || snapshot.capabilities?.contains("soundboard-queue-edit-v1") == true }
+    var updatingQueue = false
+    var queueContents: SoundQueueContents {
+        SoundQueueContents(padIDs: queuedPadIDs, sessionID: connected ? playback.state?.sessionId : nil,
+                           revision: connected ? playback.state?.revision : nil)
+    }
+    func clearQueue() async { await updateQueue(action: "clear") }
+    func removeQueuedSound(at index: Int, expected: SoundQueueContents? = nil) async {
+        await updateQueue(action: "remove", index: index, expected: expected)
+    }
+    func moveQueuedSound(from index: Int, to destination: Int, expected: SoundQueueContents? = nil) async {
+        await updateQueue(action: "move", index: index, destination: destination, expected: expected)
+    }
+    private func updateQueue(action: String, index: Int? = nil, destination: Int? = nil, expected: SoundQueueContents? = nil) async {
+        guard supportsQueueEditing, !updatingQueue else { return }
+        if let expected, expected != queueContents {
+            error = "The queue changed while you were editing it. Try again."
+            return
+        }
+        if let index, !queuedPadIDs.indices.contains(index) { return }
+        if let destination, !queuedPadIDs.indices.contains(destination) { return }
+        if !connected {
+            switch action {
+            case "clear": localQueue.removeAll()
+            case "remove": if let index { localQueue.remove(at: index) }
+            case "move":
+                if let index, let destination { localQueue.insert(localQueue.remove(at: index), at: destination) }
+            default: return
+            }
+            queuedPadIDs = localQueue.map { $0.pad.id }
+            return
+        }
+        guard let client, let state = playback.state else { return }
+        updatingQueue = true
+        defer { updatingQueue = false }
+        let generation = epoch
+        do {
+            struct QueueUpdate: Encodable {
+                let action: String; let sessionId: String; let revision: Int64
+                let index: Int?; let destination: Int?
+            }
+            let result: Acknowledgement = try await client.request("/api/queue", method: "PUT", body: JSONEncoder().encode(
+                QueueUpdate(action: action, sessionId: state.sessionId, revision: state.revision, index: index, destination: destination)))
+            guard generation == epoch, connected else { return }
+            acceptPlayback(result.playback)
+        } catch {
+            guard generation == epoch else { return }
+            self.error = error.localizedDescription
+            await refreshPlayback()
+        }
+    }
     var availablePlaybackModes: [SoundPlaybackMode] {
         SoundPlaybackMode.allCases.filter { $0 != .queue || !connected || supportsQueue }
     }

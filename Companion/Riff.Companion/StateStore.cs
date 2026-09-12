@@ -104,4 +104,5 @@ public sealed class StateStore
 public sealed class StateConflictException : Exception
 {
     public StateConflictException() : base("Your decks changed on another device. The latest version has been loaded; try your edit again.") { }
+    public StateConflictException(string message) : base(message) { }
 }

@@ -16,7 +16,7 @@ struct ContentView: View {
     @State private var selectionFeedback = 0
     @State private var stopFeedback = 0
     enum Destination: String, Identifiable {
-        case sharing, connection, recording, settings, sounds, addSounds, presets, grid, audio, updates, audioSetup, musicSetup
+        case sharing, connection, recording, settings, sounds, addSounds, presets, grid, audio, queue, updates, audioSetup, musicSetup
         var id: String { rawValue }
     }
     var body: some View {
@@ -138,6 +138,7 @@ struct ContentView: View {
             case .audio:
                 if #available(iOS 18.0, *) { AudioControlsView().presentationSizing(.page) }
                 else { AudioControlsView() }
+            case .queue: SoundQueueView()
             case .audioSetup: NavigationStack {
                 AudioSetupView().toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { destination = nil } } }
             }
@@ -197,6 +198,16 @@ struct ContentView: View {
                 if DesignPreview.screen == "play-pages" { enterPlayMode() }
             case "grid": destination = .grid
             case "audio": destination = .audio
+            case "queue", "queue-board":
+                if !store.paired, let sound = (try? SoundPacks.load())?.flatMap(\.sounds).first {
+                    store.soundMode = .queue; store.snapshot.volume = 0
+                    let pads = ["Background music", "Air horn", "Applause", "Sad violin"].enumerated().map { index, title in
+                        Pad(id: "queue-preview-\(index)", title: title, value: sound.clipID, loop: index == 0)
+                    }
+                    store.snapshot.decks[0].pads = pads
+                    for pad in pads { await store.trigger(pad) }
+                    if DesignPreview.screen == "queue" { destination = .queue }
+                }
             case "playback-check": await DesignPreview.checkPlayback(store)
             case "packs", "pack-detail", "sounds", "edit-sound", "rename", "import", "bulk-import", "sound-selection", "add-sounds": destination = .sounds
             case "recording", "recording-trim": destination = .recording
@@ -424,6 +435,7 @@ struct ContentView: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, minHeight: 48, alignment: .leading).contentShape(Rectangle())
                 }.buttonStyle(.plain).accessibilityHint("Open sound controls and game chat setup")
+                queueButton
                 stopButton
             }
             Text(store.toast ?? (store.connected ? [store.snapshot.soundboardOnly == true ? "Soundboard only" : "", store.snapshot.activeGameName].filter { !$0.isEmpty }.joined(separator: " · ") : "Sounds play on this iPad"))
@@ -439,11 +451,21 @@ struct ContentView: View {
                 Spacer(minLength: 10)
                 outputButton
                 Spacer(minLength: 10)
+                queueButton
                 stopButton
             }
-            HStack { recordingButton; Spacer(); stopButton }
+            HStack { recordingButton; Spacer(); queueButton; stopButton }
         }
         .padding(.vertical, 12)
+    }
+    @ViewBuilder private var queueButton: some View {
+        if store.effectiveSoundMode == .queue || !store.queuedPadIDs.isEmpty {
+            Button { destination = .queue } label: {
+                Label("Queue · \(store.queuedPadIDs.count)", systemImage: "list.bullet")
+                    .font(.subheadline.weight(.semibold)).padding(.horizontal, 12).frame(minHeight: 48)
+            }.buttonStyle(.plain).background(Palette.raised, in: Capsule())
+                .accessibilityHint("View, clear, or reorder waiting sounds")
+        }
     }
     private var recordingButton: some View {
         Button {

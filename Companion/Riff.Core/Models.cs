@@ -31,6 +31,7 @@ public record LaunchTargetInfo(string Id, string Name);
 public record DeckUpdate(int Version, List<Deck> Decks);
 public record Trigger(string PadId, string RequestId, bool Toggle = false, string? SoundMode = null, string? Gesture = null);
 public record PlaybackState(string SessionId, long Revision, List<string> PadIds, List<string>? QueuedPadIds = null);
+public record QueueUpdate(string Action, string SessionId, long Revision, int? Index = null, int? Destination = null);
 public record AudioSettings(string OutputId, float Volume, bool? MonitorEnabled = null, string? MonitorOutputId = null, float? MonitorVolume = null);
 public record ClipRename(int Version, string Name);
 public record SavedState(int Version, List<Deck> Decks, List<Clip> Clips, string OutputId, float Volume, List<LaunchTarget> Apps, bool SoundboardOnly = true, bool MonitorEnabled = false, string MonitorOutputId = "", float MonitorVolume = .75f, List<string>? KnownBundledSoundIds = null);

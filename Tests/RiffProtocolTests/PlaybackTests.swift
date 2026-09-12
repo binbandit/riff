@@ -173,6 +173,56 @@ import Testing
         #expect(store.playingPadIDs == ["first", "new"])
         await store.stopAll()
     }
+    @Test func queueEditingPreservesCurrentSoundAndPlaysTheNewOrder() async throws {
+        let sound = try #require(SoundPacks.load().flatMap(\.sounds).first)
+        var players: [ControlledSoundPlayer] = []
+        let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil, makeLocalSoundPlayer: { _ in
+            let player = ControlledSoundPlayer(); players.append(player); return player
+        })
+        let originalMode = store.soundMode
+        defer { store.soundMode = originalMode }
+        store.soundMode = .queue
+        for id in ["current", "first", "second", "third"] {
+            await store.trigger(Pad(id: id, title: id, value: sound.clipID))
+        }
+        await store.moveQueuedSound(from: 2, to: 0)
+        #expect(store.queuedPadIDs == ["third", "first", "second"])
+        await store.moveQueuedSound(from: 1, to: 2)
+        #expect(store.queuedPadIDs == ["third", "second", "first"])
+        await store.removeQueuedSound(at: 1)
+        #expect(store.queuedPadIDs == ["third", "first"])
+        #expect(store.playingPadIDs == ["current"])
+        #expect(players.count == 1)
+        #expect(players[0].isPlaying)
+        let beforeCompletion = store.queueContents
+        players[0].finish()
+        #expect(store.playingPadIDs == ["third"])
+        #expect(store.queuedPadIDs == ["first"])
+        await store.removeQueuedSound(at: 0, expected: beforeCompletion)
+        #expect(store.queuedPadIDs == ["first"])
+        #expect(store.error == "The queue changed while you were editing it. Try again.")
+        await store.clearQueue()
+        #expect(store.queuedPadIDs.isEmpty)
+        #expect(store.playingPadIDs == ["third"])
+        #expect(players[1].isPlaying)
+        players[1].finish()
+        #expect(store.playingPadIDs.isEmpty)
+        #expect(players.count == 2)
+    }
+
+    @Test func queueEditingRequiresCompanionSupport() async {
+        let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil)
+        #expect(store.supportsQueueEditing)
+        store.connected = true
+        store.snapshot.capabilities = ["soundboard-queue-v1"]
+        store.queuedPadIDs = ["waiting"]
+        #expect(!store.supportsQueueEditing)
+        await store.clearQueue()
+        #expect(store.queuedPadIDs == ["waiting"])
+        store.snapshot.capabilities?.append("soundboard-queue-edit-v1")
+        #expect(store.supportsQueueEditing)
+    }
+
     @Test func offlineQueueAdvancesOnCompletionWithoutPolling() async throws {
         let sound = try #require(SoundPacks.load().flatMap(\.sounds).first)
         var players: [ControlledSoundPlayer] = []

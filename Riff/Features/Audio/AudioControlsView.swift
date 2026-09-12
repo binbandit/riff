@@ -13,6 +13,7 @@ struct AudioControlsView: View {
     @State private var connection = false
     @State private var hasLoadedAudio = false
     @State private var hasLoadedConnectedAudio = false
+    @State private var queue = false
 
     var body: some View {
         NavigationStack {
@@ -29,6 +30,18 @@ struct AudioControlsView: View {
                         Text(store.effectiveSoundMode.explanation + " This choice is saved automatically. Switching to another mode clears waiting sounds on your next tap.")
                         if store.connected && !store.supportsQueue {
                             Text("Update Riff on your PC to add Queue mode.")
+                        }
+                    }
+                }
+                if store.effectiveSoundMode == .queue || !store.queuedPadIDs.isEmpty {
+                    Section {
+                        Button { queue = true } label: {
+                            HStack {
+                                Label("Sound queue", systemImage: "list.bullet")
+                                Spacer()
+                                Text("\(store.queuedPadIDs.count) waiting").foregroundStyle(.secondary)
+                                Image(systemName: "chevron.right").foregroundStyle(.tertiary)
+                            }
                         }
                     }
                 }
@@ -84,6 +97,7 @@ struct AudioControlsView: View {
                 if connected && !hasLoadedConnectedAudio { load() }
             }
             .sheet(isPresented: $connection) { ConnectionView(onConnectionChanged: load) }
+            .sheet(isPresented: $queue) { SoundQueueView() }
         }.interactiveDismissDisabled(saving)
     }
     private func load() {

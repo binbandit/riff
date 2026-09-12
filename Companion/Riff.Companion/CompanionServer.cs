@@ -32,7 +32,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             var s = store.State;
             return new(s.Version, s.Decks, s.Clips, audio.Devices(), s.OutputId, s.Volume,
                 s.Apps.Select(a => new LaunchTargetInfo(a.Id, a.Name)).ToList(), Environment.MachineName,
-                presence.Games, presence.Id, presence.Name, ["audio-monitor-v1", "soundboard-playback-v1", "soundboard-queue-v1", "soundboard-loop-v1", "bundled-sounds-v1", "soundboard-only-v1", "deck-actions-v1", "pinned-pads-v1", "key-logic-v1", "smart-profiles-v1", "clip-audio-v1", "pad-suggestions-v1", "deck-suggestions-v1", "sound-suggestions-v1", .. AI.Enabled ? new[] { "pad-suggestions-enabled-v1" } : Array.Empty<string>()], CompanionBuild.Version, s.SoundboardOnly, AppPresence.Read(s.Apps), runner.SwitchStatus(), s.MonitorEnabled, s.MonitorOutputId, s.MonitorVolume);
+                presence.Games, presence.Id, presence.Name, ["audio-monitor-v1", "soundboard-playback-v1", "soundboard-queue-v1", "soundboard-queue-edit-v1", "soundboard-loop-v1", "bundled-sounds-v1", "soundboard-only-v1", "deck-actions-v1", "pinned-pads-v1", "key-logic-v1", "smart-profiles-v1", "clip-audio-v1", "pad-suggestions-v1", "deck-suggestions-v1", "sound-suggestions-v1", .. AI.Enabled ? new[] { "pad-suggestions-enabled-v1" } : Array.Empty<string>()], CompanionBuild.Version, s.SoundboardOnly, AppPresence.Read(s.Apps), runner.SwitchStatus(), s.MonitorEnabled, s.MonitorOutputId, s.MonitorVolume);
         }
     }
     public async Task Start()
@@ -148,6 +148,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             await runner.Run(pad, trigger.Toggle, trigger.SoundMode, trigger.Gesture); Activity?.Invoke($"Sound/action: {pad.Title}"); return new { ok = true, playback = audio.Status(), switchState = runner.SwitchStatus() };
         });
         app.MapPost("/api/stop", () => { runner.Stop(); Activity?.Invoke("All sounds and sequences stopped"); return new { ok = true, playback = audio.Status() }; });
+        app.MapPut("/api/queue", (QueueUpdate update) => new { ok = true, playback = audio.UpdateQueue(update) });
         app.MapPost("/api/preview", async (PreviewRequest preview) =>
         {
             await runner.Run(new("preview", "Preview", "waveform", "orange", "sound", preview.ClipId, []), soundMode: preview.SoundMode);
