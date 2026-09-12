@@ -63,6 +63,10 @@ An optional [firewall script](scripts/allow-private-network.ps1) can add a rule 
 
 ## Using the soundboard
 
+To add several library sounds to a board, open **+ → Add sounds from library** on the board, select sounds (or **Select shown**), then tap **Add … to [deck name]**. In the Sounds library, **Quick add** opens the same selection flow. Buttons follow selection order, existing sound buttons are skipped, and each deck holds up to 48 buttons. You can also choose another deck or create one.
+
+For files, use **Sounds → + → Import audio files** and select several at once, then **Import all**. Filenames become sound names, progress and individual failures are shown, and successful imports can be added to a deck together. Files longer than 60 seconds must be imported individually for trimming. The Windows companion’s **Import sounds from PC** also accepts multiple files.
+
 Tap the output label below the deck, or open **… → Sound controls**, to choose volume, output, and playback mode. **Overlap** layers effects; **One at a time** replaces the previous clip. **Stop all** stops sounds and cancels any remaining sequence steps.
 
 Recordings and saved clips can be up to 60 seconds long. On iPad, you can import a file up to 10 minutes long and 100 MB in size, at 96 kHz or below, then trim it before upload. Direct Windows imports are limited to 20 MB and 60 seconds. Trimming leaves the original file unchanged.

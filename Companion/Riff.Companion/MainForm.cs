@@ -109,14 +109,64 @@ public sealed class MainForm : Form
         flow.Controls.Add(Heading("A quick voice-chat check"));
         flow.Controls.Add(Body("1. Apply the selected output, then play a test sound.\n\n2. In your chat app, select CABLE Output as the microphone and open its microphone test.\n\n3. Use voice activation, or hold the game's push-to-talk key while the clip plays.\n\n4. If clips are cut off, lower the voice threshold and disable noise suppression.\n\nTo hear the clips yourself, open Windows Sound > More sound settings > Recording > CABLE Output > Properties > Listen. Enable Listen to this device and select your headphones. This may add monitoring latency."));
         flow.Controls.Add(Button("Open VB-CABLE website", () => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://vb-audio.com/Cable/") { UseShellExecute = true })));
-        flow.Controls.Add(Button("Import sound from PC", () =>
-        {
-            using var dialog = new OpenFileDialog { Filter = "Audio files|*.wav;*.mp3;*.m4a;*.aac;*.aiff;*.aif", Title = "Import a sound (up to 60 seconds, 20 MB)" };
-            if (dialog.ShowDialog(this) != DialogResult.OK) return;
-            if (new FileInfo(dialog.FileName).Length > 20 * 1024 * 1024) throw new ArgumentException("Choose a file smaller than 20 MB.");
-            var clip = AudioEngine.Import(dialog.FileName, Path.GetFileNameWithoutExtension(dialog.FileName), store); AddLog("Imported: " + clip.Name);
-        }));
+        var importButton = Button("Import sounds from PC", () => { });
+        importButton.Click += async (_, _) => await ImportSounds(importButton);
+        flow.Controls.Add(importButton);
         page.Controls.Add(flow); return page;
+    }
+    async Task ImportSounds(Button button)
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Filter = "Audio files|*.wav;*.mp3;*.m4a;*.aac;*.aiff;*.aif",
+            Title = "Import sounds (up to 60 seconds and 20 MB each)",
+            Multiselect = true
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        button.Enabled = false;
+        var imported = 0;
+        var failures = new List<string>();
+        try
+        {
+            foreach (var path in dialog.FileNames)
+            {
+                if (IsDisposed || Disposing || stopping) break;
+                button.Text = $"Importing {imported + failures.Count + 1} of {dialog.FileNames.Length}…";
+                try
+                {
+                    var clip = await Task.Run(() =>
+                    {
+                        if (new FileInfo(path).Length > 20 * 1024 * 1024)
+                            throw new ArgumentException("Choose a file smaller than 20 MB.");
+                        var name = Path.GetFileNameWithoutExtension(path).Trim();
+                        if (name.Length > 60)
+                            name = name[..(char.IsHighSurrogate(name[59]) ? 59 : 60)];
+                        return AudioEngine.Import(path, string.IsNullOrWhiteSpace(name) ? "Imported sound" : name, store);
+                    });
+                    imported++;
+                    AddLog("Imported: " + clip.Name);
+                }
+                catch (Exception ex)
+                {
+                    var failure = Path.GetFileName(path) + ": " + ex.Message;
+                    failures.Add(failure);
+                    AddLog("Import failed: " + failure);
+                }
+            }
+            if (!IsDisposed && !Disposing && !stopping)
+            {
+                var summary = $"Imported {imported} of {dialog.FileNames.Length} sounds.";
+                if (failures.Count > 0)
+                    summary += "\n\n" + string.Join("\n", failures.Take(10))
+                        + (failures.Count > 10 ? "\nSee the log for the remaining errors." : "");
+                MessageBox.Show(this, summary, "Import sounds", MessageBoxButtons.OK,
+                    failures.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+            }
+        }
+        finally
+        {
+            if (!button.IsDisposed) { button.Text = "Import sounds from PC"; button.Enabled = true; }
+        }
     }
     TabPage ControlsPage()
     {

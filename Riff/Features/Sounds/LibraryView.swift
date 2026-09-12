@@ -3,8 +3,10 @@ import UniformTypeIdentifiers
 
 struct LibraryView: View {
     @Environment(RiffStore.self) private var store
+    var quickAdding = false
     var onAssign: (Clip) -> Void
     var onAdded: () -> Void
+    @State private var saving = false
     @State private var showPacks = false
     @State private var selecting = false
     @State private var selectedIDs: [String] = []
@@ -13,6 +15,8 @@ struct LibraryView: View {
     @State private var search = ""
     @State private var scope = SoundScope.all
     @State private var importing = false
+    @State private var batchImport: SoundImportRequest?
+    @State private var importedForDeck: [Clip] = []
     @State private var recording = false
     @State private var naming: SoundNameTarget?
     @State private var failure: String?
@@ -28,7 +32,7 @@ struct LibraryView: View {
                             Image(systemName: "square.stack.3d.up.fill").font(.title2).foregroundStyle(Palette.accent)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Explore sound packs").font(.headline).foregroundStyle(.primary)
-                                Text("Streamer favorites & meme classics. Included on this iPad.").font(.subheadline).foregroundStyle(.secondary)
+                                Text("Streamer favorites & meme classics. Download only what you want.").font(.subheadline).foregroundStyle(.secondary)
                             }
                             Spacer()
                             Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
@@ -101,6 +105,9 @@ struct LibraryView: View {
             }
 
         }
+        .disabled(saving)
+        .interactiveDismissDisabled(saving)
+        .onAppear { if quickAdding { selecting = true } }
         .listSectionSpacing(12)
         .scrollContentBackground(.hidden).background(Palette.background)
         .searchable(text: $search, prompt: "Find a sound")
@@ -113,18 +120,16 @@ struct LibraryView: View {
                 if DesignPreview.screen == "add-sounds" { addingSounds = true }
             }
             if DesignPreview.screen == "rename", let clip = store.snapshot.clips.first { naming = .existing(clip) }
+            if DesignPreview.screen == "bulk-import" {
+                let urls = ["level-up", "coin-drop", "red-alert"].compactMap { Bundle.main.url(forResource: $0, withExtension: "wav") }
+                batchImport = SoundImportRequest(urls: urls)
+            }
             if DesignPreview.screen == "import", let url = Bundle.main.url(forResource: "level-up", withExtension: "wav") { naming = .imported(url) }
         }
 #endif
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 0) {
-                if selecting {
-                    Button { addingSounds = true } label: {
-                        Label(selectedIDs.isEmpty ? "Select sounds to continue" : "Add \(selectedIDs.count) to deck", systemImage: "plus.square.on.square")
-                            .frame(maxWidth: .infinity)
-                    }.buttonStyle(AccentButtonStyle()).disabled(selectedIDs.isEmpty)
-                        .padding(.horizontal, 20).padding(.top, 12)
-                }
+                if selecting { quickAddBar }
                 SoundPreviewBar()
             }.background(.regularMaterial)
         }
@@ -144,12 +149,12 @@ struct LibraryView: View {
                 }
             } else {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Select") { selecting = true; selectedIDs.removeAll() }
+                    Button("Quick add") { selecting = true; selectedIDs.removeAll() }
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         Button("Record sound", systemImage: "mic") { recording = true }
-                        Button("Import audio", systemImage: "folder") { importing = true }
+                        Button("Import audio files", systemImage: "folder") { importing = true }
                     } label: { Image(systemName: "plus") }.disabled(!store.connected).accessibilityLabel("Add sound")
                 }
             }
@@ -157,11 +162,21 @@ struct LibraryView: View {
         .sheet(isPresented: $recording, onDismiss: { if let recorded { self.recorded = nil; onAssign(recorded) } }) {
             RecordingView { clip in recorded = clip; recording = false }
         }
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.wav, .mp3, .mpeg4Audio, .aiff, UTType(filenameExtension: "aac") ?? .audio]) { result in
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.wav, .mp3, .mpeg4Audio, .aiff, UTType(filenameExtension: "aac") ?? .audio], allowsMultipleSelection: true) { result in
             switch result {
-            case .success(let url): naming = .imported(url)
+            case .success(let urls):
+                if urls.count == 1, let url = urls.first { naming = .imported(url) }
+                else if !urls.isEmpty { batchImport = SoundImportRequest(urls: urls) }
             case .failure(let error): failure = error.localizedDescription
             }
+        }
+        .sheet(item: $batchImport, onDismiss: {
+            if !importedForDeck.isEmpty {
+                selectedIDs = importedForDeck.map(\.id)
+                importedForDeck = []; selecting = true
+            }
+        }) { request in
+            ImportSoundsView(urls: request.urls) { importedForDeck = $0 }
         }
         .sheet(item: $naming, onDismiss: {
             if let recorded { self.recorded = nil; onAssign(recorded) }
@@ -176,7 +191,7 @@ struct LibraryView: View {
             }
         }
 
-        .alert("Couldn’t open sound", isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+        .alert("Sounds need attention", isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
             Button("OK") { failure = nil }
         } message: { Text(failure ?? "") }
 
@@ -185,6 +200,58 @@ struct LibraryView: View {
                 if let clip = deleteClip { Task { await store.deleteClip(clip) } }; deleteClip = nil
             }
         } message: { Text("Remove this sound from any buttons before deleting it.") }
+    }
+    private var quickAddition: Result<SoundDeckAddition, Error> {
+        Result { try SoundDeckAddition(snapshot: store.snapshot, clipIDs: selectedIDs, target: .existing(store.selectedDeckId)) }
+    }
+    private var canQuickAdd: Bool {
+        guard store.connected, !store.busy, !saving, case .success(let plan) = quickAddition else { return false }
+        return !plan.added.isEmpty
+    }
+    private var quickAddBar: some View {
+        VStack(spacing: 10) {
+            if !store.connected {
+                Text("Connect your PC to add these sounds to a deck.").font(.caption).foregroundStyle(.secondary)
+            }
+            if !selectedIDs.isEmpty {
+                switch quickAddition {
+                case .success(let plan):
+                    if plan.skipped > 0 {
+                        Text("\(plan.skipped) already on this deck; existing buttons stay as they are.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                case .failure(let error):
+                    Text(error.localizedDescription).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Button { quickAdd() } label: {
+                Label(quickAddTitle, systemImage: "plus.square.on.square").frame(maxWidth: .infinity)
+            }.buttonStyle(AccentButtonStyle()).disabled(!canQuickAdd)
+            Button("Choose another deck or create one…") { addingSounds = true }
+                .font(.subheadline).disabled(selectedIDs.isEmpty || saving)
+        }.padding(.horizontal, 20).padding(.top, 12)
+    }
+    private var quickAddTitle: String {
+        if saving { return "Adding sounds…" }
+        guard !selectedIDs.isEmpty else { return "Select sounds to continue" }
+        if case .success(let plan) = quickAddition {
+            if plan.added.isEmpty { return "Already on this deck" }
+            return "Add \(plan.added.count) to \(store.selectedDeck?.name ?? "deck")"
+        }
+        return "Add to \(store.selectedDeck?.name ?? "deck")"
+    }
+    private func quickAdd() {
+        guard canQuickAdd else { return }
+        saving = true
+        Task {
+            defer { saving = false }
+            do {
+                let plan = try SoundDeckAddition(snapshot: store.snapshot, clipIDs: selectedIDs, target: .existing(store.selectedDeckId))
+                try await store.saveDecks(plan.decks)
+                store.message("Added \(plan.added.count) sounds")
+                selectedIDs.removeAll(); selecting = false; onAdded()
+            } catch { failure = error.localizedDescription }
+        }
     }
     private func toggleSelection(_ clip: Clip) {
         if selectedIDs.contains(clip.id) { selectedIDs.removeAll { $0 == clip.id } }

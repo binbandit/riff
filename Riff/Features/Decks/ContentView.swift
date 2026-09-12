@@ -14,7 +14,7 @@ struct ContentView: View {
     @State private var selectionFeedback = 0
     @State private var stopFeedback = 0
     enum Destination: String, Identifiable {
-        case connection, recording, settings, sounds, grid, audio, updates, audioSetup, musicSetup
+        case connection, recording, settings, sounds, addSounds, grid, audio, updates, audioSetup, musicSetup
         var id: String { rawValue }
     }
     var body: some View {
@@ -98,9 +98,12 @@ struct ContentView: View {
                                 Button("Settings", systemImage: "gearshape") { destination = .settings }
                             } label: { Image(systemName: "ellipsis") }.accessibilityLabel("Deck options")
                         }
-                        Button {
-                            if store.connected { editor = Pad() } else { destination = .connection }
-                        } label: { Image(systemName: "plus") }.accessibilityLabel("Add button")
+                        Menu {
+                            Button("Add sounds from library", systemImage: "waveform.badge.plus") { destination = .addSounds }
+                            Button("Create custom button", systemImage: "slider.horizontal.3") {
+                                if store.connected { editor = Pad() } else { destination = .connection }
+                            }
+                        } label: { Image(systemName: "plus") }.accessibilityLabel("Add to deck")
                     }
                 }
             }
@@ -125,11 +128,11 @@ struct ContentView: View {
                 MusicSetupView().toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { destination = nil } } }
             }
             case .grid: NavigationStack { GridLayoutView() }
-            case .sounds:
-                NavigationStack {
-                    LibraryView(onAssign: { clip in pendingClip = clip; destination = nil }, onAdded: { destination = nil })
-                        .navigationTitle("Sounds")
-                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { destination = nil } } }
+            case .sounds, .addSounds:
+                if #available(iOS 18.0, *) {
+                    soundLibrary(quickAdding: choice == .addSounds).presentationSizing(.page)
+                } else {
+                    soundLibrary(quickAdding: choice == .addSounds).presentationDetents([.large])
                 }
             }
         }
@@ -153,7 +156,7 @@ struct ContentView: View {
             case "grid": destination = .grid
             case "audio": destination = .audio
             case "playback-check": await DesignPreview.checkPlayback(store)
-            case "packs", "pack-detail", "sounds", "rename", "import", "sound-selection", "add-sounds": destination = .sounds
+            case "packs", "pack-detail", "sounds", "rename", "import", "bulk-import", "sound-selection", "add-sounds": destination = .sounds
             case "recording", "recording-trim": destination = .recording
             case "settings", "appearance": destination = .settings
             case "audio-setup": destination = .audioSetup
@@ -178,6 +181,13 @@ struct ContentView: View {
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             while !Task.isCancelled { await store.refreshPlayback(); try? await Task.sleep(for: .milliseconds(250)) }
+        }
+    }
+    private func soundLibrary(quickAdding: Bool) -> some View {
+        NavigationStack {
+            LibraryView(quickAdding: quickAdding, onAssign: { clip in pendingClip = clip; destination = nil }, onAdded: { destination = nil })
+                .navigationTitle(quickAdding ? "Add sounds" : "Sounds")
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { destination = nil }.disabled(store.busy) } }
         }
     }
     private var deckHeading: some View {
@@ -256,7 +266,8 @@ struct ContentView: View {
                     if playMode {
                         Button("Choose another deck") { picker = true }.buttonStyle(.borderedProminent)
                     } else {
-                        Button("Add button", systemImage: "plus") { editor = Pad() }.buttonStyle(.borderedProminent).disabled(!store.connected)
+                        Button("Add sounds", systemImage: "plus") { destination = .addSounds }.buttonStyle(.borderedProminent)
+                        Button("Create custom button") { editor = Pad() }.disabled(!store.connected)
                     }
                 }
             } else {
