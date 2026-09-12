@@ -1,5 +1,32 @@
 import Foundation
 
+struct DeckPagination {
+    let pinned: [Pad]
+    let scrolling: [Pad]
+    let pageCapacity: Int
+    var pageCount: Int { max(1, (scrolling.count + pageCapacity - 1) / pageCapacity) }
+
+    init(pads: [Pad], capacity: Int) {
+        let capacity = max(1, capacity)
+        // Always reserve a scrolling slot when the deck doesn't fit. Even a 1×1 grid
+        // or a deck of entirely pinned buttons must keep every action reachable.
+        let pinLimit = pads.count <= capacity ? capacity : capacity - 1
+        pinned = Array(pads.filter(\.isPinned).prefix(pinLimit))
+        let ids = Set(pinned.map(\.id))
+        scrolling = pads.filter { !ids.contains($0.id) }
+        pageCapacity = max(1, capacity - pinned.count)
+    }
+
+    func buttons(on page: Int) -> [Pad] {
+        let start = min(max(0, page), pageCount - 1) * pageCapacity
+        return pinned + scrolling.dropFirst(start).prefix(pageCapacity)
+    }
+
+    func label(on page: Int) -> String {
+        buttons(on: page).dropFirst(pinned.count).first?.title ?? pinned.first?.title ?? "Empty deck"
+    }
+}
+
 // Remember the first button's position so grid changes keep the same sounds in view.
 struct DeckPageMemory {
     private var firstButtons: [String: Int] = [:]

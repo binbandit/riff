@@ -20,7 +20,7 @@ enum SoundPlaybackMode: String, CaseIterable, Identifiable {
     }
 }
 
-struct SoundPlaybackState: Decodable, Equatable {
+struct SoundPlaybackState: Codable, Equatable {
     let sessionId: String
     let revision: Int64
     let padIds: [String]

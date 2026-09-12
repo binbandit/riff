@@ -13,6 +13,7 @@
     <PackageReference Include="NAudio" Version="2.2.1" />
     <Content Include="Markdig-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../Riff/Resources/PackSounds/VoicePack-LICENSES.txt" Link="licenses/VoicePack-LICENSES.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../Riff/Resources/PackSounds/*.mp3" Link="PackSounds/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../Shared/Sounds/*.wav" Link="Sounds/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

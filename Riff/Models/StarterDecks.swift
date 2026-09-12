@@ -18,5 +18,5 @@ extension Snapshot {
             Pad(id: "screenshot-pad", title: "Screenshot", icon: "viewfinder", color: "orange", kind: "hotkey", value: "Win+Shift+S"),
             Pad(id: "gg-pad", title: "Good game", icon: "text.bubble", color: "green", kind: "text", value: "gg, well played!")
         ])
-    ], clips: [Clip(id: "level-up", name: "Level up", duration: 0.76), Clip(id: "plot-twist", name: "Plot twist", duration: 1.21), Clip(id: "nope", name: "Nope", duration: 0.53), Clip(id: "countdown", name: "Countdown", duration: 1.8), Clip(id: "coin-drop", name: "Coin drop", duration: 0.39), Clip(id: "red-alert", name: "Red alert", duration: 1.44)], outputs: [], outputId: "", volume: 0.75, apps: [], computerName: "", games: [], activeGameId: "", activeGameName: "")
+    ], clips: [Clip(id: "level-up", name: "Level up", duration: 0.76), Clip(id: "plot-twist", name: "Plot twist", duration: 1.21), Clip(id: "nope", name: "Nope", duration: 0.53), Clip(id: "countdown", name: "Countdown", duration: 1.8), Clip(id: "coin-drop", name: "Coin drop", duration: 0.39), Clip(id: "red-alert", name: "Red alert", duration: 1.44)] + SoundPacks.clips, outputs: [], outputId: "", volume: 0.75, apps: [], computerName: "", games: [], activeGameId: "", activeGameName: "")
 }

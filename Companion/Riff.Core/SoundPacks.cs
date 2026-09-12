@@ -27,6 +27,19 @@ public static class SoundPacks
         return JsonSerializer.Deserialize<List<SoundPack>>(stream, Wire.Json)
             ?? throw new InvalidDataException("The sound pack catalog is invalid.");
     }
+    // Remember catalog entries already offered, so deleted sounds stay deleted across updates.
+    public static SavedState Populate(SavedState state)
+    {
+        var known = (state.KnownBundledSoundIds ?? []).ToHashSet();
+        var existing = state.Clips.Select(c => c.Id).ToHashSet();
+        var additions = Catalog.SelectMany(p => p.Sounds)
+            .Where(s => !known.Contains(s.ClipId) && !existing.Contains(s.ClipId))
+            .Select(s => new Clip(s.ClipId, s.Name, s.Duration)).ToList();
+        known.UnionWith(Catalog.SelectMany(p => p.Sounds).Select(s => s.ClipId));
+        if (additions.Count == 0 && known.SetEquals(state.KnownBundledSoundIds ?? [])) return state;
+        return state with { Clips = [.. state.Clips, .. additions], KnownBundledSoundIds = known.Order().ToList(), Version = state.Version + 1 };
+    }
+
     public static PackSound Find(string packId, string soundId) =>
         Catalog.FirstOrDefault(p => p.Id == packId)?.Sounds.FirstOrDefault(s => s.Id == soundId)
         ?? throw new ArgumentException("This sound pack is unavailable. Update both Riff apps and try again.");

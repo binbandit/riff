@@ -34,11 +34,20 @@ public class CompanionIntegrationTests
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/playback")).StatusCode);
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/clips/nope/audio")).StatusCode);
+                Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/sound-suggestions", new SoundSuggestionRequest(["nope"], "Game night"), Wire.Json)).StatusCode);
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", identity.Token);
                 var snapshot = (await client.GetFromJsonAsync<Snapshot>("/api/state", Wire.Json))!;
                 Assert.Equal(2, snapshot.Decks.Count);
                 Assert.True(snapshot.SoundboardOnly);
                 Assert.Contains("soundboard-only-v1", snapshot.Capabilities!);
+                Assert.Contains("deck-actions-v1", snapshot.Capabilities!);
+                Assert.Contains("pinned-pads-v1", snapshot.Capabilities!);
+                Assert.Contains("smart-profiles-v1", snapshot.Capabilities!);
+                Assert.Contains("sound-suggestions-v1", snapshot.Capabilities!);
+                Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PostAsJsonAsync("/api/sound-suggestions", new SoundSuggestionRequest(["nope"], "Game night"), Wire.Json)).StatusCode);
+                Assert.NotNull(snapshot.SwitchState);
+                Assert.Empty(snapshot.SwitchState.PadIds);
+                Assert.NotNull(snapshot.ActiveAppId);
                 foreach (var pad in snapshot.Decks.SelectMany(d => d.Pads).Where(p => p.Kind != "sound"))
                 {
                     var blocked = await client.PostAsJsonAsync("/api/trigger", new Trigger(pad.Id, Guid.NewGuid().ToString()), Wire.Json);
@@ -115,27 +124,15 @@ public class CompanionIntegrationTests
                 Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"/api/clips/{clip.Id}", new ClipRename(renamed.Version, new string('x', 61)), Wire.Json)).StatusCode);
                 Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync("/api/clips/missing", new ClipRename(renamed.Version, "Missing"), Wire.Json)).StatusCode);
                 (await client.PostAsync("/api/stop", null)).EnsureSuccessStatusCode();
-                Assert.Contains("sound-packs-v1", server.Snapshot().Capabilities!);
-                var beforePack = server.Snapshot();
-                Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/packs/missing/sounds/missing", new ByteArrayContent([]))).StatusCode);
-                Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/packs/epic-fails/sounds/sad-violin", new ByteArrayContent([1, 2, 3]))).StatusCode);
-                Assert.Equal(beforePack.Version, server.Snapshot().Version);
-                Assert.Equal(beforePack.Clips.Count, server.Snapshot().Clips.Count);
-                // Exercise normalization/persistence with an existing WAV, then simulate a lost install response.
+                Assert.Contains("bundled-sounds-v1", server.Snapshot().Capabilities!);
                 var packSound = SoundPacks.Find("epic-fails", "sad-violin");
-                var importedPackClip = AudioEngine.Import(store.ClipPath(clip.Id), "My renamed reaction", store, packSound.ClipId);
-                var afterPack = server.Snapshot();
-                var retry = await client.PostAsync("/api/packs/epic-fails/sounds/sad-violin", new ByteArrayContent([]));
-                retry.EnsureSuccessStatusCode();
-                var retried = (await retry.Content.ReadFromJsonAsync<Snapshot>(Wire.Json))!;
-                Assert.Equal(afterPack.Version, retried.Version);
-                Assert.Equal(afterPack.Clips.Count, retried.Clips.Count);
-                Assert.Equal("My renamed reaction", retried.Clips.Single(c => c.Id == packSound.ClipId).Name);
-                Assert.True(File.Exists(store.ClipPath(importedPackClip.Id)));
-                Assert.Equal(await File.ReadAllBytesAsync(store.ClipPath(importedPackClip.Id)),
-                    await client.GetByteArrayAsync($"/api/clips/{importedPackClip.Id}/audio"));
-                Assert.Empty(audio.Status().PadIds);
-                Assert.Contains(new StateStore(folder).State.Clips, c => c.Id == packSound.ClipId);
+                Assert.Contains(server.Snapshot().Clips, c => c.Id == packSound.ClipId);
+                Assert.Equal(await File.ReadAllBytesAsync(store.ClipPath(packSound.ClipId)),
+                    await client.GetByteArrayAsync($"/api/clips/{packSound.ClipId}/audio"));
+                (await client.DeleteAsync($"/api/clips/{packSound.ClipId}")).EnsureSuccessStatusCode();
+                Assert.DoesNotContain(new StateStore(folder).State.Clips, c => c.Id == packSound.ClipId);
+                Assert.False(File.Exists(store.ClipPath(packSound.ClipId)));
+                Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsync("/api/packs/epic-fails/sounds/sad-violin", new ByteArrayContent([]))).StatusCode);
                 identity.RotateToken();
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", identity.Token);

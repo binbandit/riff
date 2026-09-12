@@ -16,7 +16,7 @@ struct SoundPickerView: View {
                     ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0) }
                 }.pickerStyle(.segmented).listRowBackground(Color.clear)
             }
-            ForEach(clips) { clip in
+            SoundGroupsView(clips: clips, expandedResults: !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || scope != .all) { clip in
                 HStack(spacing: 12) {
                     Button { Task { await store.preview(clip) } } label: {
                         Image(systemName: "play.fill").frame(width: 44, height: 44)

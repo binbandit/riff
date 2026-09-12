@@ -58,6 +58,8 @@ struct SettingsView: View {
                 }
                 Section("Layout") {
                     NavigationLink("Grid size") { GridLayoutView() }
+                    Toggle("Follow my focused app", isOn: $store.followApps).disabled(!store.supportsSmartProfiles)
+                    Text(store.supportsSmartProfiles ? "Link an allowed Windows app in Deck settings. Its deck appears when you focus that app; switching pauses while you edit." : "Update and connect the Windows companion to use app profiles.").font(.caption).foregroundStyle(.secondary)
                     Toggle("Follow my Steam game", isOn: $store.autoSwitch)
                     Text("Link a game in Deck settings. Riff switches when a new game starts, and pauses switching while you edit. You can always choose another deck manually.").font(.caption).foregroundStyle(.secondary)
                 }

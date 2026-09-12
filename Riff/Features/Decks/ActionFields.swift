@@ -28,6 +28,15 @@ struct ActionFields: View {
                 Text("Play / pause").tag("playPause"); Text("Next track").tag("next"); Text("Previous track").tag("previous")
                 Text("Volume up").tag("volumeUp"); Text("Volume down").tag("volumeDown"); Text("Mute / unmute").tag("mute")
             }
+        case "deck":
+            Picker("Open deck", selection: $value) {
+                ForEach(store.snapshot.decks) { Text($0.name).tag($0.id) }
+            }
+            Text("Group related controls in another deck, then open it with one tap. Add a Go back button there to return.").font(.caption).foregroundStyle(.secondary)
+        case "back":
+            Text("Returns to the deck you opened this one from. Choosing a deck from the menu starts a new navigation path.").font(.caption).foregroundStyle(.secondary)
+        case "stop":
+            Text("Stops all Riff sounds and cancels remaining sequence steps. Works even while another action is running.").font(.caption).foregroundStyle(.secondary)
         default: EmptyView()
         }
     }

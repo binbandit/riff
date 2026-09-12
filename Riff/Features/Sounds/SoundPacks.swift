@@ -8,14 +8,7 @@ struct SoundPack: Decodable, Identifiable {
     let icon: String
     let color: String
     let sounds: [PackSound]
-    func installed(in clips: [Clip]) -> [Clip] {
-        let byID = Dictionary(clips.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        return sounds.compactMap { byID[$0.clipID] }
-    }
-    func matches(_ query: String) -> Bool {
-        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        return query.isEmpty || ([name, description] + sounds.map(\.name)).contains { $0.localizedStandardContains(query) }
-    }
+
 }
 
 struct PackSound: Decodable, Identifiable {
@@ -47,6 +40,8 @@ enum SoundPacks {
         Bundle.main
 #endif
     }
+
+    static var clips: [Clip] { (try? load())?.flatMap { $0.sounds.map { Clip(id: $0.clipID, name: $0.name, duration: $0.duration) } } ?? [] }
 
     static func load() throws -> [SoundPack] {
         guard let url = bundle.url(forResource: "sound-packs", withExtension: "json") else {

@@ -11,7 +11,7 @@ struct SoundDeckAddition {
     let added: [Clip]
     let skipped: Int
 
-    init(snapshot: Snapshot, clipIDs: [String], target: SoundDeckTarget) throws {
+    init(snapshot: Snapshot, clipIDs: [String], target: SoundDeckTarget, appearances: [String: Pad] = [:]) throws {
         var seen = Set<String>()
         let ids = clipIDs.filter { seen.insert($0).inserted }
         guard !ids.isEmpty else { throw RiffError.message("Choose at least one sound.") }
@@ -47,7 +47,9 @@ struct SoundDeckAddition {
         }
         let offset = decks[index].pads.count
         decks[index].pads += additions.enumerated().map { number, clip in
-            Pad(title: clip.buttonTitle, icon: "waveform", color: Palette.colors[(offset + number) % Palette.colors.count], value: clip.id)
+            let appearance = appearances[clip.id]
+            return Pad(title: appearance?.title ?? clip.buttonTitle, icon: appearance?.icon ?? "waveform",
+                       color: appearance?.color ?? Palette.colors[(offset + number) % Palette.colors.count], value: clip.id)
         }
         self.decks = decks
         deckID = decks[index].id

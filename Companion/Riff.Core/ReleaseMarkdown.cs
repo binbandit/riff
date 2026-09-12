@@ -12,7 +12,7 @@ public static class ReleaseMarkdown
     static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UsePipeTables().UseTaskLists().UseEmphasisExtras().UseAutoLinks().Build();
     public static string ToRtf(string markdown, Uri baseUrl)
     {
-        var result = new StringBuilder(@"{\rtf1\ansi\deff0{\fonttbl{\f0 Segoe UI;}{\f1 Consolas;}}{\colortbl;\red238\green240\blue243;\red255\green156\blue105;\red38\green43\blue51;\red164\green172\blue184;}\viewkind4\uc1\f0\fs22\cf1 ");
+        var result = new StringBuilder(@"{\rtf1\ansi\deff0{\fonttbl{\f0 Segoe UI;}{\f1 Consolas;}}{\colortbl;\red48\green41\blue39;\red186\green56\blue47;\red234\green230\blue223;\red112\green105\blue98;}\viewkind4\uc1\f0\fs22\cf1 ");
         Blocks(Markdown.Parse(markdown, Pipeline), result, baseUrl);
         return result.Append('}').ToString();
     }

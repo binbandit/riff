@@ -5,12 +5,20 @@ namespace Riff.Companion;
 
 public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposable
 {
+    readonly ActionSequences sequences = new();
+    public PlaybackState SwitchStatus()
+    {
+        lock (store.Gate) return sequences.Status(store.State.Decks.SelectMany(d => d.Pads));
+    }
     readonly SemaphoreSlim actionGate = new(1, 1);
     readonly object cancelGate = new();
     CancellationTokenSource cancellation = new();
-    public async Task Run(Pad pad, bool toggle = false, string? soundMode = null)
+    public async Task Run(Pad pad, bool toggle = false, string? soundMode = null, string? gesture = null)
     {
+        pad = pad.Resolve(gesture);
         if (soundMode is not (null or "overlap" or "single" or "queue")) throw new ArgumentException("Choose Overlap, One at a time, or Queue.");
+        if (pad.Kind == "stop") { Stop(); return; }
+        if (pad.Kind is "deck" or "back") throw new ArgumentException("Navigation buttons run on your iPad.");
         CancellationToken token;
         lock (cancelGate)
         {
@@ -25,13 +33,13 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
         if (!await actionGate.WaitAsync(0)) throw new ArgumentException("An action sequence is running. Stop it or wait for it to finish.");
         try
         {
-            if (pad.Kind == "macro")
+            if (pad.Kind is "macro" or "switch" or "random")
             {
-                foreach (var step in pad.Steps)
+                await sequences.Run(pad, (step, cancellationToken) =>
                 {
-                    await Task.Delay(step.DelayMs, token);
-                    Execute(step.Kind, step.Value, token);
-                }
+                    Execute(step.Kind, step.Value, cancellationToken, mode: soundMode);
+                    return Task.CompletedTask;
+                }, token);
             }
             else Execute(pad.Kind, pad.Value, token);
         }

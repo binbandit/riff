@@ -2,13 +2,14 @@ import SwiftUI
 
 struct PadAppearanceEditor: View {
     @Binding var pad: Pad
+    var onIconChange: () -> Void = {}
+    var onColorChange: () -> Void = {}
     private let emojiGroups: [(name: String, items: [String])] = [
         ("Reactions", ["😂", "🤣", "😭", "😎", "🥹", "😍", "🤩", "😇", "😴", "🤔", "🙃", "😬", "😱", "🤯", "🥳", "💀", "👀", "🫡", "🤡", "👻"]),
         ("Good vibes", ["✨", "🔥", "❤️", "🎉", "🎊", "👏", "🙌", "👍", "👎", "👋", "🤝", "💪", "💯", "💸", "🏆", "👑"]),
         ("Sounds & music", ["🎵", "🎶", "🎧", "🎤", "🎙️", "📻", "🔊", "🔇", "🔔", "🥁", "🎸", "🎹", "🎺", "🚨", "⏰", "💥"]),
         ("Play & explore", ["🎮", "🕹️", "🎲", "🎯", "🎬", "🍿", "☕", "🍕", "🚀", "🛸", "✈️", "🛫", "🛬", "🚁", "🏎️", "⚡", "🌈", "🌙", "☀️", "🌊"])
     ]
-    private let icons = ["sparkles", "waveform", "theatermasks", "hand.raised", "timer", "circle.circle", "light.beacon.max", "gamecontroller", "bolt", "heart", "star", "speaker.wave.2", "mic", "playpause", "forward.end", "command", "desktopcomputer", "viewfinder", "text.bubble", "globe", "app", "square.stack.3d.up", "speaker.slash", "flame", "airplane", "airplane.departure", "airplane.arrival", "antenna.radiowaves.left.and.right", "face.smiling"]
     private let columns = [GridItem(.adaptive(minimum: 44), spacing: 8)]
 
     var body: some View {
@@ -20,7 +21,7 @@ struct PadAppearanceEditor: View {
             Section("Color") {
                 LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(Palette.colors, id: \.self) { color in
-                        Button { pad.color = color } label: {
+                        Button { onColorChange(); pad.color = color } label: {
                             Circle().fill(Palette.color(color)).frame(width: 32, height: 32)
                                 .overlay {
                                     if pad.color == color {
@@ -41,7 +42,7 @@ struct PadAppearanceEditor: View {
                         Text(group.name).font(.subheadline.weight(.medium)).foregroundStyle(.secondary)
                         LazyVGrid(columns: columns, spacing: 10) {
                             ForEach(group.items, id: \.self) { item in
-                                Button { pad.icon = "emoji:" + item } label: {
+                                Button { onIconChange(); pad.icon = "emoji:" + item } label: {
                                     Text(item).font(.title).frame(maxWidth: .infinity, minHeight: 44)
                                         .background(pad.icon == "emoji:" + item ? pad.tint.opacity(0.24) : .clear, in: RoundedRectangle(cornerRadius: 10))
                                         .overlay {
@@ -59,8 +60,8 @@ struct PadAppearanceEditor: View {
             }
             Section("Symbols") {
                 LazyVGrid(columns: columns, spacing: 14) {
-                    ForEach(icons, id: \.self) { icon in
-                        Button { pad.icon = icon } label: {
+                    ForEach(PadAppearance.symbols, id: \.self) { icon in
+                        Button { onIconChange(); pad.icon = icon } label: {
                             Image(systemName: icon).font(.system(size: 20)).frame(maxWidth: .infinity, minHeight: 44)
                                 .foregroundStyle(pad.icon == icon ? Palette.accent : .secondary)
                                 .background(pad.icon == icon ? pad.tint.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 10))

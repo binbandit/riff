@@ -4,11 +4,11 @@ Riff includes fourteen bundled packs with 138 gaming, TikTok, meme, streamer, an
 
 ## Using packs
 
-Open **Sounds → Explore sound packs**. Search by pack or sound name, open a pack, and tap a play button to preview privately on the iPad. Each sound's menu links to its original page.
+Open **Sounds**. All included sounds are available immediately on both iPad and PC. Expand a category to browse, or search across the library. The sound picker uses the same groups, with separate sections for your recordings/imports and Riff essentials. Favorites and This deck show matching sounds directly.
 
-All 138 sounds ship with the iPad app and can be previewed without internet or a PC connection. With a compatible Windows companion connected, tap **Add to PC** to copy the bundled audio to its library over your local connection. **Pause** keeps completed sounds; **Continue adding to PC** skips those already copied. Then **Add pack to deck** offers a named new deck or an existing deck. Existing library renames, favorites, and deletion still apply; remove sounds from buttons before deleting them.
+Tap play to preview on iPad, tap plus to assign a sound, or use **Quick add** to select several sounds for a deck. Hold a sound for favorites, its original source, rename, or delete. Remove sounds from buttons and sequences before deleting them. Deletions persist across restarts and sync automatically when the PC reconnects.
 
-Pack buttons in cached decks also play from the bundled audio when the PC is disconnected. The six starter WAVs remain unchanged. The companion stores transferred sounds as local WAV files for Windows playback. No external audio requests, download cache, or first-use internet connection are needed. Catalog updates still require updating both apps.
+Both applications ship all 138 pack MP3s, alongside the six starter WAVs. There are no pack downloads, installation controls, or audio transfers between devices. The companion copies its bundled MP3s into its local library automatically. Existing renames and decks survive upgrades, and deleted catalog entries stay deleted. New catalog entries are added on an app update. Catalog updates require updating both apps.
 
 ## Research and selection
 
@@ -20,13 +20,13 @@ Researched 12 September 2026 (Australia/Melbourne). The selection favors recogni
 - [Sound Alerts](https://soundalerts.com/library) provides streamer-oriented discovery with separate popular, trending, subscriber, and follower categories. [Blerp's streaming library](https://blerp.com/streaming) demonstrates the use of curated libraries for stream interactions.
 - Paid content was considered too: [Voicemod's product comparison](https://support.voicemod.net/hc/en-us/articles/360014301120-Which-are-Voicemod-s-features) describes PRO soundboards and its store's IP packs. A consumer subscription to a soundboard service is not evidence of a license for Riff to redistribute its catalog. No purchase or license agreement was made.
 
-The communication packs add 36 short phrases for everyday voice chat and squad coordination. Quick Replies and Friendly Chat use the Andrew Chipper synthetic voice from [Coqui Voice Pack v2](https://github.com/coqui-ai/coqui-voice-pack/releases/tag/v2). Team Callouts combines that voice with Jeffrey M. Smith’s recordings from the [Kenney Voiceover Pack](https://kenney.nl/assets/voiceover-pack). All communication clips are under five seconds and are converted to 44.1 kHz mono MP3 with consistent loudness. Search the pack names or individual phrases, preview them, and use **Add pack to deck** to make a communication board.
+The communication packs add 36 short phrases for everyday voice chat and squad coordination. Quick Replies and Friendly Chat use the Andrew Chipper synthetic voice from [Coqui Voice Pack v2](https://github.com/coqui-ai/coqui-voice-pack/releases/tag/v2). Team Callouts combines that voice with Jeffrey M. Smith’s recordings from the [Kenney Voiceover Pack](https://kenney.nl/assets/voiceover-pack). All communication clips are under five seconds and are converted to 44.1 kHz mono MP3 with consistent loudness. Search the pack names or individual phrases, preview them, and use **Quick add** to make a communication board.
 
 Lobby Jukebox adds 16 musical soundboard excerpts for the same lobby use as Social Credit Music: meme dances, familiar Wii themes, novelty songs, and awkward waiting music. Selection uses the linked Myinstants source pages and searches for each track, not a measured ranking of game-lobby usage. The clips run about 10–19 seconds, use consistent loudness, and end with a short fade. Social Credit Music remains in Montage Memes with its original identity and recording.
 
 ## Sources and rights
 
-The MP3s live in `Riff/Resources/PackSounds` and are included in the iPad application. Each filename includes the recording's SHA-256 and the audio is checked against the catalog before transfer to the PC. The source page, provider, uploader (when listed), reviewed duration, byte count, and SHA-256 are recorded for every clip. Original upstream download URLs are retained where available. Uploader names identify the upload, not necessarily the recording's copyright owner. The Myinstants, Voicemod Tuna, and 101soundboards recordings are not represented as CC0, royalty-free, or cleared for commercial broadcasts or redistribution.
+The MP3s live in `Riff/Resources/PackSounds` and are included in both applications. Each filename includes the recording's SHA-256 and the companion checks new audio against the catalog before adding it to its local library. The source page, provider, uploader (when listed), reviewed duration, byte count, and SHA-256 are recorded for every clip. Original upstream download URLs are retained where available. Uploader names identify the upload, not necessarily the recording's copyright owner. The Myinstants, Voicemod Tuna, and 101soundboards recordings are not represented as CC0, royalty-free, or cleared for commercial broadcasts or redistribution.
 
 [Myinstants' terms](https://www.myinstants.com/en/terms_of_use.html) describe limited personal/noncommercial site access. Its download buttons and Tuna's community download functionality establish availability, not a blanket distribution license. Rights clearance for those community recordings remains unresolved for public redistribution and commercial broadcasts. Hosting on GitHub does not change the recordings' rights status, and any license for Riff's code does not cover these recordings.
 
@@ -36,7 +36,7 @@ All bundled audio files are checked against the catalog in the offline test suit
 
 ## Catalog
 
-Sizes below refer to bundled MP3s. The companion converts installed sounds to 44.1 kHz mono PCM WAV, so installed disk usage is larger.
+Sizes below refer to bundled MP3s. The companion preserves bundled MP3s; user imports are normalized to PCM WAV.
 
 ### Streamer Essentials
 
@@ -304,6 +304,6 @@ Communicate with your squad. Enemy spotted, cover me, reloading, medic, and othe
 
 ## Validation
 
-- Swift tests cover the shared catalog, exact requested source URLs, every bundled MP3's size/hash and audio decoding, stable clip IDs for disconnected playback, partial transfer identity, renames, search, and corrupt/truncated/oversized audio. They require no public audio hosting.
-- Companion unit tests cover catalog loading, allowed pack/sound pairs, and payload integrity. Windows integration tests cover capability negotiation, invalid uploads without state changes, normalization/persistence, and idempotent retry preserving renamed clips.
+- Swift tests cover the shared catalog, exact requested source URLs, every bundled MP3's size/hash and audio decoding, stable clip IDs for disconnected playback, automatic availability, persistent deletion, offline deletion sync, grouped search, renames, and corrupt/truncated/oversized audio. They require no public audio hosting.
+- Companion unit tests cover catalog loading, allowed pack/sound pairs, and payload integrity. Windows integration tests cover automatic availability, bundled audio retrieval, and deletion surviving restarts.
 - Windows integration tests require Windows; cross-compilation on macOS does not execute them.

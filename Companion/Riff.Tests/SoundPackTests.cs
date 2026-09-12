@@ -40,4 +40,21 @@ public class SoundPackTests
         Assert.Throws<ArgumentException>(() => sound.Validate([1, 2, 3]));
         Assert.Throws<ArgumentException>(() => sound.Validate([4, 3, 2, 1]));
     }
+    [Fact]
+    public void PopulatePreservesRenamesDeletionsAndExistingDecks()
+    {
+        var sound = SoundPacks.Catalog[0].Sounds[0];
+        var old = new SavedState(1, Defaults.Decks, [new(sound.ClipId, "My reaction", 2)], "", .75f, []);
+        var populated = SoundPacks.Populate(old);
+        Assert.Equal(SoundPacks.Catalog.Sum(p => p.Sounds.Count), populated.Clips.Count);
+        Assert.Equal("My reaction", populated.Clips.Single(c => c.Id == sound.ClipId).Name);
+        Assert.Same(old.Decks, populated.Decks);
+        Assert.Same(populated, SoundPacks.Populate(populated));
+        var deleted = populated with { Clips = populated.Clips.Where(c => c.Id != sound.ClipId).ToList() };
+        Assert.DoesNotContain(SoundPacks.Populate(deleted).Clips, c => c.Id == sound.ClipId);
+        var upgraded = SoundPacks.Populate(deleted with { KnownBundledSoundIds = deleted.KnownBundledSoundIds!.Where(id => id != populated.Clips[1].Id).ToList(), Clips = deleted.Clips.Skip(1).ToList() });
+        Assert.Contains(upgraded.Clips, c => c.Id == populated.Clips[1].Id);
+        Assert.DoesNotContain(upgraded.Clips, c => c.Id == sound.ClipId);
+    }
+
 }

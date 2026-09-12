@@ -4,14 +4,14 @@ import Testing
 @testable import RiffProtocol
 
 @MainActor struct SoundPackTests {
-    @Test func catalogHasUniqueSoundsAndKeepsPacksOutOfStarterLibrary() throws {
+    @Test func catalogHasUniqueSoundsAndIncludesEverySoundInStarterLibrary() throws {
         let packs = try SoundPacks.load()
         let sounds = packs.flatMap(\.sounds)
         #expect(packs.count >= 14 && sounds.count >= 138)
         #expect(Set(sounds.map(\.id)).count == sounds.count)
         #expect(Set(sounds.map(\.sha256)).count == sounds.count)
         #expect(Set(packs.map(\.id)).count == packs.count)
-        #expect(Set(sounds.map(\.clipID)).isDisjoint(with: Snapshot.starter.clips.map(\.id)))
+        #expect(Set(sounds.map(\.clipID)).isSubset(of: Set(Snapshot.starter.clips.map(\.id))))
         for sound in sounds {
             #expect(sound.fileName == "\(sound.id)-\(sound.sha256).mp3" && sound.sourceURL.scheme == "https")
             #expect(sound.byteCount > 0 && sound.byteCount < 20 * 1024 * 1024)
@@ -51,16 +51,6 @@ import Testing
         }
         #expect(SoundPacks.audioURL(forClipID: "unknown") == nil)
     }
-    @Test func partialInstallUsesStableIDsAndPreservesRenames() throws {
-        let pack = try #require(SoundPacks.load().first)
-        let renamed = Clip(id: pack.sounds[1].clipID, name: "My reaction", duration: 2)
-        let other = Clip(id: "unrelated", name: pack.sounds[0].name, duration: 1)
-        #expect(pack.installed(in: [other, renamed]).map(\.id) == [renamed.id])
-        #expect(pack.installed(in: [renamed]).first?.name == "My reaction")
-        #expect(pack.installed(in: []).isEmpty)
-        #expect(pack.matches("  BRUH  "))
-        #expect(!pack.matches("not-a-real-sound"))
-    }
     @Test func packButtonsAndLibraryPreviewsPlayWithoutAPC() async throws {
         let sound = try #require(SoundPacks.load().flatMap(\.sounds).first { $0.id == "sad-violin" })
         let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil)
@@ -77,6 +67,53 @@ import Testing
         #expect(store.toast == "Playing on iPad: My reaction")
         await store.stopAll()
     }
+    @Test func deletedSoundsStayDeletedAfterRelaunchAndLegacyCachesGainTheCatalog() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let cache = folder.appendingPathComponent("snapshot.json")
+        var legacy = Snapshot.starter
+        legacy.clips.removeAll { $0.id.hasPrefix("pack-") }
+        try JSONEncoder().encode(legacy).write(to: cache)
+        let store = RiffStore(cacheURL: cache, pairing: nil)
+        let clip = try #require(store.snapshot.clips.first { $0.id == "pack-sad-violin" })
+        #expect(store.snapshot.clips.count == Snapshot.starter.clips.count)
+        await store.deleteClip(clip)
+        #expect(store.error == nil)
+        let restored = RiffStore(cacheURL: cache, pairing: nil)
+        #expect(!restored.snapshot.clips.contains { $0.id == clip.id })
+        #expect(restored.snapshot.clips.count == Snapshot.starter.clips.count - 1)
+        let used = try #require(restored.snapshot.clips.first { $0.id == "level-up" })
+        await restored.deleteClip(used)
+        #expect(restored.error != nil)
+        #expect(restored.snapshot.clips.contains { $0.id == used.id })
+    }
+
+    @Test func offlineDeletionSyncsAfterRestartWithoutRestoringTheSound() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let remote = folder.appendingPathComponent("remote.json"), cache = folder.appendingPathComponent("cache.json")
+        try JSONEncoder().encode(Snapshot.starter).write(to: remote)
+        let process = Process(); process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        process.arguments = [URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Fixtures/companion_state_server.py").path, remote.path]
+        let pipe = Pipe(); process.standardOutput = pipe
+        try process.run()
+        defer { process.terminate(); process.waitUntilExit() }
+        let pairing = try JSONDecoder().decode(Pairing.self, from: pipe.fileHandleForReading.availableData)
+        let store = RiffStore(cacheURL: cache, pairing: nil)
+        let clip = try #require(store.snapshot.clips.first { $0.id == "pack-sad-violin" })
+        await store.deleteClip(clip)
+        let restored = RiffStore(cacheURL: cache, pairing: pairing)
+        await restored.refresh()
+        let client = CompanionClient(pairing: pairing)
+        let state: Snapshot = try await client.request("/api/state")
+        #expect(!state.clips.contains { $0.id == clip.id })
+        #expect(!restored.snapshot.clips.contains { $0.id == clip.id })
+        #expect(!RiffStore(cacheURL: cache, pairing: nil).snapshot.clips.contains { $0.id == clip.id })
+        #expect(restored.error == nil)
+    }
+
     @Test func corruptTruncatedAndOversizedAudioIsRejected() throws {
         let sound = try #require(SoundPacks.load().first?.sounds.first)
         let data = try SoundPacks.audioData(for: sound)

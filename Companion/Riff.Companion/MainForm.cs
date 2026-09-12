@@ -1,13 +1,11 @@
 using Riff.Core;
 using QRCoder;
+using static Riff.Companion.CompanionTheme;
 
 namespace Riff.Companion;
 
 public sealed class MainForm : Form
 {
-    static readonly Color BackgroundColor = Color.FromArgb(14, 16, 20);
-    static readonly Color PanelColor = Color.FromArgb(24, 28, 34);
-    static readonly Color Accent = Color.FromArgb(255, 140, 79);
     readonly StateStore store;
     readonly PairingIdentity identity;
     readonly AudioEngine audio;
@@ -15,40 +13,75 @@ public sealed class MainForm : Form
     readonly CompanionServer server;
     readonly NotifyIcon tray;
     readonly System.Windows.Forms.Timer timer = new() { Interval = 2000 };
-    readonly Label status = new() { AutoSize = true, ForeColor = Color.Silver };
-    readonly TextBox pairingLink = new() { Multiline = true, ReadOnly = true, Height = 86, Dock = DockStyle.Top, ScrollBars = ScrollBars.Vertical };
-    readonly ComboBox addresses = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 240 };
-    readonly PictureBox qr = new() { Width = 280, Height = 280, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White, Margin = new Padding(16) };
-    readonly ComboBox outputs = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 580, DisplayMember = "Name", ValueMember = "Id" };
-    readonly CheckBox monitorEnabled = new() { Text = "Hear sounds myself", AutoSize = true };
-    readonly ComboBox monitorOutputs = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 580, DisplayMember = "Name", ValueMember = "Id", AccessibleName = "Headphone output" };
-    readonly TrackBar monitorVolume = new() { Minimum = 0, Maximum = 100, TickFrequency = 10, Width = 400, AccessibleName = "Headphone volume" };
-    readonly TrackBar volume = new() { Minimum = 0, Maximum = 100, TickFrequency = 10, Width = 400 };
-    readonly ListBox apps = new() { Height = 220, Dock = DockStyle.Top, DisplayMember = "Name" };
-    readonly TextBox log = new() { Multiline = true, ReadOnly = true, Dock = DockStyle.Fill, ScrollBars = ScrollBars.Vertical };
+    readonly Label status = Label("Starting companion…", StrongFont);
+    readonly Label connectionDetail = Label("Private connection on your network", color: Muted);
+    readonly TextBox pairingLink = new() { Multiline = true, AutoSize = false, ReadOnly = true, Height = 76, ScrollBars = ScrollBars.Vertical, AccessibleName = "Private pairing link" };
+    readonly ComboBox addresses = new() { DropDownStyle = ComboBoxStyle.DropDownList, AccessibleName = "PC network address" };
+    readonly PictureBox qr = new() { Width = 224, Height = 224, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White, AccessibleName = "Scan this pairing code with Riff on your iPad", TabStop = false };
+    readonly ComboBox outputs = new() { DropDownStyle = ComboBoxStyle.DropDownList, DisplayMember = "Name", ValueMember = "Id", AccessibleName = "Sound output" };
+    readonly CheckBox monitorEnabled = new() { Text = "Hear sounds myself", AutoSize = true, Margin = new(0, 0, 0, 12) };
+    readonly ComboBox monitorOutputs = new() { DropDownStyle = ComboBoxStyle.DropDownList, DisplayMember = "Name", ValueMember = "Id", AccessibleName = "Headphone output" };
+    readonly TrackBar monitorVolume = new() { Minimum = 0, Maximum = 100, TickStyle = TickStyle.None, AccessibleName = "Headphone volume", BackColor = Surface };
+    readonly TrackBar volume = new() { Minimum = 0, Maximum = 100, TickStyle = TickStyle.None, AccessibleName = "Sound volume", BackColor = Surface };
+    readonly ListBox apps = new() { Height = 220, DisplayMember = "Name", BorderStyle = BorderStyle.None, BackColor = Surface, ForeColor = Ink, AccessibleName = "Allowed applications", IntegralHeight = false };
+    readonly Label emptyApps = Label("No applications yet. Add an app to make it available on your iPad.", color: Muted);
+    readonly TextBox log = new() { Multiline = true, AutoSize = false, ReadOnly = true, Dock = DockStyle.Fill, ScrollBars = ScrollBars.Vertical, BorderStyle = BorderStyle.None, BackColor = Surface, ForeColor = Muted, AccessibleName = "Companion activity", Font = new("Consolas", 10) };
+    readonly Panel pageHost = new() { Dock = DockStyle.Fill, Margin = Padding.Empty };
+    readonly List<(RiffButton Button, Control Page)> navigation = [];
     bool exiting;
     bool stopping;
     bool serverStarted;
     public MainForm(StateStore store, PairingIdentity identity, AudioEngine audio, ActionRunner runner, CompanionServer server)
     {
         this.store = store; this.identity = identity; this.audio = audio; this.runner = runner; this.server = server;
-        Text = $"Riff {CompanionBuild.Version} · Windows companion"; Size = new(950, 800); MinimumSize = new(780, 650);
-        StartPosition = FormStartPosition.CenterScreen; BackColor = BackgroundColor; ForeColor = Color.White;
-        Font = new("Segoe UI", 10); Icon = SystemIcons.Application;
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 3, ColumnCount = 1, Padding = new(24) };
-        layout.RowStyles.Add(new(SizeType.Absolute, 88)); layout.RowStyles.Add(new(SizeType.Percent, 100)); layout.RowStyles.Add(new(SizeType.Absolute, 46));
-        var header = new FlowLayoutPanel { Dock = DockStyle.Fill };
-        header.Controls.Add(new Label { Text = "riff", Font = new("Segoe UI", 32, FontStyle.Bold), ForeColor = Accent, AutoSize = true });
-        header.Controls.Add(new Label { Text = "Sounds, shortcuts, and a little personality.\nWindows companion", AutoSize = true, ForeColor = Color.Silver, Margin = new(24, 17, 0, 0) });
-        var tabs = new TabControl { Dock = DockStyle.Fill, Padding = new(22, 10) };
-        tabs.TabPages.Add(PairPage()); tabs.TabPages.Add(ControlsPage()); tabs.TabPages.Add(AudioPage()); tabs.TabPages.Add(AppsPage());
+        AutoScaleDimensions = new(96, 96); AutoScaleMode = AutoScaleMode.Dpi;
+        Text = $"Riff {CompanionBuild.Version} · Windows companion";
+        ClientSize = new(1100, 820); MinimumSize = new(960, 720);
+        StartPosition = FormStartPosition.CenterScreen; BackColor = Canvas; ForeColor = Ink;
+        Font = BodyFont; Icon = SystemIcons.Application;
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = Padding.Empty };
+        layout.ColumnStyles.Add(new(SizeType.Absolute, 224)); layout.ColumnStyles.Add(new(SizeType.Percent, 100));
+        layout.RowStyles.Add(new(SizeType.Percent, 100));
+        var sidebar = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new(18, 26, 12, 18), Margin = Padding.Empty };
+        sidebar.ColumnStyles.Add(new(SizeType.Percent, 100));
+        sidebar.RowStyles.Add(new(SizeType.AutoSize)); sidebar.RowStyles.Add(new(SizeType.Percent, 100)); sidebar.RowStyles.Add(new(SizeType.AutoSize));
+        var brand = Stack();
+        var wordmark = Label("riff", new Font("Segoe UI", 38, FontStyle.Bold)); wordmark.Margin = new(10, 0, 0, 0);
+        var tagline = Label("Your PC. In harmony.", color: Muted); tagline.Margin = new(12, 0, 0, 32);
+        Add(brand, wordmark, tagline); sidebar.Controls.Add(brand, 0, 0);
+        var links = Stack();
+        void AddPage(string title, string glyph, Color tint, Control page)
+        {
+            var button = new RiffButton(title) { Navigation = true, Glyph = glyph, TileColor = tint, AutoSize = false, Height = 54, Margin = new(0, 0, 0, 6) };
+            button.Click += (_, _) => SelectPage(page);
+            page.Visible = false; pageHost.Controls.Add(page);
+            navigation.Add((button, page)); Add(links, button);
+        }
+        AddPage("Connect iPad", "\uE8EA", Peach, PairPage());
+        AddPage("Audio & voice chat", "\uE767", Blue, AudioPage());
+        AddPage("Controls", "\uE713", Purple, ControlsPage());
+        AddPage("Allowed apps", "\uE8A7", Green, AppsPage());
         var updates = new CompanionUpdatesView();
-        var updatesTab = new TabPage("Updates") { BackColor = PanelColor }; updatesTab.Controls.Add(updates); tabs.TabPages.Add(updatesTab);
-        updates.UpdateAvailable += available => updatesTab.Text = available ? "Updates · New" : "Updates";
+        AddPage("Updates", "\uE895", Peach, updates);
+        var updatesButton = navigation[^1].Button;
+        updates.UpdateAvailable += available => updatesButton.Text = available ? "Updates · New" : "Updates";
+        AddPage("Activity", "\uE9D9", Blue, ActivityPage());
+        sidebar.Controls.Add(links, 0, 1);
+        var connection = new RoundedCard { Dock = DockStyle.Top, Padding = new(16, 16, 16, 6), Margin = Padding.Empty };
+        status.Margin = new(0, 0, 0, 8); connectionDetail.Font = new("Segoe UI", 9);
+        Add(connection, status, connectionDetail); sidebar.Controls.Add(connection, 0, 2);
+        var main = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Margin = Padding.Empty };
+        main.ColumnStyles.Add(new(SizeType.Percent, 100)); main.RowStyles.Add(new(SizeType.Percent, 100)); main.RowStyles.Add(new(SizeType.AutoSize));
+        main.Controls.Add(pageHost, 0, 0);
+        var footer = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 2, Padding = new(32, 12, 32, 12), Margin = Padding.Empty };
+        footer.ColumnStyles.Add(new(SizeType.Percent, 100)); footer.ColumnStyles.Add(new(SizeType.AutoSize));
+        var caption = Label("Windows companion  ·  " + CompanionBuild.Version, color: Muted); caption.Anchor = AnchorStyles.Left; caption.Dock = DockStyle.None; caption.Margin = Padding.Empty;
+        footer.Controls.Add(caption, 0, 0);
+        var stop = Button("Stop all sounds", runner.Stop); stop.Margin = Padding.Empty; footer.Controls.Add(stop, 1, 0);
+        main.Controls.Add(footer, 0, 1);
+        layout.Controls.Add(sidebar, 0, 0); layout.Controls.Add(main, 1, 0); Controls.Add(layout);
+        SelectPage(navigation[0].Page);
         Shown += async (_, _) => await updates.Check();
-        var activity = new TabPage("Activity") { BackColor = PanelColor, Padding = new(18) }; activity.Controls.Add(log); tabs.TabPages.Add(activity);
-        layout.Controls.Add(header, 0, 0); layout.Controls.Add(tabs, 0, 1);
-        var footer = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new(0, 12, 0, 0) }; footer.Controls.Add(status); layout.Controls.Add(footer, 0, 2); Controls.Add(layout);
         // Data-bound lists need the form's BindingContext before selecting an item.
         RefreshOutputs();
         var menu = new ContextMenuStrip();
@@ -59,56 +92,96 @@ public sealed class MainForm : Form
         tray.DoubleClick += (_, _) => ShowWindow();
         server.Activity += AddLog;
         audio.Warning += AddLog;
-        timer.Tick += (_, _) => { status.Text = !serverStarted ? "Companion offline - check Activity" : DateTime.UtcNow - server.LastSeen < TimeSpan.FromSeconds(12) ? "●  iPad connected · Encrypted local connection" : "Waiting for your iPad · Port 49321 · Private network only"; };
+        timer.Tick += (_, _) => RefreshConnectionStatus();
         Shown += async (_, _) =>
         {
-            try { await server.Start(); serverStarted = true; AddLog("Companion ready. Pair your iPad in the Connect tab."); }
+            try { await server.Start(); serverStarted = true; AddLog("Companion ready. Pair your iPad in Connect iPad."); }
             catch (Exception ex) { AddLog("Could not start: " + ex.Message); MessageBox.Show(this, ex.Message, "Connection could not start"); }
-            timer.Start();
+            RefreshConnectionStatus(); timer.Start();
         };
         FormClosing += HandleClosing;
-        ApplyColors(this);
     }
-    TabPage PairPage()
+    void SelectPage(Control page)
     {
-        var page = new TabPage("Connect iPad") { BackColor = PanelColor, Padding = new(22), AutoScroll = true };
-        var flow = Flow();
-        flow.Controls.Add(Heading("Meet your other half."));
-        flow.Controls.Add(Body("Connect both devices to the same home network. On your iPad, open Riff and tap Connect your PC. Scan this code or paste the pairing link."));
-        var row = new FlowLayoutPanel { AutoSize = true, Width = 790 };
-        row.Controls.Add(new Label { Text = "PC network address", AutoSize = true, Margin = new(0, 8, 12, 0) });
+        pageHost.SuspendLayout();
+        foreach (var item in navigation)
+        {
+            item.Page.Visible = item.Page == page;
+            item.Button.Selected = item.Page == page;
+        }
+        page.BringToFront(); pageHost.ResumeLayout();
+    }
+    void RefreshConnectionStatus()
+    {
+        var connected = serverStarted && DateTime.UtcNow - server.LastSeen < TimeSpan.FromSeconds(12);
+        status.Text = !serverStarted ? "Companion offline" : connected ? "iPad connected" : "Ready for your iPad";
+        status.ForeColor = !serverStarted ? Accent : connected ? Color.FromArgb(50, 99, 68) : Ink;
+        connectionDetail.Text = !serverStarted ? "Open Activity for details." : connected ? "Encrypted connection\nOn your local network" : "Open Riff on your iPad to connect.";
+    }
+    Panel PairPage()
+    {
+        var page = Page("Connect iPad", "Meet your other half.", "A little connection. A whole lot of possibility.", out var content);
+        var pairing = new RoundedCard();
+        var columns = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Top, Margin = Padding.Empty, BackColor = Color.Transparent };
+        columns.ColumnStyles.Add(new(SizeType.Percent, 45)); columns.ColumnStyles.Add(new(SizeType.Percent, 55));
+        var codeArea = new Panel { Height = 248, Dock = DockStyle.Fill, Margin = new(0, 0, 20, 0), BackColor = Surface };
+        codeArea.Controls.Add(qr);
+        codeArea.Layout += (_, _) =>
+        {
+            var side = Math.Min(224 * codeArea.DeviceDpi / 96, Math.Min(codeArea.ClientSize.Width, codeArea.ClientSize.Height));
+            qr.SetBounds((codeArea.ClientSize.Width - side) / 2, (codeArea.ClientSize.Height - side) / 2, side, side);
+        };
+        var steps = Stack(); steps.Padding = new(0, 14, 0, 0);
+        Add(steps, Label("Let’s get connected", SectionFont),
+            Label("1   Join the same Wi-Fi", StrongFont), Body("Connect your iPad and this PC to the same home network."),
+            Label("2   Open Riff on your iPad", StrongFont), Body("Tap Connect PC, then scan this code. You’re ready to play."));
+        columns.Controls.Add(codeArea, 0, 0); columns.Controls.Add(steps, 1, 0);
+        Add(pairing, columns);
+        var privacy = Body("This code gives access to your PC controls. Keep it private."); privacy.Margin = new(0, 16, 0, 8);
+        Add(pairing, privacy); Add(content, pairing);
         foreach (var address in PairingIdentity.Addresses()) addresses.Items.Add(address);
         if (addresses.Items.Count == 0) addresses.Items.Add(Environment.MachineName);
-        addresses.SelectedIndex = 0; addresses.SelectedIndexChanged += (_, _) => RefreshPairing(); row.Controls.Add(addresses);
-        row.Controls.Add(Button("Refresh addresses", () => { addresses.Items.Clear(); foreach (var address in PairingIdentity.Addresses()) addresses.Items.Add(address); if (addresses.Items.Count == 0) addresses.Items.Add(Environment.MachineName); addresses.SelectedIndex = 0; }));
-        flow.Controls.Add(row);
-        flow.Controls.Add(qr);
-        pairingLink.Width = 740; pairingLink.Dock = DockStyle.None; flow.Controls.Add(pairingLink);
-        var buttons = new FlowLayoutPanel { AutoSize = true, Width = 790 };
-        buttons.Controls.Add(Button("Copy pairing link", () => { Clipboard.SetText(pairingLink.Text); AddLog("Pairing link copied. Keep this link private."); }));
-        buttons.Controls.Add(Button("Revoke paired devices", () =>
+        addresses.SelectedIndex = 0; addresses.SelectedIndexChanged += (_, _) => RefreshPairing();
+        var rawLink = Field(pairingLink); rawLink.Visible = false;
+        var showLink = new CheckBox { Text = "Show pairing link", AutoSize = true, Margin = new(0, 4, 0, 12) };
+        showLink.CheckedChanged += (_, _) => rawLink.Visible = showLink.Checked;
+        var copy = Button("Copy pairing link", () => { Clipboard.SetText(pairingLink.Text); AddLog("Pairing link copied. Keep this link private."); }, primary: true);
+        var refresh = Button("Refresh addresses", () =>
+        {
+            addresses.Items.Clear(); foreach (var address in PairingIdentity.Addresses()) addresses.Items.Add(address);
+            if (addresses.Items.Count == 0) addresses.Items.Add(Environment.MachineName); addresses.SelectedIndex = 0;
+        });
+        Add(content, Card("Connect with a link", Body("Choose this PC’s Wi-Fi or Ethernet address, then paste the link into Riff on your iPad."),
+            Label("PC network address", StrongFont), Field(addresses), Actions(copy, refresh), showLink, rawLink));
+        var revoke = Button("Revoke paired devices", () =>
         {
             if (MessageBox.Show(this, "Disconnect every paired iPad? You will need to scan a new pairing code.", "Revoke pairing", MessageBoxButtons.OKCancel) != DialogResult.OK) return;
             identity.RotateToken(); runner.Stop(); RefreshPairing(); AddLog("Pairing revoked. Reconnect using the new link.");
-        })); flow.Controls.Add(buttons);
-        flow.Controls.Add(Body("If Windows asks about firewall access, allow Private networks. If several addresses appear, choose the address of your home Wi-Fi or Ethernet, not a VPN. Do not forward this port on your router."));
-        page.Controls.Add(flow); RefreshPairing(); return page;
+        });
+        Add(content, Disclosure("Connection help & paired devices", Body("Allow Riff through Windows Firewall on Private networks. Choose your home Wi-Fi or Ethernet address, not a VPN. Guest Wi-Fi can prevent devices from connecting. Never forward port 49321 on your router."),
+            Body("Revoke pairing to disconnect all iPads and create a new private code."), Actions(revoke)));
+        RefreshPairing(); return page;
     }
-    TabPage AudioPage()
+    Panel AudioPage()
     {
-        var page = new TabPage("Audio & voice chat") { BackColor = PanelColor, Padding = new(22), AutoScroll = true };
-        var flow = Flow(); flow.Controls.Add(Heading("Let your sounds do the talking."));
-        flow.Controls.Add(Body("For game voice chat, install VB-CABLE, choose CABLE Input below, and choose CABLE Output as the microphone in your game or Discord."));
-        flow.Controls.Add(outputs); volume.Value = (int)(store.State.Volume * 100); flow.Controls.Add(volume);
+        var page = Page("Audio & voice chat", "Make yourself heard.", "Send sounds to your game, and a copy to your headphones.", out var content);
+        volume.Value = (int)(store.State.Volume * 100);
         monitorEnabled.Checked = store.State.MonitorEnabled;
         monitorVolume.Value = (int)(store.State.MonitorVolume * 100);
         monitorOutputs.Enabled = monitorVolume.Enabled = monitorEnabled.Checked;
         monitorEnabled.CheckedChanged += (_, _) => monitorOutputs.Enabled = monitorVolume.Enabled = monitorEnabled.Checked;
-        flow.Controls.Add(monitorEnabled);
-        flow.Controls.Add(Body("Choose your PC headphones to hear a copy of each sound. Headphone volume only changes what you hear."));
-        flow.Controls.Add(monitorOutputs); flow.Controls.Add(monitorVolume);
-        var buttons = new FlowLayoutPanel { AutoSize = true, Width = 790 };
-        buttons.Controls.Add(Button("Apply audio settings", () =>
+        var soundCard = Card("Sound output", Body("For game chat or Discord, choose CABLE Input. For playback on your PC, choose your speakers or headphones."),
+            Label("Play sounds through", StrongFont), Field(outputs), VolumeControl("Sound volume", volume));
+        var headphoneCard = Card("Just for your ears", monitorEnabled, Body("Hear a copy through your PC headphones. This volume only changes what you hear."),
+            Label("Headphone output", StrongFont), Field(monitorOutputs), VolumeControl("Headphone volume", monitorVolume));
+        var routes = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Top, Margin = Padding.Empty };
+        routes.ColumnStyles.Add(new(SizeType.Percent, 50)); routes.ColumnStyles.Add(new(SizeType.Percent, 50));
+        soundCard.Dock = headphoneCard.Dock = DockStyle.Fill;
+        soundCard.Margin = new(0, 12, 8, 8); headphoneCard.Margin = new(8, 12, 0, 8);
+        routes.Controls.Add(soundCard, 0, 0); routes.Controls.Add(headphoneCard, 1, 0);
+        Add(content, routes);
+        var saved = Body("Changes take effect when you apply. Stop playing sounds before switching outputs.");
+        var apply = Button("Apply audio settings", () =>
         {
             if (outputs.SelectedItem is not DeviceInfo device) return;
             if (monitorOutputs.SelectedItem is not DeviceInfo monitor) return;
@@ -118,18 +191,18 @@ public sealed class MainForm : Form
                 store.Save(AudioRouting.Apply(store.State, new(device.Id, volume.Value / 100f, monitorEnabled.Checked, monitor.Id, monitorVolume.Value / 100f), devices));
                 audio.SetVolume(store.State.Volume); audio.SetMonitorVolume(store.State.MonitorVolume);
             }
+            saved.Text = "Audio settings saved. Test a sound to hear your setup.";
             AddLog("Audio settings saved: " + device.Name);
-        }));
-        buttons.Controls.Add(Button("Refresh devices", RefreshOutputs));
-        buttons.Controls.Add(Button("Test sound", () => { lock (store.Gate) { var clip = store.State.Clips.FirstOrDefault(); if (clip is not null) audio.Play(store.ClipPath(clip.Id), store.State.OutputId, monitorOutputId: store.State.MonitorEnabled ? store.State.MonitorOutputId : null, monitorVolume: store.State.MonitorVolume); } }));
-        buttons.Controls.Add(Button("Stop all", runner.Stop)); flow.Controls.Add(buttons);
-        flow.Controls.Add(Heading("A quick voice-chat check"));
-        flow.Controls.Add(Body("1. Apply the selected output, then play a test sound.\n\n2. In your chat app, select CABLE Output as the microphone and open its microphone test.\n\n3. Use voice activation, or hold the game's push-to-talk key while the clip plays.\n\n4. If clips are cut off, lower the voice threshold and disable noise suppression.\n\nTo hear the clips yourself, turn on Hear sounds myself above and select your headphones, then apply. If you already listen through Windows or Voicemeeter, use only one monitoring route to avoid hearing an echo. Stop existing sounds before changing outputs."));
-        flow.Controls.Add(Button("Open VB-CABLE website", () => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://vb-audio.com/Cable/") { UseShellExecute = true })));
+        }, primary: true);
+        var test = Button("Test sound", () => { lock (store.Gate) { var clip = store.State.Clips.FirstOrDefault(); if (clip is not null) audio.Play(store.ClipPath(clip.Id), store.State.OutputId, monitorOutputId: store.State.MonitorEnabled ? store.State.MonitorOutputId : null, monitorVolume: store.State.MonitorVolume); } });
+        Add(content, Actions(apply, test, Button("Refresh devices", RefreshOutputs)), saved);
+        Add(content, Disclosure("Set up game voice chat", Body("1. Install VB-CABLE, choose CABLE Input above, and apply.\n\n2. Choose CABLE Output as the microphone in your game or Discord. Open its microphone test and play a test sound.\n\n3. Use voice activation or hold your physical push-to-talk key while the clip plays.\n\n4. If clips are cut off, lower the voice threshold and disable noise suppression."),
+            Body("Use only one headphone monitoring route. If you already listen through Windows or Voicemeeter, leave Hear sounds myself off to avoid an echo."),
+            Actions(Button("Get VB-CABLE", () => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://vb-audio.com/Cable/") { UseShellExecute = true })))));
         var importButton = Button("Import sounds from PC", () => { });
         importButton.Click += async (_, _) => await ImportSounds(importButton);
-        flow.Controls.Add(importButton);
-        page.Controls.Add(flow); return page;
+        Add(content, Card("More sounds. More personality.", Body("Bring your own audio into Riff. Choose multiple files, up to 60 seconds and 20 MB each."), Actions(importButton)));
+        return page;
     }
     async Task ImportSounds(Button button)
     {
@@ -185,12 +258,10 @@ public sealed class MainForm : Form
             if (!button.IsDisposed) { button.Text = "Import sounds from PC"; button.Enabled = true; }
         }
     }
-    TabPage ControlsPage()
+    Panel ControlsPage()
     {
-        var page = new TabPage("Controls") { BackColor = PanelColor, Padding = new(22), AutoScroll = true };
-        var flow = Flow(); flow.Controls.Add(Heading("Just sounds while you play."));
-        flow.Controls.Add(Body("Soundboard mode keeps your sound buttons, recording, imports, volume, and Stop all available. It blocks keyboard shortcuts, typed text, media keys, app and website launches, and every sequence, so Riff sends no simulated keyboard input."));
-        var soundboard = new CheckBox { Text = "Soundboard mode (recommended for games)", AutoSize = true, Checked = store.State.SoundboardOnly, Margin = new(0, 0, 0, 18) };
+        var page = Page("Controls", "Play your way.", "Choose what your iPad can do on this PC.", out var content);
+        var soundboard = new CheckBox { Text = "Soundboard mode", AutoSize = true, Checked = store.State.SoundboardOnly, Font = StrongFont, Margin = new(0, 0, 0, 12) };
         soundboard.CheckedChanged += (_, _) =>
         {
             try
@@ -204,29 +275,61 @@ public sealed class MainForm : Form
                 AddLog(ex.Message); MessageBox.Show(this, ex.Message, "Could not change controls");
             }
         };
-        flow.Controls.Add(soundboard);
-        flow.Controls.Add(Body("Turn this off on your PC when you want desktop shortcuts. The iPad cannot change this setting. Changing modes cancels pending sequence steps. Your choice stays saved when Riff restarts."));
-        flow.Controls.Add(Heading("Built to stay outside the game"));
-        flow.Controls.Add(Body("Riff does not inject code, inspect game memory, install hooks, or modify game files. Steam deck switching only reads Steam's local library files and running-game registry flags.\n\nFor voice chat, select a virtual audio device in your game's microphone settings. Hold your physical push-to-talk key yourself, or use voice activation where allowed."));
-        flow.Controls.Add(Body("No app can promise that every game or server will allow it. Soundboard mode reduces automation risk; it is not anti-cheat approval. Follow your game's rules for third-party audio and voice-chat behavior. Never bypass anti-cheat blocks or enable automation to gain a gameplay advantage."));
-        page.Controls.Add(flow); return page;
+        Add(content, Card("Just sounds while you play", soundboard,
+            Body("Recommended for games. Sounds, recording, imports, volume, and Stop all stay available. Keyboard shortcuts, typed text, media keys, app and website launches, and sequences are blocked."),
+            Body("Turn this off here when you want desktop shortcuts. The iPad cannot change this setting. Changing modes cancels pending sequence steps; your choice is saved.")));
+        var aiStatus = Body(server.AI.Enabled ? "AI suggestions are enabled." : "Add your OpenAI API key to enable suggestions.");
+        var key = new TextBox { UseSystemPasswordChar = true, PlaceholderText = "OpenAI API key", AccessibleName = "OpenAI API key" };
+        Add(content, Card("AI button suggestions", Body("Get suggested names, icons, colors, and starter decks with GPT-5.6 Luna. Review every suggestion on your iPad before using it."),
+            Body("Suggestions send game/app and sound names, descriptions, existing button names, and action details (including typed text) to OpenAI. Audio files and app paths stay on your devices. OpenAI API usage is billed to your account."),
+            aiStatus, Label("OpenAI API key", StrongFont), Field(key), Actions(
+                Button("Enable suggestions", () => { server.AI.Save(key.Text); key.Clear(); aiStatus.Text = "AI suggestions are enabled."; }, primary: true),
+                Button("Disable & remove key", () => { server.AI.Disable(); key.Clear(); aiStatus.Text = "AI suggestions are disabled. Your API key was removed."; })),
+            Body("Your key is encrypted for your Windows account and never sent to the iPad. You can edit suggestions or turn them off while adding a button.")));
+        Add(content, Disclosure("Built to stay outside the game", Body("Riff does not inject code, inspect game memory, install hooks, or modify game files. Steam deck switching reads only local library files and running-game registry flags. For voice chat, use a virtual audio device and hold your physical push-to-talk key yourself, or use voice activation where allowed."),
+            Body("Soundboard mode reduces automation risk; it is not anti-cheat approval. Follow your game’s rules for third-party audio and voice chat. Never bypass anti-cheat blocks or enable automation to gain a gameplay advantage.")));
+        return page;
     }
-    TabPage AppsPage()
+    Panel AppsPage()
     {
-        var page = new TabPage("Allowed apps") { BackColor = PanelColor, Padding = new(22) };
-        var flow = Flow(); flow.Controls.Add(Heading("Your shortcuts. Your rules."));
-        flow.Controls.Add(Body("Add the Windows applications your iPad can launch. Then choose Launch app when creating a button on your iPad. Riff does not accept shell commands from your iPad."));
-        apps.Width = 700; apps.Dock = DockStyle.None; RefreshApps(); flow.Controls.Add(apps);
-        var row = new FlowLayoutPanel { AutoSize = true };
-        row.Controls.Add(Button("Add application", () =>
+        var page = Page("Allowed apps", "Your shortcuts. Your rules.", "Make your favorite PC apps a tap away.", out var content);
+        apps.DrawMode = DrawMode.OwnerDrawFixed;
+        apps.ItemHeight = 64;
+        apps.DrawItem += (_, args) =>
+        {
+            if (args.Index < 0 || apps.Items[args.Index] is not LaunchTarget target) return;
+            var selected = (args.State & DrawItemState.Selected) != 0;
+            var background = selected ? Inset : Surface;
+            var foreground = Ink;
+            if (SystemInformation.HighContrast) { background = selected ? SystemColors.Highlight : SystemColors.Window; foreground = selected ? SystemColors.HighlightText : SystemColors.WindowText; }
+            using var brush = new SolidBrush(background); args.Graphics.FillRectangle(brush, args.Bounds);
+            var inset = 12 * apps.DeviceDpi / 96;
+            var bounds = Rectangle.Inflate(args.Bounds, -inset, 0); bounds.Y += inset / 2; bounds.Height = args.Bounds.Height / 2;
+            TextRenderer.DrawText(args.Graphics, target.Name, StrongFont, bounds, foreground, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+            bounds.Y += args.Bounds.Height / 2 - inset / 2;
+            TextRenderer.DrawText(args.Graphics, target.Path, BodyFont, bounds, SystemInformation.HighContrast ? foreground : Muted, TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+            args.DrawFocusRectangle();
+        };
+        apps.DpiChangedAfterParent += (_, _) => apps.ItemHeight = 64 * apps.DeviceDpi / 96;
+        var remove = Button("Remove selected", () => { if (apps.SelectedItem is LaunchTarget target) { store.RemoveApp(target.Id); RefreshApps(); } });
+        apps.SelectedIndexChanged += (_, _) => remove.Enabled = apps.SelectedItem is LaunchTarget;
+        var add = Button("Add application", () =>
         {
             using var dialog = new OpenFileDialog { Filter = "Windows applications|*.exe", Title = "Allow an application" };
             if (dialog.ShowDialog(this) == DialogResult.OK) { store.AddApp(dialog.FileName); RefreshApps(); }
-        }));
-        row.Controls.Add(Button("Remove selected", () => { if (apps.SelectedItem is LaunchTarget target) { store.RemoveApp(target.Id); RefreshApps(); } }));
-        flow.Controls.Add(row);
-        flow.Controls.Add(Body("Keyboard shortcuts, typed text, websites, media controls, and multi-step sequences are configured on the iPad. Shortcuts are sent to whichever Windows app is focused. Some games block simulated keyboard input.\n\nSteam game detection is automatic when Steam is running. Link a game to a deck on your iPad. No Steam login or API key is required."));
-        page.Controls.Add(flow); return page;
+        }, primary: true);
+        Add(content, Card("Ready to launch", Body("Add a Windows application, then choose Launch app when creating a button on your iPad."), emptyApps, apps, Actions(add, remove)));
+        Add(content, Card("The rest happens on your iPad", Body("Configure keyboard shortcuts, typed text, websites, media controls, and multi-step sequences in Riff on your iPad. Shortcuts go to the focused Windows app. Riff does not accept shell commands from your iPad."),
+            Body("Steam game detection is automatic while Steam is running. Link a game to a deck on your iPad. No Steam login or API key is needed.")));
+        RefreshApps(); remove.Enabled = apps.SelectedItem is LaunchTarget; return page;
+    }
+    Panel ActivityPage()
+    {
+        var page = Page("Activity", "Behind the sounds.", "Connection events and useful details when something needs attention.", out var content);
+        log.Height = 380;
+        var clear = Button("Clear activity", log.Clear);
+        Add(content, Card("Recent activity", log, Actions(clear)), Body("Activity is shown for this session. Closing the window keeps Riff running in your system tray."));
+        return page;
     }
     void RefreshPairing()
     {
@@ -246,23 +349,32 @@ public sealed class MainForm : Form
         monitorOutputs.DataSource = headphoneDevices; monitorOutputs.SelectedValue = store.State.MonitorOutputId;
         if (outputs.SelectedIndex < 0) { outputs.SelectedIndex = 0; AddLog("Saved audio output is disconnected. Choose and apply another output."); }
     }
-    void RefreshApps() { lock (store.Gate) apps.DataSource = store.State.Apps.ToList(); }
-    static FlowLayoutPanel Flow() => new() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true };
-    static Label Heading(string text) => new() { Text = text, Font = new("Segoe UI", 20, FontStyle.Bold), AutoSize = true, Margin = new(0, 8, 0, 16) };
-    static Label Body(string text) => new() { Text = text, AutoSize = true, MaximumSize = new(720, 0), ForeColor = Color.Silver, Margin = new(0, 0, 0, 18) };
-    Button Button(string text, Action action)
+    void RefreshApps()
     {
-        var button = new Button { Text = text, AutoSize = true, FlatStyle = FlatStyle.Flat, Padding = new(10, 6, 10, 6), Margin = new(0, 6, 10, 10), BackColor = Accent, ForeColor = BackgroundColor };
-        button.FlatAppearance.BorderSize = 0;
-        button.Click += (_, _) => { try { action(); } catch (Exception ex) { AddLog(ex.Message); MessageBox.Show(this, ex.Message, "Riff needs attention"); } }; return button;
+        lock (store.Gate) apps.DataSource = store.State.Apps.ToList();
+        emptyApps.Visible = apps.Items.Count == 0;
+        apps.Visible = apps.Items.Count > 0;
     }
-    static void ApplyColors(Control parent)
+    static Label Body(string text) => Label(text, color: Muted);
+    static TableLayoutPanel VolumeControl(string title, TrackBar slider)
     {
-        foreach (Control control in parent.Controls)
-        {
-            if (control is TextBox or ListBox or ComboBox) { control.BackColor = Color.FromArgb(34, 39, 46); control.ForeColor = Color.White; }
-            ApplyColors(control);
-        }
+        var stack = Stack();
+        var value = Label($"{title}   {slider.Value}%", StrongFont);
+        slider.ValueChanged += (_, _) => value.Text = $"{title}   {slider.Value}%";
+        Add(stack, value, slider); return stack;
+    }
+    static RoundedCard Disclosure(string title, params Control[] children)
+    {
+        var card = new RoundedCard { Padding = new(24, 16, 24, 6) };
+        var toggle = new CheckBox { Text = title, UseMnemonic = false, AutoSize = true, Font = StrongFont, Margin = new(0, 0, 0, 10) };
+        var details = Stack(); Add(details, children); details.Visible = false;
+        toggle.CheckedChanged += (_, _) => details.Visible = toggle.Checked;
+        Add(card, toggle, details); return card;
+    }
+    RiffButton Button(string text, Action action, bool primary = false)
+    {
+        var button = new RiffButton(text) { Primary = primary };
+        button.Click += (_, _) => { try { action(); } catch (Exception ex) { AddLog(ex.Message); MessageBox.Show(this, ex.Message, "Riff needs attention"); } }; return button;
     }
     void AddLog(string message)
     {

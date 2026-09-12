@@ -36,6 +36,44 @@ enum DesignPreview {
         default: nil
         }
     }
+    @MainActor static func configureActions(_ store: RiffStore) {
+        guard !store.paired else { return }
+        store.snapshot.capabilities = ["deck-actions-v1", "smart-profiles-v1", "pinned-pads-v1"]
+        store.snapshot.apps = [LaunchApp(id: "obs", name: "OBS Studio")]
+        store.snapshot.decks[0].name = "Studio controls"
+        store.snapshot.decks[0].linkedAppId = "obs"
+        store.snapshot.decks[0].pads = [
+            Pad(title: "Stream on / off", icon: "switch.2", color: "purple", kind: "switch", value: "",
+                steps: [ActionStep(kind: "hotkey", value: "Ctrl+Shift+S")],
+                alternateSteps: [ActionStep(kind: "hotkey", value: "Ctrl+Shift+E")]),
+            Pad(title: "Surprise me", icon: "shuffle", color: "pink", kind: "random", value: "",
+                steps: [ActionStep(kind: "sound", value: "nope"), ActionStep(kind: "sound", value: "level-up")]),
+            Pad(title: "Everyday", icon: "folder", color: "blue", kind: "deck", value: "everyday"),
+            Pad(title: "Go back", icon: "arrow.uturn.backward", color: "green", kind: "back", value: ""),
+            Pad(title: "Stop all", icon: "stop.fill", color: "orange", kind: "stop", value: ""),
+            Pad(title: "Level up", icon: "sparkles", color: "orange", kind: "sound", value: "level-up")
+        ]
+        store.switchedPadIDs = [store.snapshot.decks[0].pads[0].id]
+        store.selectedDeckId = store.snapshot.decks[0].id
+    }
+    @MainActor static func configureKeyLogic(_ store: RiffStore) {
+        guard !store.paired else { return }
+        configureActions(store)
+        store.snapshot.capabilities?.append("key-logic-v1")
+        store.snapshot.decks[0].name = "One button, three actions"
+        store.snapshot.decks[0].pads[0] = Pad(title: "Music", icon: "playpause", color: "purple", kind: "media", value: "playPause",
+            doubleTapAction: PadGestureAction(kind: "media", value: "next"), holdAction: PadGestureAction(kind: "media", value: "previous"))
+        store.snapshot.decks[0].pads[1] = Pad(title: "Tap · double · hold", icon: "hand.tap", color: "pink", kind: "sound", value: "countdown",
+            doubleTapAction: PadGestureAction(kind: "deck", value: "everyday"), holdAction: PadGestureAction(kind: "stop", value: ""))
+    }
+    @MainActor static func configurePinnedPages(_ store: RiffStore) {
+        guard !store.paired else { return }
+        configurePages(store)
+        store.snapshot.capabilities = ["deck-actions-v1", "pinned-pads-v1"]
+        store.snapshot.decks[0].name = "Always in reach"
+        store.snapshot.decks[0].pads[0] = Pad(title: "Stop all", icon: "stop.fill", color: "pink", kind: "stop", value: "", pinned: true)
+        store.snapshot.decks[0].pads[1] = Pad(title: "Everyday", icon: "folder", color: "purple", kind: "deck", value: "everyday", pinned: true)
+    }
     @MainActor static func configurePages(_ store: RiffStore) {
         guard !store.paired else { return }
         var deck = Snapshot.starter.decks[0]

@@ -10,7 +10,8 @@ struct GridLayoutView: View {
         let dimensions = store.grid.dimensions(portrait: portraitPreview)
         let capacity = dimensions.columns * dimensions.rows
         let count = store.selectedDeck?.pads.count ?? 0
-        let pages = max(1, (count + capacity - 1) / capacity)
+        let pagination = DeckPagination(pads: store.selectedDeck?.pads ?? [], capacity: capacity)
+        let pages = pagination.pageCount
         Form {
             Section {
                 VStack(spacing: 12) {
@@ -21,7 +22,7 @@ struct GridLayoutView: View {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 7), count: dimensions.columns), spacing: 7) {
                         ForEach(0..<capacity, id: \.self) { index in
                             RoundedRectangle(cornerRadius: 7)
-                                .fill(index < count ? Palette.color("orange") : Palette.raised)
+                                .fill(index < pagination.pinned.count ? Palette.color("purple") : index < count ? Palette.color("orange") : Palette.raised)
                                 .frame(height: min(40, 120 / CGFloat(dimensions.rows)))
                         }
                     }.frame(maxWidth: portraitPreview ? 240 : 340)
@@ -30,6 +31,9 @@ struct GridLayoutView: View {
                     Text("\(capacity) buttons per page").font(.headline)
                     Text("\(count) \(count == 1 ? "button" : "buttons") · \(pages) \(pages == 1 ? "page" : "pages")")
                         .font(.subheadline).foregroundStyle(.secondary)
+                    if pagination.pinned.count > 0 {
+                        Label("\(pagination.pinned.count) pinned on every page", systemImage: "pin.fill").font(.caption).foregroundStyle(.secondary)
+                    }
                 }.frame(maxWidth: .infinity).padding(.vertical, 8)
             }
             Section {

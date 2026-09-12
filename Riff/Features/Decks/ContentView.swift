@@ -6,7 +6,9 @@ struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var destination: Destination?
     @State private var editor: Pad?
+    @State private var suggestNewAppearance = true
     @State private var editDeck: Deck?
+    @State private var sharingButton: Pad?
     @State private var pageMemory = DeckPageMemory()
     @State private var picker = false
     @State private var pendingClip: Clip?
@@ -14,7 +16,7 @@ struct ContentView: View {
     @State private var selectionFeedback = 0
     @State private var stopFeedback = 0
     enum Destination: String, Identifiable {
-        case connection, recording, settings, sounds, addSounds, grid, audio, updates, audioSetup, musicSetup
+        case sharing, connection, recording, settings, sounds, addSounds, grid, audio, updates, audioSetup, musicSetup
         var id: String { rawValue }
     }
     var body: some View {
@@ -77,6 +79,9 @@ struct ContentView: View {
                     }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    if store.canGoBack {
+                        Button("Back", systemImage: "arrow.uturn.backward") { store.goBack() }
+                    }
                     if playMode {
                         Button("Done", systemImage: "arrow.down.right.and.arrow.up.left") {
                             selectionFeedback += 1
@@ -90,18 +95,19 @@ struct ContentView: View {
                             Button("Play mode", systemImage: "play.rectangle") { enterPlayMode() }
                                 .labelStyle(.iconOnly).accessibilityIdentifier("play-mode")
                             Menu {
-                                Button("Edit buttons", systemImage: "square.grid.2x2") { store.editing = true }.disabled(!store.connected)
+                                Button("Edit buttons", systemImage: "square.grid.2x2") { store.editing = true }.disabled(store.busy)
                                 Button("Grid size", systemImage: "square.grid.3x3") { destination = .grid }
                                 Button("Sound controls", systemImage: "speaker.wave.2") { destination = .audio }
-                                Button("Deck settings", systemImage: "pencil") { editDeck = store.selectedDeck }.disabled(!store.connected)
+                                Button("Deck settings", systemImage: "pencil") { editDeck = store.selectedDeck }.disabled(store.busy)
                                 Divider()
+                                Button("Share & import layouts", systemImage: "square.and.arrow.up") { sharingButton = nil; destination = .sharing }
                                 Button("Settings", systemImage: "gearshape") { destination = .settings }
                             } label: { Image(systemName: "ellipsis") }.accessibilityLabel("Deck options")
                         }
                         Menu {
                             Button("Add sounds from library", systemImage: "waveform.badge.plus") { destination = .addSounds }
                             Button("Create custom button", systemImage: "slider.horizontal.3") {
-                                if store.connected { editor = Pad() } else { destination = .connection }
+                                editor = Pad()
                             }
                         } label: { Image(systemName: "plus") }.accessibilityLabel("Add to deck")
                     }
@@ -114,6 +120,11 @@ struct ContentView: View {
             if let clip = pendingClip { pendingClip = nil; editor = Pad(title: clip.buttonTitle, icon: "waveform", value: clip.id) }
         }) { choice in
             switch choice {
+            case .sharing:
+                if let deck = store.selectedDeck {
+                    if #available(iOS 18.0, *) { LayoutSharingView(sourceDeck: deck, button: sharingButton).presentationSizing(.page) }
+                    else { LayoutSharingView(sourceDeck: deck, button: sharingButton) }
+                }
             case .connection: ConnectionView()
             case .recording: RecordingView { clip in pendingClip = clip; destination = nil }
             case .settings: SettingsView()
@@ -138,8 +149,17 @@ struct ContentView: View {
                 }
             }
         }
-        .sheet(item: $editor) { pad in PadEditor(pad: pad, deckId: store.selectedDeckId) }
-        .sheet(item: $editDeck) { deck in DeckEditor(deck: deck) }
+        .sheet(item: $editor, onDismiss: { suggestNewAppearance = true }) { pad in
+            if #available(iOS 18.0, *) {
+                PadEditor(pad: pad, deckId: store.selectedDeckId, suggestNewAppearance: suggestNewAppearance).presentationSizing(.page)
+            } else {
+                PadEditor(pad: pad, deckId: store.selectedDeckId, suggestNewAppearance: suggestNewAppearance)
+            }
+        }
+        .sheet(item: $editDeck) { deck in
+            if #available(iOS 18.0, *) { DeckEditor(deck: deck).presentationSizing(.page) }
+            else { DeckEditor(deck: deck) }
+        }
         .alert("Something needs attention", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
             Button("OK", role: .cancel) { store.error = nil }
         } message: { Text(store.error ?? "") }
@@ -151,6 +171,21 @@ struct ContentView: View {
             try? await Task.sleep(for: .milliseconds(600))
             DesignPreview.orient()
             switch DesignPreview.screen {
+            case "pinned-pages", "pinned-pages-second":
+                DesignPreview.configurePinnedPages(store)
+                if DesignPreview.screen == "pinned-pages-second" {
+                    pageMemory.select(1, deckID: store.selectedDeckId, capacity: 4, padCount: 16)
+                }
+            case "layout-sharing", "layout-import", "layout-export":
+                DesignPreview.configureActions(store); destination = .sharing
+            case "key-logic", "key-logic-editor":
+                DesignPreview.configureKeyLogic(store)
+                if DesignPreview.screen == "key-logic-editor" { editor = store.selectedDeck?.pads.first }
+            case "actions", "switch-editor", "random-editor", "app-profile":
+                DesignPreview.configureActions(store)
+                if DesignPreview.screen == "switch-editor" { editor = store.selectedDeck?.pads.first }
+                if DesignPreview.screen == "random-editor" { editor = store.selectedDeck?.pads.dropFirst().first }
+                if DesignPreview.screen == "app-profile" { editDeck = store.selectedDeck }
             case "play": enterPlayMode()
             case "pages", "play-pages":
                 DesignPreview.configurePages(store)
@@ -166,6 +201,7 @@ struct ContentView: View {
             case "updates", "changelog", "markdown": destination = .updates
             case "connection": destination = .connection
             case "editor": editor = store.selectedDeck?.pads.first
+            case "new-button": editor = Pad()
             case "decks": picker = true
             default: break
             }
@@ -211,7 +247,7 @@ struct ContentView: View {
                     Text(toast).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
                         .accessibilityAddTraits(.updatesFrequently)
                 } else if !store.connected {
-                    Text("Sounds play on this iPad until you connect.").font(.subheadline).foregroundStyle(.secondary)
+                    Text("Create decks, edit buttons, and play sounds on this iPad.").font(.subheadline).foregroundStyle(.secondary)
                 } else if !store.snapshot.activeGameName.isEmpty {
                     Label(store.snapshot.activeGameName, systemImage: "gamecontroller").font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                 } else {
@@ -242,9 +278,12 @@ struct ContentView: View {
                 }
                 if !playMode {
                     Section {
+                    Button("Share & import layouts", systemImage: "square.and.arrow.up") {
+                        picker = false; sharingButton = nil; destination = .sharing
+                    }
                     Button("New deck", systemImage: "plus") {
                         picker = false
-                        if store.connected { editDeck = Deck() } else { destination = .connection }
+                        editDeck = Deck()
                     }
                     }
                 }
@@ -253,12 +292,13 @@ struct ContentView: View {
     }
     private func board(layout: BoardLayout) -> some View {
         let pads = store.selectedDeck?.pads ?? []
-        let pages = max(1, (pads.count + layout.capacity - 1) / layout.capacity)
-        let page = pageMemory.page(deckID: store.selectedDeckId, capacity: layout.capacity, padCount: pads.count)
+        let pagination = DeckPagination(pads: pads, capacity: layout.capacity)
+        let pages = pagination.pageCount
+        let page = pageMemory.page(deckID: store.selectedDeckId, capacity: pagination.pageCapacity, padCount: pagination.scrolling.count)
         let selection = Binding(get: {
-            pageMemory.page(deckID: store.selectedDeckId, capacity: layout.capacity, padCount: pads.count)
+            pageMemory.page(deckID: store.selectedDeckId, capacity: pagination.pageCapacity, padCount: pagination.scrolling.count)
         }, set: { value in
-            pageMemory.select(value, deckID: store.selectedDeckId, capacity: layout.capacity, padCount: pads.count)
+            pageMemory.select(value, deckID: store.selectedDeckId, capacity: pagination.pageCapacity, padCount: pagination.scrolling.count)
         })
         return VStack(spacing: 0) {
             if pads.isEmpty {
@@ -269,15 +309,13 @@ struct ContentView: View {
                         Button("Choose another deck") { picker = true }.buttonStyle(.borderedProminent)
                     } else {
                         Button("Add sounds", systemImage: "plus") { destination = .addSounds }.buttonStyle(.borderedProminent)
-                        Button("Create custom button") { editor = Pad() }.disabled(!store.connected)
+                        Button("Create custom button") { editor = Pad() }.disabled(store.busy)
                     }
                 }
             } else {
                 TabView(selection: selection) {
                     ForEach(0..<pages, id: \.self) { number in
-                        let start = number * layout.capacity
-                        let end = min(start + layout.capacity, pads.count)
-                        let shown = Array(pads[start..<end])
+                        let shown = pagination.buttons(on: number)
                         GeometryReader { viewport in
                             ScrollView([.horizontal, .vertical]) {
                                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: layout.gap), count: layout.columns), spacing: layout.gap) {
@@ -304,7 +342,7 @@ struct ContentView: View {
                     Menu {
                         Picker("Page", selection: selection) {
                             ForEach(0..<pages, id: \.self) { number in
-                                Text("\(number + 1) · \(pads[number * layout.capacity].title)").tag(number)
+                                Text("\(number + 1) · \(pagination.label(on: number))").tag(number)
                             }
                         }
                     } label: {
@@ -321,28 +359,37 @@ struct ContentView: View {
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     @ViewBuilder private func tile(_ pad: Pad, pads: [Pad]) -> some View {
+        let peers = pads.filter { $0.isPinned == pad.isPinned }
         let blocked = store.connected && store.snapshot.blocksDesktopAction(pad)
         if playMode {
-            PadTile(pad: pad, active: store.activePad == pad.id, playing: store.playingPadIDs.contains(pad.id), queuePosition: store.queuePosition(for: pad.id), blocked: blocked) {
+            PadTile(pad: pad, active: store.activePad == pad.id, playing: store.playingPadIDs.contains(pad.id), queuePosition: store.queuePosition(for: pad.id), blocked: blocked, switched: store.switchedPadIDs.contains(pad.id), gestureAction: { trigger(pad, gesture: $0) }) {
                 trigger(pad)
             }
         } else {
-            PadTile(pad: pad, editing: store.editing, active: store.activePad == pad.id, playing: store.playingPadIDs.contains(pad.id), queuePosition: store.queuePosition(for: pad.id), blocked: blocked && !store.editing) {
+            PadTile(pad: pad, editing: store.editing, active: store.activePad == pad.id, playing: store.playingPadIDs.contains(pad.id), queuePosition: store.queuePosition(for: pad.id), blocked: blocked && !store.editing, switched: store.switchedPadIDs.contains(pad.id), gestureAction: { trigger(pad, gesture: $0) }) {
                 if store.editing { editor = pad } else { trigger(pad) }
             }
             .modifier(PadReordering(enabled: store.editing, id: pad.id) { id in Task { await store.movePad(id, to: pad.id) } })
             .contextMenu {
-                Button("Edit button", systemImage: "pencil") { editor = pad }.disabled(!store.connected)
-                Button("Duplicate button", systemImage: "plus.square.on.square") { editor = pad.duplicated() }
-                    .disabled(!store.connected || pads.count >= 48)
-                Button("Rearrange buttons", systemImage: "hand.draw") { store.editing = true }.disabled(!store.connected)
-                if let index = pads.firstIndex(where: { $0.id == pad.id }) {
+                if pad.holdAction == nil || store.editing {
+                if store.supportsPinnedPads {
+                    Button(pad.isPinned ? "Unpin button" : "Pin to every page", systemImage: pad.isPinned ? "pin.slash" : "pin") {
+                        Task { await store.setPinned(!pad.isPinned, pad: pad) }
+                    }.disabled(store.busy)
+                }
+                Button("Edit button", systemImage: "pencil") { editor = pad }.disabled(store.busy)
+                Button("Share button…", systemImage: "square.and.arrow.up") { sharingButton = pad; destination = .sharing }
+                Button("Duplicate button", systemImage: "plus.square.on.square") { suggestNewAppearance = false; editor = pad.duplicated() }
+                    .disabled(pads.count >= 48)
+                Button("Rearrange buttons", systemImage: "hand.draw") { store.editing = true }.disabled(store.busy)
+                if let index = peers.firstIndex(where: { $0.id == pad.id }) {
                     if index > 0 {
-                        Button("Move earlier", systemImage: "arrow.left") { Task { await store.movePad(pad.id, to: pads[index - 1].id) } }.disabled(!store.connected)
+                        Button("Move earlier", systemImage: "arrow.left") { Task { await store.movePad(pad.id, to: peers[index - 1].id) } }.disabled(store.busy)
                     }
-                    if index + 1 < pads.count {
-                        Button("Move later", systemImage: "arrow.right") { Task { await store.movePad(pad.id, to: pads[index + 1].id) } }.disabled(!store.connected)
+                    if index + 1 < peers.count {
+                        Button("Move later", systemImage: "arrow.right") { Task { await store.movePad(pad.id, to: peers[index + 1].id) } }.disabled(store.busy)
                     }
+                }
                 }
             }
         }
@@ -351,11 +398,12 @@ struct ContentView: View {
         selectionFeedback += 1
         withAnimation(reduceMotion ? nil : .snappy) { store.editing = false; playMode = true }
     }
-    private func trigger(_ pad: Pad) {
-        if store.connected && store.snapshot.blocksDesktopAction(pad) {
+    private func trigger(_ pad: Pad, gesture: PadGesture = .tap) {
+        guard let selected = pad.resolved(for: gesture) else { return }
+        if store.connected && store.snapshot.blocksDesktopAction(selected) {
             store.error = "Your PC is in Soundboard mode. Sounds still work. To use desktop actions, turn off Soundboard mode in the Windows companion’s Controls tab. Check your game’s rules before using keyboard shortcuts or sequences."
         } else {
-            Task { await store.trigger(pad) }
+            Task { await store.trigger(pad, gesture: gesture) }
         }
     }
     private var playBar: some View {

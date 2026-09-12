@@ -29,9 +29,23 @@ public sealed class StateStore
             State = new(1, Defaults.Decks, clips, "", 0.75f, []);
             Save(State);
         }
+        var populated = SoundPacks.Populate(State);
+        foreach (var sound in SoundPacks.Catalog.SelectMany(p => p.Sounds).Where(s => populated.Clips.Any(c => c.Id == s.ClipId)))
+        {
+            if (File.Exists(ClipPath(sound.ClipId))) continue;
+            var source = Path.Combine(AppContext.BaseDirectory, "PackSounds", sound.FileName);
+            sound.Validate(File.ReadAllBytes(source));
+            File.Copy(source, Path.Combine(Folder, "clips", sound.ClipId + ".mp3"), true);
+        }
+        if (!ReferenceEquals(populated, State)) Save(populated);
         Rules.ValidateDecks(State.Decks, State.Clips.Select(c => c.Id).ToHashSet(), State.Apps.Select(a => a.Id).ToHashSet());
     }
-    public string ClipPath(string id) => Path.Combine(Folder, "clips", id + ".wav");
+    public string ClipPath(string id)
+    {
+        var wav = Path.Combine(Folder, "clips", id + ".wav");
+        var mp3 = Path.Combine(Folder, "clips", id + ".mp3");
+        return File.Exists(wav) || !File.Exists(mp3) ? wav : mp3;
+    }
     public void Save(SavedState next)
     {
         // Write first so a failed save never appears successful to a client.
@@ -77,7 +91,8 @@ public sealed class StateStore
     {
         lock (Gate)
         {
-            if (State.Decks.SelectMany(d => d.Pads).Any(p => (p.Kind == "app" && p.Value == id) || p.Steps.Any(s => s.Kind == "app" && s.Value == id)))
+            if (State.Decks.Any(d => d.LinkedAppId == id)) throw new ArgumentException("Unlink this app in Deck settings first.");
+            if (State.Decks.SelectMany(d => d.Pads).Any(p => p.Uses("app", id)))
                 throw new ArgumentException("Remove buttons using this app from your decks first.");
             Save(State with { Apps = State.Apps.Where(a => a.Id != id).ToList(), Version = State.Version + 1 });
         }

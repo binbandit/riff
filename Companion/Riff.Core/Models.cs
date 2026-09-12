@@ -4,21 +4,36 @@ using System.Text.Json.Serialization;
 namespace Riff.Core;
 
 public record ActionStep(string Kind, string Value, int DelayMs = 0);
-public record Pad(string Id, string Title, string Icon, string Color, string Kind, string Value, List<ActionStep> Steps);
-public record Deck(string Id, string Name, string Icon, List<Pad> Pads, string SteamAppId = "");
+public record Pad(string Id, string Title, string Icon, string Color, string Kind, string Value, List<ActionStep> Steps, List<ActionStep>? AlternateSteps = null, bool Pinned = false, PadGestureAction? DoubleTapAction = null, PadGestureAction? HoldAction = null)
+{
+    [JsonIgnore]
+    public IEnumerable<PadGestureAction> GestureActions => new[] { DoubleTapAction, HoldAction }.OfType<PadGestureAction>();
+    public bool Uses(string kind, string value) => Kind == kind && Value == value ||
+        Steps.Concat(AlternateSteps ?? []).Any(s => s.Kind == kind && s.Value == value) ||
+        GestureActions.Any(a => a.Kind == kind && a.Value == value);
+    public Pad Resolve(string? gesture)
+    {
+        if (gesture is null or "tap") return this;
+        var action = gesture switch { "doubleTap" => DoubleTapAction, "hold" => HoldAction, _ => throw new ArgumentException("Unknown button gesture.") };
+        if (action is null) throw new ArgumentException("No action is assigned to this gesture.");
+        return this with { Kind = action.Kind, Value = action.Value, Steps = [], AlternateSteps = null, DoubleTapAction = null, HoldAction = null };
+    }
+}
+public record PadGestureAction(string Kind, string Value);
+public record Deck(string Id, string Name, string Icon, List<Pad> Pads, string SteamAppId = "", string? LinkedAppId = null);
 public record Clip(string Id, string Name, double Duration);
 public record LaunchTarget(string Id, string Name, string Path);
 public record DeviceInfo(string Id, string Name);
 public record Snapshot(int Version, List<Deck> Decks, List<Clip> Clips, List<DeviceInfo> Outputs,
-    string OutputId, float Volume, List<LaunchTargetInfo> Apps, string ComputerName, List<SteamGame> Games, string ActiveGameId, string ActiveGameName, List<string>? Capabilities = null, string? CompanionVersion = null, bool SoundboardOnly = true, bool MonitorEnabled = false, string MonitorOutputId = "", float MonitorVolume = .75f);
+    string OutputId, float Volume, List<LaunchTargetInfo> Apps, string ComputerName, List<SteamGame> Games, string ActiveGameId, string ActiveGameName, List<string>? Capabilities = null, string? CompanionVersion = null, bool SoundboardOnly = true, string? ActiveAppId = null, PlaybackState? SwitchState = null, bool MonitorEnabled = false, string MonitorOutputId = "", float MonitorVolume = .75f);
 public record SteamGame(string Id, string Name);
 public record LaunchTargetInfo(string Id, string Name);
 public record DeckUpdate(int Version, List<Deck> Decks);
-public record Trigger(string PadId, string RequestId, bool Toggle = false, string? SoundMode = null);
+public record Trigger(string PadId, string RequestId, bool Toggle = false, string? SoundMode = null, string? Gesture = null);
 public record PlaybackState(string SessionId, long Revision, List<string> PadIds, List<string>? QueuedPadIds = null);
 public record AudioSettings(string OutputId, float Volume, bool? MonitorEnabled = null, string? MonitorOutputId = null, float? MonitorVolume = null);
 public record ClipRename(int Version, string Name);
-public record SavedState(int Version, List<Deck> Decks, List<Clip> Clips, string OutputId, float Volume, List<LaunchTarget> Apps, bool SoundboardOnly = true, bool MonitorEnabled = false, string MonitorOutputId = "", float MonitorVolume = .75f);
+public record SavedState(int Version, List<Deck> Decks, List<Clip> Clips, string OutputId, float Volume, List<LaunchTarget> Apps, bool SoundboardOnly = true, bool MonitorEnabled = false, string MonitorOutputId = "", float MonitorVolume = .75f, List<string>? KnownBundledSoundIds = null);
 
 public static class Wire
 {
@@ -30,13 +45,15 @@ public static class Wire
 
 public static class Rules
 {
-    public static readonly HashSet<string> Kinds = ["sound", "hotkey", "text", "url", "app", "media", "macro"];
+    public static readonly HashSet<string> Kinds = ["sound", "hotkey", "text", "url", "app", "media", "macro", "switch", "random", "deck", "back", "stop"];
     public static readonly HashSet<string> Media = ["playPause", "next", "previous", "volumeUp", "volumeDown", "mute"];
     public static void ValidateDecks(List<Deck> decks, IReadOnlySet<string> clips, IReadOnlySet<string> apps)
     {
         if (decks is null || decks.Count is < 1 or > 20) throw new ArgumentException("Keep between 1 and 20 decks.");
         var ids = new HashSet<string>();
         var linkedGames = new HashSet<string>();
+        var linkedApps = new HashSet<string>();
+        var deckIds = decks.Select(d => d.Id).ToHashSet();
         foreach (var deck in decks)
         {
             CheckId(deck.Id, ids);
@@ -44,6 +61,8 @@ public static class Rules
             CheckText(deck.Icon, 80, "Icon");
             if (deck.SteamAppId is null || deck.SteamAppId.Length > 12 || !deck.SteamAppId.All(char.IsAsciiDigit)) throw new ArgumentException("Invalid Steam game ID.");
             if (deck.SteamAppId.Length > 0 && !linkedGames.Add(deck.SteamAppId)) throw new ArgumentException("This Steam game is already linked to another deck.");
+            if (!string.IsNullOrEmpty(deck.LinkedAppId) && (!apps.Contains(deck.LinkedAppId) || !linkedApps.Add(deck.LinkedAppId)))
+                throw new ArgumentException("Choose an allowed app that is not linked to another deck.");
             if (deck.Pads is null || deck.Pads.Count > 48) throw new ArgumentException("A deck can hold up to 48 buttons.");
             foreach (var pad in deck.Pads)
             {
@@ -51,22 +70,33 @@ public static class Rules
                 CheckText(pad.Title, 40, "Button name");
                 CheckText(pad.Icon, 80, "Icon");
                 if (pad.Color is not ("orange" or "purple" or "blue" or "green" or "pink" or "coral" or "peach" or "yellow" or "mint" or "teal" or "indigo" or "sand")) throw new ArgumentException("Unknown button color.");
-                ValidateAction(pad.Kind, pad.Value, clips, apps);
-                if (pad.Steps is null || pad.Steps.Count > 20) throw new ArgumentException("Use at most 20 sequence steps.");
-                if (pad.Kind == "macro")
+                foreach (var action in pad.GestureActions)
                 {
-                    if (pad.Steps.Count == 0) throw new ArgumentException("Add a sequence step.");
-                    foreach (var step in pad.Steps)
-                    {
-                        if (step.Kind == "macro") throw new ArgumentException("Sequences cannot contain sequences.");
-                        if (step.DelayMs is < 0 or > 5000) throw new ArgumentException("Step delays must be 0-5000 ms.");
-                        ValidateAction(step.Kind, step.Value, clips, apps);
-                    }
-                    if (pad.Steps.Sum(s => s.DelayMs) > 30000) throw new ArgumentException("Sequence delays cannot exceed 30 seconds.");
+                    if (!IsStepKind(action.Kind) && action.Kind is not ("deck" or "back" or "stop")) throw new ArgumentException("Double-tap and hold must use a single action.");
+                    ValidateAction(action.Kind, action.Value, clips, apps);
+                    if (action.Kind == "deck" && !deckIds.Contains(action.Value)) throw new ArgumentException("Choose an existing deck for this gesture.");
                 }
-                else if (pad.Steps.Count != 0) throw new ArgumentException("Only sequences can have steps.");
+                ValidateAction(pad.Kind, pad.Value, clips, apps);
+                if (pad.Kind == "deck" && !deckIds.Contains(pad.Value)) throw new ArgumentException("Choose an existing deck. Remove buttons linking to a deck before deleting it.");
+                if (pad.Steps is null || pad.Steps.Count > 20) throw new ArgumentException("Use at most 20 sequence steps.");
+                if (pad.Kind is "macro" or "switch" or "random") ValidateSteps(pad.Steps, clips, apps);
+                else if (pad.Steps.Count != 0) throw new ArgumentException("Only sequences and random actions can have steps.");
+                if (pad.Kind == "switch") ValidateSteps(pad.AlternateSteps ?? [], clips, apps);
+                else if (pad.AlternateSteps is { Count: > 0 }) throw new ArgumentException("Only an action switch can have a second sequence.");
             }
         }
+    }
+    public static bool IsStepKind(string kind) => kind is "sound" or "hotkey" or "text" or "url" or "app" or "media";
+    static void ValidateSteps(List<ActionStep> steps, IReadOnlySet<string> clips, IReadOnlySet<string> apps)
+    {
+        if (steps.Count is < 1 or > 20) throw new ArgumentException("Add between 1 and 20 steps to each sequence or random action.");
+        foreach (var step in steps)
+        {
+            if (step is null || !IsStepKind(step.Kind)) throw new ArgumentException("Sequences cannot contain sequences, navigation, or Stop all.");
+            if (step.DelayMs is < 0 or > 5000) throw new ArgumentException("Step delays must be 0-5000 ms.");
+            ValidateAction(step.Kind, step.Value, clips, apps);
+        }
+        if (steps.Sum(s => s.DelayMs) > 30000) throw new ArgumentException("Sequence delays cannot exceed 30 seconds.");
     }
     static void ValidateAction(string kind, string value, IReadOnlySet<string> clips, IReadOnlySet<string> apps)
     {

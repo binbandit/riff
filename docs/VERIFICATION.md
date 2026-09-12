@@ -47,3 +47,12 @@ The headphone settings request first failed against the original audio contract 
 The [headphone controls capture](screenshots/ipad-headphone-controls.png) is a native iPad simulator layout check using temporary sample output devices. The sample state and launch instrumentation were removed after capture. Device Hub computer-use attachment timed out, so this does not claim a full UI tap-through or a physical listening test.
 
 Still requires a Windows PC with two audio endpoints: select CABLE Input and headphones, enable Hear sounds myself, and test a clip in both headphones and the chat app's microphone test. Confirm independent volume, toggle/Stop all, Overlap/One at a time/Queue, same-device deduplication (including PC default), restart persistence, and headphone unplug/reconnect without interrupting chat playback. Disable any existing Windows or mixer monitoring for this check.
+
+
+## Windows companion visual refresh
+
+The companion now uses the iPad app’s Warm light palette, rounded cards and buttons, pastel navigation icons, a persistent connection status, and a Stop all sounds button available from every page. Pairing, audio, controls, allowed apps, updates, and activity share the same layout and typography. Sound output and headphone settings sit together, volume controls show percentages, and less frequently used connection and voice-chat guidance expands on demand.
+
+Local verification on macOS: all 104 portable companion tests passed. The Windows companion and Windows test project compile with zero warnings or errors. An isolated Windows x64 development package is built under `artifacts/companion-ui/`; this does not replace a published release.
+
+Native WinForms rendering and interaction cannot run on this Mac. The Windows test project includes checks for navigation, horizontal overflow at two window sizes, and preserving an unapplied audio draft across navigation. These checks compile but still need to run on Windows. Visually inspect all six pages at 100%, 150%, and 200% display scaling; check keyboard focus, dropdowns, disclosure controls, QR scanning, and closing to/reopening from the tray. The existing physical audio and pairing checks above still apply.

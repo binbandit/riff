@@ -26,7 +26,8 @@ struct Pairing: Codable, Sendable {
 }
 enum RiffError: LocalizedError {
     case message(String)
-    var errorDescription: String? { switch self { case .message(let text): text } }
+    case http(Int, String)
+    var errorDescription: String? { switch self { case .message(let text), .http(_, let text): text } }
 }
 
 final class PinnedSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
@@ -77,14 +78,18 @@ final class PinnedSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecked 
         var request = URLRequest(url: url)
         request.httpMethod = method; request.httpBody = body
         if path == "/api/trigger" { request.timeoutInterval = 40 }
+        if ["/api/pad-suggestion", "/api/deck-suggestion", "/api/sound-suggestions"].contains(path) { request.timeoutInterval = 30 }
         if path == "/api/playback" { request.timeoutInterval = 2 }
         request.setValue("Bearer \(pairing.token)", forHTTPHeaderField: "Authorization")
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
         let (data, response) = try await session.data(for: request)
         guard let response = response as? HTTPURLResponse else { throw RiffError.message("The PC did not respond.") }
         guard (200..<300).contains(response.statusCode) else {
+            if ["/api/pad-suggestion", "/api/deck-suggestion", "/api/sound-suggestions"].contains(path) && response.statusCode == 429 {
+                throw RiffError.message("Too many AI suggestions. Wait a moment, then try again.")
+            }
             let detail = (try? JSONDecoder().decode(Failure.self, from: data))?.error
-            throw RiffError.message(detail ?? "The PC returned error \(response.statusCode).")
+            throw RiffError.http(response.statusCode, detail ?? "The PC returned error \(response.statusCode).")
         }
         return data
     }
