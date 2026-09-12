@@ -26,7 +26,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             var s = store.State;
             return new(s.Version, s.Decks, s.Clips, audio.Devices(), s.OutputId, s.Volume,
                 s.Apps.Select(a => new LaunchTargetInfo(a.Id, a.Name)).ToList(), Environment.MachineName,
-                presence.Games, presence.Id, presence.Name, ["soundboard-playback-v1", "sound-packs-v1", "soundboard-only-v1"], CompanionBuild.Version, s.SoundboardOnly);
+                presence.Games, presence.Id, presence.Name, ["soundboard-playback-v1", "sound-packs-v1", "soundboard-only-v1", "clip-audio-v1"], CompanionBuild.Version, s.SoundboardOnly);
         }
     }
     public async Task Start()
@@ -75,6 +75,14 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
         });
         app.MapGet("/api/state", () => Snapshot());
         app.MapGet("/api/playback", () => audio.Status());
+        app.MapGet("/api/clips/{id}/audio", (string id) =>
+        {
+            lock (store.Gate)
+            {
+                if (!store.State.Clips.Any(c => c.Id == id)) throw new ArgumentException("Sound not found.");
+                return Results.Stream(File.OpenRead(store.ClipPath(id)), "audio/wav");
+            }
+        });
         app.MapPut("/api/decks", (DeckUpdate update) => { store.UpdateDecks(update); Activity?.Invoke("Deck layout saved"); return Snapshot(); });
         app.MapPost("/api/trigger", async (Trigger trigger) =>
         {

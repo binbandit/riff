@@ -12,6 +12,7 @@ It's a native SwiftUI app with a Windows companion. Both run on your own devices
 
 - **Soundboard:** play overlapping clips or one at a time, tap a playing button to stop it, or stop everything at once. Six original sounds are included.
 - **Recording and imports:** record on your iPad or import WAV, MP3, M4A, AAC, and AIFF files. Trim clips with a waveform editor and listen before saving.
+- **Private previews:** library previews play on your iPad, even while connected to your PC. Imported and recorded sounds require a companion with iPad preview support. Deck buttons and explicit PC audio tests use your saved Windows output.
 - **Custom decks:** choose button colors, symbols, and emoji; rearrange buttons; adjust the grid; and add several sounds to a deck at once.
 - **PC controls:** send keyboard shortcuts, type text, control media, open websites, and launch apps you've approved on Windows. Chain up to 20 actions into a sequence.
 - **Steam decks:** link a deck to a Steam game and switch to it automatically when the game starts.

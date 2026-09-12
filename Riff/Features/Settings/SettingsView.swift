@@ -33,7 +33,7 @@ struct SettingsView: View {
                         Task { do { try await store.audio(output: output, volume: volume); store.message("Audio settings saved") } catch { failure = error.localizedDescription }; saving = false }
                     }.disabled(!store.connected || saving)
                     if let clip = store.snapshot.clips.first {
-                        Button("Play a test sound on PC", systemImage: "play.circle") { Task { await store.preview(clip) } }.disabled(!store.connected || saving)
+                        Button("Play a test sound on PC", systemImage: "play.circle") { Task { await store.testSoundOnPC(clip) } }.disabled(!store.connected || saving)
                     }
                     if let failure { Text(failure).foregroundStyle(.red) }
                 } header: { Text("Audio routing") } footer: { Text("Apply changes before testing. New sounds use the selected output. Stop existing sounds before switching devices.") }

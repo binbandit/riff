@@ -45,7 +45,7 @@ struct AudioControlsView: View {
                         Slider(value: $volume, in: 0...1).accessibilityLabel("Soundboard volume")
                     }.padding(.vertical, 8)
                 } footer: {
-                    Text("Previews use this output too. Choose speakers or headphones for listening, or your virtual cable for game chat. Stop existing sounds before switching outputs.")
+                    Text("Deck buttons and PC test sounds use this output. Library previews play on your iPad at its device volume. Stop existing sounds before switching outputs.")
                 }.disabled(!store.connected || saving)
                 if let failure { Section { Text(failure).foregroundStyle(.red) } }
                 Section {

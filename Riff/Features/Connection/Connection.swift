@@ -64,6 +64,11 @@ final class PinnedSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecked 
     deinit { session.invalidateAndCancel() }
     func request<T: Decodable>(_ path: String, method: String = "GET", body: Data? = nil,
                                 contentType: String = "application/json", as: T.Type = T.self) async throws -> T {
+        let data = try await requestData(path, method: method, body: body, contentType: contentType)
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+    func requestData(_ path: String, method: String = "GET", body: Data? = nil,
+                     contentType: String = "application/json") async throws -> Data {
         var components = URLComponents()
         components.scheme = "https"; components.host = pairing.host; components.port = pairing.port
         components.percentEncodedPath = path.components(separatedBy: "?")[0]
@@ -81,7 +86,7 @@ final class PinnedSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecked 
             let detail = (try? JSONDecoder().decode(Failure.self, from: data))?.error
             throw RiffError.message(detail ?? "The PC returned error \(response.statusCode).")
         }
-        return try JSONDecoder().decode(T.self, from: data)
+        return data
     }
 }
 

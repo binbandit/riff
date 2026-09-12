@@ -28,7 +28,7 @@ struct AudioSetupView: View {
                 AudioSetupStep(number: 2, title: includeMicrophone ? "Talk, then tap a sound" : "Tap a sound", detail: includeMicrophone ? "Confirm that your voice and the clip are both audible together. Lower the soundboard volume if it covers your voice." : "Confirm the clip is audible in the microphone test.")
                 if store.connected, let clip = store.snapshot.clips.first {
                     Button {
-                        Task { await store.preview(clip) }
+                        Task { await store.testSoundOnPC(clip) }
                     } label: {
                         Label("Test with \(clip.name)", systemImage: "play.circle")
                     }

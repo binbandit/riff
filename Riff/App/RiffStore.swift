@@ -84,6 +84,10 @@ import Observation
     }
     private var client: CompanionClient?
     private var players: [String: AVAudioPlayer] = [:]
+    private var previewPlayer: AVAudioPlayer?
+    private var previewTask: Task<Void, Never>?
+    private var previewGeneration = UUID()
+    var isPreviewPlaying: Bool { previewPlayer?.isPlaying == true }
     private var playback = SoundPlaybackTracker()
     private var playbackRefreshRunning = false
     var playingPadIDs: Set<String> = []
@@ -92,6 +96,7 @@ import Observation
     }
     var supportsPlayback: Bool { snapshot.capabilities?.contains("soundboard-playback-v1") == true }
     private func stopLocalSounds() {
+        stopPreview()
         for player in players.values { player.stop() }
         players.removeAll(); playingPadIDs.removeAll()
     }
@@ -319,7 +324,46 @@ import Observation
             throw error
         }
     }
+    func stopPreview() {
+        previewGeneration = UUID()
+        previewTask?.cancel(); previewTask = nil
+        previewPlayer?.stop(); previewPlayer = nil
+    }
     func preview(_ clip: Clip) async {
+        stopPreview()
+        let generation = previewGeneration
+        let task = Task {
+            defer { if generation == previewGeneration { previewTask = nil } }
+            do {
+                let data: Data
+                if let url = SoundPacks.audioURL(forClipID: clip.id) ?? Bundle.main.url(forResource: clip.id, withExtension: "wav") {
+                    data = try Data(contentsOf: url)
+                } else if let client, connected, snapshot.capabilities?.contains("clip-audio-v1") == true {
+                    let id = clip.id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+                    data = try await client.requestData("/api/clips/\(id)/audio")
+                } else {
+                    throw RiffError.message(connected
+                        ? "Update Riff on your PC to preview imported and recorded sounds on this iPad."
+                        : "Connect your PC to preview this sound on your iPad.")
+                }
+                try Task.checkCancellation()
+                guard generation == previewGeneration else { return }
+#if os(iOS)
+                try AVAudioSession.sharedInstance().setCategory(.playback)
+                try AVAudioSession.sharedInstance().setActive(true)
+#endif
+                let player = try AVAudioPlayer(data: data)
+                guard player.play() else { throw RiffError.message("This preview could not be played.") }
+                previewPlayer = player
+                message("Playing on iPad: \(clip.name)")
+            } catch {
+                if !Task.isCancelled && generation == previewGeneration { self.error = error.localizedDescription }
+            }
+        }
+        previewTask = task
+        await task.value
+    }
+    func testSoundOnPC(_ clip: Clip) async {
         if let client, connected {
             do {
                 let generation = epoch
@@ -329,7 +373,7 @@ import Observation
                 acceptPlayback(result.playback)
                 message("Playing on PC: \(clip.name)")
             } catch { self.error = error.localizedDescription }
-        } else { await trigger(Pad(id: "preview-" + clip.id, title: clip.name, value: clip.id)) }
+        } else { error = "Connect your PC to test its audio output." }
     }
 }
 struct Acknowledgement: Decodable { let ok: Bool; let playback: SoundPlaybackState? }

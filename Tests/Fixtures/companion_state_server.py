@@ -1,4 +1,4 @@
-"""Loopback TLS companion-state fixture for import/poll races; never plays audio."""
+"""Loopback TLS companion fixture for import/poll races and local previews."""
 import copy
 import hashlib
 import http.server
@@ -11,6 +11,11 @@ import tempfile
 import threading
 
 state = json.loads(pathlib.Path(sys.argv[1]).read_text())
+audio_requests = 0
+pc_previews = 0
+audio_started = threading.Event()
+audio_release = threading.Event()
+hold_audio = False
 lock = threading.Lock()
 started = threading.Event()
 release = threading.Event()
@@ -36,10 +41,37 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return False
 
     def do_GET(self):
-        global hold_next, fail_next
+        global hold_next, fail_next, audio_requests, hold_audio
         if not self.authorized():
             return
-        if self.path == "/test/hold-next-state":
+        if self.path == "/test/hold-next-audio":
+            hold_audio = True
+            audio_started.clear()
+            audio_release.clear()
+            self.reply({"ok": True})
+        elif self.path == "/test/audio-started":
+            self.reply({"ok": audio_started.wait(5)})
+        elif self.path == "/test/release-audio":
+            audio_release.set()
+            self.reply({"ok": True})
+        elif self.path == "/test/preview-counts":
+            self.reply({"audioRequests": audio_requests, "pcPreviews": pc_previews})
+        elif self.path.startswith("/api/clips/") and self.path.endswith("/audio"):
+            audio_requests += 1
+            if hold_audio:
+                hold_audio = False
+                audio_started.set()
+                audio_release.wait(8)
+            data = (pathlib.Path(__file__).parents[2] / "Shared/Sounds/countdown.wav").read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/wav")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            try:
+                self.wfile.write(data)
+            except (BrokenPipeError, ConnectionResetError, ssl.SSLError):
+                pass  # Stopping a preview cancels its in-flight request.
+        elif self.path == "/test/hold-next-state":
             with lock:
                 hold_next = True
                 started.clear()
@@ -69,10 +101,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.reply({"error": "Unknown path"}, 404)
 
     def do_POST(self):
+        global pc_previews
         if not self.authorized():
             return
         self.rfile.read(int(self.headers.get("Content-Length", 0)))
-        if self.path.startswith("/api/clips?"):
+        if self.path == "/api/preview":
+            pc_previews += 1
+            self.reply({"ok": True})
+        elif self.path.startswith("/api/clips?"):
             with lock:
                 state["version"] += 1
                 clip = {"id": "upload-" + str(state["version"]), "name": "New sound", "duration": 1}

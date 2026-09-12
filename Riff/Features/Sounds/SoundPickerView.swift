@@ -70,11 +70,11 @@ struct SoundPreviewBar: View {
     @Environment(RiffStore.self) private var store
     var body: some View {
         HStack(spacing: 16) {
-            Label(store.connected ? "Previews play through \(store.outputName)" : "Previews play on this iPad", systemImage: store.cableSelected && store.connected ? "mic" : "speaker.wave.2")
+            Label("Previews play on this iPad", systemImage: "ipad.landscape")
                 .font(.caption).foregroundStyle(.secondary).lineLimit(2)
             Spacer(minLength: 0)
-            Button { Task { await store.stopAll() } } label: {
-                Label("Stop all", systemImage: "stop.fill").font(.subheadline.weight(.medium)).frame(minHeight: 44)
+            Button { store.stopPreview() } label: {
+                Label("Stop preview", systemImage: "stop.fill").font(.subheadline.weight(.medium)).frame(minHeight: 44)
             }
         }.padding(.horizontal, 20).padding(.vertical, 8).background(.regularMaterial)
     }

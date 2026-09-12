@@ -33,6 +33,7 @@ public class CompanionIntegrationTests
                 using var client = new HttpClient(handler) { BaseAddress = new Uri($"https://localhost:{PairingIdentity.Port}") };
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/playback")).StatusCode);
+                Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/clips/nope/audio")).StatusCode);
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", identity.Token);
                 var snapshot = (await client.GetFromJsonAsync<Snapshot>("/api/state", Wire.Json))!;
                 Assert.Equal(2, snapshot.Decks.Count);
@@ -58,6 +59,13 @@ public class CompanionIntegrationTests
                 Assert.Equal(CompanionBuild.Version, snapshot.CompanionVersion);
                 Assert.True(Version.TryParse(snapshot.CompanionVersion!.Split('-')[0], out _));
                 Assert.Contains("soundboard-playback-v1", snapshot.Capabilities!);
+                Assert.Contains("clip-audio-v1", snapshot.Capabilities!);
+                var previewClip = snapshot.Clips.First();
+                var previewAudio = await client.GetAsync($"/api/clips/{previewClip.Id}/audio");
+                previewAudio.EnsureSuccessStatusCode();
+                Assert.Equal("audio/wav", previewAudio.Content.Headers.ContentType?.MediaType);
+                Assert.Equal(await File.ReadAllBytesAsync(store.ClipPath(previewClip.Id)), await previewAudio.Content.ReadAsByteArrayAsync());
+                Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/clips/missing/audio")).StatusCode);
                 var playback = (await client.GetFromJsonAsync<PlaybackState>("/api/playback", Wire.Json))!;
                 Assert.Empty(playback.PadIds);
                 Assert.False(string.IsNullOrWhiteSpace(playback.SessionId));
@@ -109,6 +117,9 @@ public class CompanionIntegrationTests
                 Assert.Equal(afterPack.Clips.Count, retried.Clips.Count);
                 Assert.Equal("My renamed reaction", retried.Clips.Single(c => c.Id == packSound.ClipId).Name);
                 Assert.True(File.Exists(store.ClipPath(importedPackClip.Id)));
+                Assert.Equal(await File.ReadAllBytesAsync(store.ClipPath(importedPackClip.Id)),
+                    await client.GetByteArrayAsync($"/api/clips/{importedPackClip.Id}/audio"));
+                Assert.Empty(audio.Status().PadIds);
                 Assert.Contains(new StateStore(folder).State.Clips, c => c.Id == packSound.ClipId);
                 identity.RotateToken();
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
