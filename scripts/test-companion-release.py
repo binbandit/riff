@@ -91,6 +91,46 @@ class CompanionReleaseTests(unittest.TestCase):
                 self.assertEqual(outputs["version"], f"0.1.{index}")
                 self.run_command("git", "tag", outputs["tag"])
 
+    def test_release_tag_on_empty_merge_is_preserved(self):
+        self.run_command("git", "tag", "companion-v0.1.0")
+        self.run_command("git", "checkout", "-b", "startup-fix")
+        self.commit("fix(companion): repair startup", "Companion/startup.cs")
+        self.run_command("git", "tag", "companion-v0.1.1")
+        self.run_command("git", "checkout", "main")
+        self.commit("feat(companion): add sound library", "Companion/library.cs")
+        self.run_command("git", "cherry-pick", "startup-fix")
+        self.run_command("git", "merge", "--no-ff", "startup-fix", "-m", "chore: merge startup fix")
+        self.assertEqual(self.run_command("git", "diff", "HEAD^", "HEAD"), "")
+        self.run_command("git", "tag", "companion-v0.2.0")
+        self.assertEqual(self.prepare(), {"has_changes": "false"})
+        self.commit("feat(companion): add offline decks", "Companion/decks.cs")
+        self.assertEqual(self.prepare()["version"], "0.3.0")
+        folder = self.repo / "artifacts/companion-release"
+        history = (folder / "CHANGELOG.md").read_text()
+        notes = (folder / "release-notes.md").read_text()
+        self.assertIn("## 0.2.0 - ", history)
+        self.assertIn("Add offline decks", notes)
+        self.assertNotIn("Add sound library", notes)
+        self.assertNotIn("Repair startup", notes)
+
+    def test_release_tag_on_ipad_commit_is_preserved(self):
+        self.commit("feat(ipad)!: replace tablet layout", "Riff/View.swift")
+        self.run_command("git", "tag", "companion-v0.1.0")
+        self.assertEqual(self.prepare(), {"has_changes": "false"})
+        self.commit("fix(companion): repair playback", "Companion/app.cs")
+        self.assertEqual(self.prepare()["version"], "0.1.1")
+
+    def test_existing_version_on_another_branch_fails(self):
+        self.run_command("git", "tag", "companion-v0.1.0")
+        self.run_command("git", "checkout", "-b", "other-release")
+        self.commit("fix(companion): repair startup", "Companion/startup.cs")
+        self.run_command("git", "tag", "companion-v0.1.1")
+        self.run_command("git", "checkout", "main")
+        self.commit("fix(companion): repair playback", "Companion/app.cs")
+        with self.assertRaises(subprocess.CalledProcessError) as error:
+            self.prepare()
+        self.assertIn("Release tag companion-v0.1.1 already exists", error.exception.stderr)
+
     def test_full_changelog_keeps_history_but_release_notes_are_current(self):
         self.run_command("git", "tag", "companion-v0.1.0")
         self.commit("fix(companion): repair playback", "Companion/app.cs")

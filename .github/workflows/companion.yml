@@ -119,6 +119,9 @@ jobs:
             if [[ "$(cat is-draft.txt)" == true ]]; then
               gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
               gh release edit "$RELEASE_TAG" --draft=false --notes-file downloads/release-notes.md
+            else
+              echo "::error::Release $RELEASE_TAG is already published; refusing to discard the new build."
+              exit 1
             fi
           else
             gh release create "$RELEASE_TAG" "${assets[@]}" \

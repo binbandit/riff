@@ -19,19 +19,12 @@ trim = true
 conventional_commits = true
 filter_unconventional = false
 split_commits = false
-protect_breaking_commits = true
+# Path exclusions also apply to breaking changes from other applications.
+protect_breaking_commits = false
 filter_commits = false
 tag_pattern = '^companion-v[0-9]+\.[0-9]+\.[0-9]+$'
 sort_commits = "oldest"
-include_paths = [
-  "Companion/**", "Shared/Sounds/**", "Riff/Resources/sound-packs.json",
-  "scripts/build-windows.ps1", "scripts/prepare-companion-release.sh",
-  "scripts/test-companion-release.py",
-  ".github/workflows/companion.yml", ".github/companion-cliff.toml",
-  "docs/WINDOWS-QUICKSTART.txt", "docs/THIRD-PARTY.md", "docs/licenses/**",
-  "global.json", "NuGet.Config", "nuget.config",
-  "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props",
-]
+# prepare-companion-release.sh filters commits after release tags are discovered.
 commit_parsers = [
   { message = "^feat", group = "Added" },
   { message = "^fix", group = "Fixed" },
