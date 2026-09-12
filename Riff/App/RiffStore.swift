@@ -115,9 +115,9 @@ import Observation
         guard generation == epoch else { throw CancellationError() }
         return try result.validated()
     }
-    private var players: [String: AVAudioPlayer] = [:]
+    private var players: [String: any LocalSoundPlayer] = [:]
     private var localQueue: [(pad: Pad, url: URL)] = []
-    private let playbackObserver = SoundPlaybackObserver()
+    private let makeLocalSoundPlayer: @MainActor (URL) throws -> any LocalSoundPlayer
     private var previewPlayer: AVAudioPlayer?
     private var previewTask: Task<Void, Never>?
     private var previewGeneration = UUID()
@@ -181,7 +181,8 @@ import Observation
 
     convenience init() { self.init(cacheURL: Self.cacheURL, pairing: PairingVault.load()) }
 
-    init(cacheURL: URL, pairing: Pairing?) {
+    init(cacheURL: URL, pairing: Pairing?, makeLocalSoundPlayer: @escaping @MainActor (URL) throws -> any LocalSoundPlayer = { try DeviceSoundPlayer(url: $0) }) {
+        self.makeLocalSoundPlayer = makeLocalSoundPlayer
         snapshotCacheURL = cacheURL
         if let data = try? Data(contentsOf: cacheURL), let saved = try? JSONDecoder().decode(Snapshot.self, from: data) { snapshot = saved; cachedData = data }
         gameCatalog = snapshot.localGameCatalog ?? GameCatalog(companionID: pairing?.fingerprint, games: snapshot.games)
@@ -398,9 +399,8 @@ import Observation
         } catch { self.error = "\(error.localizedDescription) The action was not retried, to avoid playing it twice." }
     }
     private func playLocalSound(_ pad: Pad, url: URL) throws {
-        let player = try AVAudioPlayer(contentsOf: url)
-        playbackObserver.onCompletion = { [weak self] in self?.refreshLocalPlayback() }
-        player.delegate = playbackObserver
+        let player = try makeLocalSoundPlayer(url)
+        player.onCompletion = { [weak self] in self?.refreshLocalPlayback() }
         player.volume = snapshot.volume
         guard player.play() else { throw RiffError.message("This sound could not be played.") }
         players[pad.id] = player; playingPadIDs = Set(players.keys)

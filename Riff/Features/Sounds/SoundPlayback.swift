@@ -37,8 +37,32 @@ struct SoundPlaybackTracker {
     }
 }
 
-final class SoundPlaybackObserver: NSObject, AVAudioPlayerDelegate {
+protocol LocalSoundPlayer: AnyObject {
+    var isPlaying: Bool { get }
+    var volume: Float { get set }
+    var onCompletion: (() -> Void)? { get set }
+    func play() -> Bool
+    func stop()
+}
+
+final class DeviceSoundPlayer: NSObject, LocalSoundPlayer, AVAudioPlayerDelegate {
+    private let player: AVAudioPlayer
     var onCompletion: (() -> Void)?
+
+    init(url: URL) throws {
+        player = try AVAudioPlayer(contentsOf: url)
+        super.init()
+        player.delegate = self
+    }
+
+    var isPlaying: Bool { player.isPlaying }
+    var volume: Float {
+        get { player.volume }
+        set { player.volume = newValue }
+    }
+    func play() -> Bool { player.play() }
+    func stop() { player.stop() }
+
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor [weak self] in self?.onCompletion?() }
     }

@@ -91,23 +91,46 @@ import Testing
         await store.stopAll()
     }
     @Test func offlineQueueAdvancesOnCompletionWithoutPolling() async throws {
-        let sounds = try SoundPacks.load().flatMap(\.sounds)
-        let short = try #require(sounds.min { $0.duration < $1.duration })
-        let long = try #require(sounds.first { $0.id == "sad-violin" })
-        let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil)
+        let sound = try #require(SoundPacks.load().flatMap(\.sounds).first)
+        var players: [ControlledSoundPlayer] = []
+        let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil, makeLocalSoundPlayer: { _ in
+            let player = ControlledSoundPlayer()
+            players.append(player)
+            return player
+        })
         let originalMode = store.soundMode
         defer { store.soundMode = originalMode }
         store.snapshot.volume = 0; store.soundMode = .queue
-        await store.trigger(Pad(id: "short", title: "Short", value: short.clipID))
-        await store.trigger(Pad(id: "long", title: "Long", value: long.clipID))
-        #expect(store.queuedPadIDs == ["long"])
-        let deadline = ContinuousClock.now + .seconds(short.duration + 3)
-        while !store.playingPadIDs.contains("long") && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(50))
-        }
+        await store.trigger(Pad(id: "first", title: "First", value: sound.clipID))
+        await store.trigger(Pad(id: "second", title: "Second", value: sound.clipID))
+        #expect(store.playingPadIDs == ["first"])
+        #expect(store.queuedPadIDs == ["second"])
+        #expect(players.count == 1)
+
+        // Deliver the audio completion event without relying on a CI audio device or wall-clock timing.
+        try #require(players.first).finish()
         #expect(store.error == nil)
-        #expect(store.playingPadIDs == ["long"])
+        #expect(store.playingPadIDs == ["second"])
+        #expect(store.queuedPadIDs.isEmpty)
+        #expect(players.count == 2)
+        #expect(players.last?.isPlaying == true)
+
+        try #require(players.last).finish()
+        #expect(store.playingPadIDs.isEmpty)
         #expect(store.queuedPadIDs.isEmpty)
         await store.stopAll()
+    }
+}
+
+@MainActor private final class ControlledSoundPlayer: LocalSoundPlayer {
+    private(set) var isPlaying = false
+    var volume: Float = 1
+    var onCompletion: (() -> Void)?
+
+    func play() -> Bool { isPlaying = true; return true }
+    func stop() { isPlaying = false }
+    func finish() {
+        isPlaying = false
+        onCompletion?()
     }
 }
