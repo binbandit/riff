@@ -15,6 +15,9 @@ public sealed class MainForm : Form
     readonly System.Windows.Forms.Timer timer = new() { Interval = 2000 };
     readonly Label status = Label("Starting companion…", StrongFont);
     readonly Label connectionDetail = Label("Private connection on your network", color: Muted);
+    readonly RoundedCard pairingStatus = new() { Dock = DockStyle.Top };
+    readonly Label pairingStatusTitle = Label("Starting companion…", SectionFont);
+    readonly Label pairingStatusDetail = Label("Your connection status will appear here.", color: Muted);
     readonly TextBox pairingLink = new() { Multiline = true, AutoSize = false, ReadOnly = true, Height = 76, ScrollBars = ScrollBars.Vertical, AccessibleName = "Private pairing link" };
     readonly ComboBox addresses = new() { DropDownStyle = ComboBoxStyle.DropDownList, AccessibleName = "PC network address" };
     readonly PictureBox qr = new() { Width = 224, Height = 224, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White, AccessibleName = "Scan this pairing code with Riff on your iPad", TabStop = false };
@@ -31,6 +34,8 @@ public sealed class MainForm : Form
     bool exiting;
     bool stopping;
     bool serverStarted;
+    bool wasConnected;
+    bool hasConnected;
     public MainForm(StateStore store, PairingIdentity identity, AudioEngine audio, ActionRunner runner, CompanionServer server)
     {
         this.store = store; this.identity = identity; this.audio = audio; this.runner = runner; this.server = server;
@@ -88,7 +93,7 @@ public sealed class MainForm : Form
         menu.Items.Add("Open Riff", null, (_, _) => ShowWindow());
         menu.Items.Add("Stop all sounds", null, (_, _) => runner.Stop());
         menu.Items.Add("Quit Riff", null, (_, _) => { exiting = true; Close(); });
-        tray = new NotifyIcon { Icon = Icon, Text = "Riff · Ready for your iPad", Visible = true, ContextMenuStrip = menu };
+        tray = new NotifyIcon { Icon = Icon, Text = "Riff · Starting companion…", Visible = true, ContextMenuStrip = menu };
         tray.DoubleClick += (_, _) => ShowWindow();
         server.Activity += AddLog;
         audio.Warning += AddLog;
@@ -114,13 +119,31 @@ public sealed class MainForm : Form
     void RefreshConnectionStatus()
     {
         var connected = serverStarted && DateTime.UtcNow - server.LastSeen < TimeSpan.FromSeconds(12);
-        status.Text = !serverStarted ? "Companion offline" : connected ? "iPad connected" : "Ready for your iPad";
+        hasConnected |= connected;
+        status.Text = !serverStarted ? "Companion offline" : connected ? "iPad connected" : hasConnected ? "iPad disconnected" : "Waiting for your iPad";
         status.ForeColor = !serverStarted ? Accent : connected ? Color.FromArgb(50, 99, 68) : Ink;
         connectionDetail.Text = !serverStarted ? "Open Activity for details." : connected ? "Encrypted connection\nOn your local network" : "Open Riff on your iPad to connect.";
+        pairingStatusTitle.Text = status.Text;
+        pairingStatusTitle.ForeColor = status.ForeColor;
+        pairingStatusDetail.Text = !serverStarted ? "The connection could not start. Open Activity for details."
+            : connected ? "You’re ready to play. Sounds and controls from your iPad are connected to this PC."
+            : hasConnected ? "Open Riff on your iPad and check that both devices are on the same network. Your iPad will reconnect automatically."
+            : "Open Riff on your iPad and scan the code below. Already paired? Keep the app open to reconnect.";
+        var surface = connected ? Green : Surface;
+        if (pairingStatus.SurfaceColor != surface) { pairingStatus.SurfaceColor = surface; pairingStatus.Invalidate(); }
+        tray.Text = "Riff · " + status.Text;
+        if (connected != wasConnected)
+        {
+            AddLog(connected ? "iPad connected. Ready for sounds and controls." : "iPad disconnected. Waiting for it to reconnect.");
+            wasConnected = connected;
+        }
     }
     Panel PairPage()
     {
         var page = Page("Connect iPad", "Meet your other half.", "A little connection. A whole lot of possibility.", out var content);
+        pairingStatus.AccessibleName = "iPad connection status";
+        Add(pairingStatus, pairingStatusTitle, pairingStatusDetail);
+        Add(content, pairingStatus);
         var pairing = new RoundedCard();
         var columns = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Top, Margin = Padding.Empty, BackColor = Color.Transparent };
         columns.ColumnStyles.Add(new(SizeType.Percent, 45)); columns.ColumnStyles.Add(new(SizeType.Percent, 55));
