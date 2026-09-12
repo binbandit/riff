@@ -46,7 +46,7 @@ struct AppearanceView: View {
                         .accessibilityHint("Use this theme throughout Riff.")
                     }
                 }
-                Text("AMOLED keeps your button colours in icons and outlines. These settings are just for this iPad.")
+                Text("AMOLED keeps your button colours in icons and outlines. Your Windows companion follows this theme while connected.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             .frame(maxWidth: 600)

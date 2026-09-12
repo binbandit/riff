@@ -22,6 +22,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
     readonly PadSuggestions suggestions = new(suggestionClient);
     readonly DeckSuggestions deckSuggestions = new(suggestionClient);
     readonly SoundSuggestions soundSuggestions = new(suggestionClient);
+    internal AppearancePreferences Appearance { get; } = new(store.Folder);
     public event Action<string>? Activity;
     public DateTime LastSeen { get; private set; }
     public Snapshot Snapshot()
@@ -83,7 +84,16 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             LastSeen = DateTime.UtcNow;
             await next();
         });
-        app.MapGet("/api/state", () => Snapshot());
+        app.MapGet("/api/state", (HttpRequest request) =>
+        {
+            if (CompanionAppearance.Parse(request.Headers["X-Riff-Theme"], request.Headers["X-Riff-Appearance"]) is { } appearance)
+            {
+                try { Appearance.Update(appearance); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                { Activity?.Invoke("Could not save appearance: " + ex.Message); }
+            }
+            return Snapshot();
+        });
         app.MapPost("/api/deck-suggestion", async (DeckSuggestionRequest request, HttpContext context) =>
         {
             var key = AI.ApiKey;

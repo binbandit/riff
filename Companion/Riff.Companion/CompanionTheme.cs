@@ -2,30 +2,75 @@ using System.Drawing.Drawing2D;
 
 namespace Riff.Companion;
 
-// The Warm palette is shared with Riff/Design/Theme.swift.
 internal static class CompanionTheme
 {
-    public static readonly Color Canvas = ColorTranslator.FromHtml("#F6F3EE");
-    public static readonly Color Surface = Color.White;
-    public static readonly Color Inset = ColorTranslator.FromHtml("#EAE6DF");
-    public static readonly Color Ink = ColorTranslator.FromHtml("#302927");
-    public static readonly Color Muted = ColorTranslator.FromHtml("#706962");
-    public static readonly Color Accent = ColorTranslator.FromHtml("#BA382F");
-    public static readonly Color Peach = ColorTranslator.FromHtml("#FFE2CD");
-    public static readonly Color Purple = ColorTranslator.FromHtml("#CEC0F2");
-    public static readonly Color Blue = ColorTranslator.FromHtml("#ADD4EF");
-    public static readonly Color Green = ColorTranslator.FromHtml("#C0DB9E");
+    public static Riff.Core.CompanionAppearance Appearance { get; private set; } = new();
+    static Riff.Core.ThemePalette Palette => Appearance.Palette;
+    public static bool Dark => Appearance.Dark || Appearance.Theme == "amoled";
+    public static Color Canvas => SystemInformation.HighContrast ? SystemColors.Window : Hex(Palette.Canvas);
+    public static Color Surface => SystemInformation.HighContrast ? SystemColors.Window : Hex(Palette.Surface);
+    public static Color Inset => SystemInformation.HighContrast ? SystemColors.Control : Hex(Palette.Inset);
+    public static Color Ink => SystemInformation.HighContrast ? SystemColors.WindowText : Hex(Dark ? 0xF5F3F0 : 0x302927);
+    public static Color Muted => SystemInformation.HighContrast ? SystemColors.WindowText : Mix(Ink, Surface, 0.25f);
+    public static Color Accent => SystemInformation.HighContrast ? SystemColors.Highlight : Hex(Palette.Accent);
+    public static Color AccentInk => SystemInformation.HighContrast ? SystemColors.HighlightText : Hex(Dark ? 0x14191D : 0xFFFFFF);
+    public static Color Success => SystemInformation.HighContrast ? Ink : Hex(Dark ? 0x9FCFA8 : 0x326344);
+    public static readonly Color PadInk = Hex(0x302927);
+    public static readonly Color Peach = Hex(0xFFD1AD);
+    public static readonly Color Purple = Hex(0xCFBFF2);
+    public static readonly Color Blue = Hex(0xADD4F0);
+    public static readonly Color Green = Hex(0xBFDB9E);
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Control, Func<Color>> foregrounds = new();
+
+    static Color Hex(int value) => Color.FromArgb((value >> 16) & 255, (value >> 8) & 255, value & 255);
+    public static Color Mix(Color first, Color second, float amount) => Color.FromArgb(
+        (int)(first.R + (second.R - first.R) * amount),
+        (int)(first.G + (second.G - first.G) * amount),
+        (int)(first.B + (second.B - first.B) * amount));
+
+    public static void Foreground(Control control, Func<Color> color)
+    {
+        foregrounds.Remove(control); foregrounds.Add(control, color); control.ForeColor = color();
+    }
+
+    public static void Apply(Control root, Riff.Core.CompanionAppearance appearance)
+    {
+        Appearance = appearance;
+        root.SuspendLayout();
+        ApplyColors(root, Canvas);
+        root.ResumeLayout(); root.Invalidate(true);
+    }
+
+    static void ApplyColors(Control control, Color background)
+    {
+        // QR codes retain their white quiet zone in every theme.
+        if (control is PictureBox) return;
+        if (control is RoundedCard card) background = card.IsInset ? Inset : Surface;
+        control.ForeColor = foregrounds.TryGetValue(control, out var color) ? color() : Ink;
+        if (control.BackColor != Color.Transparent) control.BackColor = background;
+        if (control is LinkLabel link)
+        {
+            link.LinkColor = Accent; link.ActiveLinkColor = Accent; link.VisitedLinkColor = Muted;
+        }
+        foreach (Control child in control.Controls) ApplyColors(child, background);
+        if (control is CompanionUpdatesView updates) updates.RefreshAppearance();
+        control.Invalidate();
+    }
     public static readonly Font BodyFont = new("Segoe UI", 10.5f);
     public static readonly Font StrongFont = new("Segoe UI Semibold", 10.5f);
     public static readonly Font TitleFont = new("Segoe UI", 27, FontStyle.Bold);
     public static readonly Font SectionFont = new("Segoe UI Semibold", 14);
 
-    public static Label Label(string text, Font? font = null, Color? color = null) => new()
+    public static Label Label(string text, Font? font = null, Func<Color>? color = null)
     {
-        Text = text, AutoSize = true, Dock = DockStyle.Top, Font = font ?? BodyFont,
-        ForeColor = color ?? Ink, BackColor = Color.Transparent, UseMnemonic = false,
-        Margin = new(0, 0, 0, 12)
-    };
+        var label = new Label
+        {
+            Text = text, AutoSize = true, Dock = DockStyle.Top, Font = font ?? BodyFont,
+            BackColor = Color.Transparent, UseMnemonic = false, Margin = new(0, 0, 0, 12)
+        };
+        Foreground(label, color ?? (() => Ink));
+        return label;
+    }
 
     public static TableLayoutPanel Stack() => new()
     {
@@ -73,14 +118,14 @@ internal static class CompanionTheme
             Padding = new(32, 28, 32, 24), BackColor = Canvas
         };
         content = Stack();
-        Add(content, Label(title, TitleFont), Label(subtitle, color: Muted));
+        Add(content, Label(title, TitleFont), Label(subtitle, color: () => Muted));
         page.Controls.Add(content);
         return page;
     }
 
     public static RoundedCard Field(Control input)
     {
-        var frame = new RoundedCard { SurfaceColor = Inset, Padding = new(12, 10, 12, 10), Margin = new(0, 0, 0, 16) };
+        var frame = new RoundedCard { IsInset = true, Padding = new(12, 10, 12, 10), Margin = new(0, 0, 0, 16) };
         input.Margin = Padding.Empty;
         input.BackColor = Inset; input.ForeColor = Ink; input.Font = BodyFont;
         if (input is TextBox text) text.BorderStyle = BorderStyle.None;
@@ -105,7 +150,14 @@ internal static class CompanionTheme
 internal sealed class RoundedCard : TableLayoutPanel
 {
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
-    public Color SurfaceColor { get; set; } = CompanionTheme.Surface;
+    public bool IsInset { get; init; }
+    Color? customSurface;
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public Color SurfaceColor
+    {
+        get => customSurface ?? (IsInset ? CompanionTheme.Inset : CompanionTheme.Surface);
+        set { customSurface = value; Invalidate(); }
+    }
     public RoundedCard()
     {
         DoubleBuffered = true; AutoSize = true; AutoSizeMode = AutoSizeMode.GrowAndShrink;
@@ -165,10 +217,10 @@ internal sealed class RiffButton : Button
         var scale = DeviceDpi / 96f;
         var background = Primary ? CompanionTheme.Accent : Navigation && !Selected ? CompanionTheme.Canvas : CompanionTheme.Inset;
         if (Navigation && Selected) background = CompanionTheme.Surface;
-        if (hovered && Enabled) background = Primary ? ColorTranslator.FromHtml("#A52E26") : CompanionTheme.Peach;
-        if (pressed && Enabled) background = Primary ? ColorTranslator.FromHtml("#8F2922") : ColorTranslator.FromHtml("#F4CFB4");
+        if (hovered && Enabled) background = Primary ? CompanionTheme.Mix(CompanionTheme.Accent, CompanionTheme.Dark ? Color.White : Color.Black, 0.10f) : CompanionTheme.Mix(background, CompanionTheme.Accent, 0.10f);
+        if (pressed && Enabled) background = Primary ? CompanionTheme.Mix(CompanionTheme.Accent, CompanionTheme.Dark ? Color.White : Color.Black, 0.20f) : CompanionTheme.Mix(background, CompanionTheme.Accent, 0.18f);
         if (!Enabled) background = CompanionTheme.Inset;
-        var foreground = Enabled ? Primary ? Color.White : CompanionTheme.Ink : CompanionTheme.Muted;
+        var foreground = Enabled ? Primary ? CompanionTheme.AccentInk : Navigation && Selected ? CompanionTheme.Accent : CompanionTheme.Ink : CompanionTheme.Muted;
         if (SystemInformation.HighContrast)
         {
             background = Selected || Primary ? SystemColors.Highlight : SystemColors.Control;
@@ -184,10 +236,16 @@ internal sealed class RiffButton : Button
         {
             var tile = new Rectangle((int)(12 * scale), (int)((Height - 30 * scale) / 2), (int)(30 * scale), (int)(30 * scale));
             using var tileShape = CompanionTheme.Round(tile, 10 * scale);
-            using var tileBrush = new SolidBrush(SystemInformation.HighContrast ? background : TileColor);
+            using var tileBrush = new SolidBrush(SystemInformation.HighContrast ? background : CompanionTheme.Appearance.Theme == "amoled" ? Color.Black : TileColor);
             e.Graphics.FillPath(tileBrush, tileShape);
+            if (CompanionTheme.Appearance.Theme == "amoled" && !SystemInformation.HighContrast)
+            {
+                using var outline = new Pen(CompanionTheme.Mix(TileColor, Color.Black, 0.5f), scale);
+                e.Graphics.DrawPath(outline, tileShape);
+            }
+            var iconColor = SystemInformation.HighContrast ? foreground : CompanionTheme.Appearance.Theme == "amoled" ? TileColor : CompanionTheme.PadInk;
             using var iconFont = new Font("Segoe MDL2 Assets", 12);
-            TextRenderer.DrawText(e.Graphics, Glyph, iconFont, tile, foreground, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            TextRenderer.DrawText(e.Graphics, Glyph, iconFont, tile, iconColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             textBounds.X += (int)(54 * scale); textBounds.Width -= (int)(64 * scale);
             flags |= TextFormatFlags.Left;
         }

@@ -56,6 +56,24 @@ import Testing
         #expect(restored.colorScheme == appearance.colorScheme)
     }
 
+    @Test func companionFollowsDisplayedAppearanceAndAMOLEDOverride() throws {
+        let name = "RiffThemeTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = ThemePreferences(defaults: defaults)
+        preferences.displayedColorScheme = .dark
+        #expect(preferences.companionAppearance == "dark")
+        preferences.appearance = .light
+        #expect(preferences.companionAppearance == "light")
+        preferences.theme = .amoled
+        #expect(preferences.companionAppearance == "dark")
+        preferences.theme = .ocean
+        #expect(preferences.companionAppearance == "light")
+        preferences.appearance = .system
+        preferences.displayedColorScheme = .light
+        #expect(preferences.companionAppearance == "light")
+    }
+
     private func contrast(_ first: Int, _ second: Int) -> Double {
         let a = luminance(first), b = luminance(second)
         return (max(a, b) + 0.05) / (min(a, b) + 0.05)

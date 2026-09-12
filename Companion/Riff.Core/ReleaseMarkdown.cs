@@ -10,9 +10,12 @@ namespace Riff.Core;
 public static class ReleaseMarkdown
 {
     static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UsePipeTables().UseTaskLists().UseEmphasisExtras().UseAutoLinks().Build();
-    public static string ToRtf(string markdown, Uri baseUrl)
+    public static string ToRtf(string markdown, Uri baseUrl, int ink = 0x302927, int accent = 0xBA382F, int inset = 0xEAE6DF, int muted = 0x706962)
     {
-        var result = new StringBuilder(@"{\rtf1\ansi\deff0{\fonttbl{\f0 Segoe UI;}{\f1 Consolas;}}{\colortbl;\red48\green41\blue39;\red186\green56\blue47;\red234\green230\blue223;\red112\green105\blue98;}\viewkind4\uc1\f0\fs22\cf1 ");
+        static string ColorEntry(int rgb) => $@"\red{(rgb >> 16) & 255}\green{(rgb >> 8) & 255}\blue{rgb & 255};";
+        var result = new StringBuilder(@"{\rtf1\ansi\deff0{\fonttbl{\f0 Segoe UI;}{\f1 Consolas;}}{\colortbl;");
+        foreach (var color in new[] { ink, accent, inset, muted }) result.Append(ColorEntry(color));
+        result.Append(@"}\viewkind4\uc1\f0\fs22\cf1 ");
         Blocks(Markdown.Parse(markdown, Pipeline), result, baseUrl);
         return result.Append('}').ToString();
     }

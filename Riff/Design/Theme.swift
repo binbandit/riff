@@ -88,6 +88,8 @@ enum AppAppearance: String, CaseIterable, Identifiable {
     var theme: AppTheme { didSet { defaults.set(theme.rawValue, forKey: "riff.theme") } }
     var appearance: AppAppearance { didSet { defaults.set(appearance.rawValue, forKey: "riff.appearance") } }
     var colorScheme: ColorScheme? { theme.colorScheme ?? appearance.colorScheme }
+    var displayedColorScheme: ColorScheme = .light
+    var companionAppearance: String { (colorScheme ?? displayedColorScheme) == .dark ? "dark" : "light" }
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         theme = defaults.string(forKey: "riff.theme").flatMap(AppTheme.init(rawValue:)) ?? .warm
@@ -119,5 +121,14 @@ private enum ThemeColor {
             return NSColor(srgbRed: CGFloat((value >> 16) & 255) / 255, green: CGFloat((value >> 8) & 255) / 255, blue: CGFloat(value & 255) / 255, alpha: 1)
         })
 #endif
+    }
+}
+
+struct CompanionAppearanceObserver: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+    func body(content: Content) -> some View {
+        content.onChange(of: colorScheme, initial: true) { _, scheme in
+            ThemePreferences.shared.displayedColorScheme = scheme
+        }
     }
 }

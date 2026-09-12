@@ -9,13 +9,14 @@ public sealed class CompanionUpdatesView : UserControl
     readonly HttpClient http;
     readonly CancellationTokenSource lifetime = new();
     readonly Label versions = Label("", SectionFont);
-    readonly Label state = Label("Checking GitHub for the latest Windows release…", color: Muted);
+    readonly Label state = Label("Checking GitHub for the latest Windows release…", color: () => Muted);
     readonly Button check = new RiffButton("Check for updates") { Primary = true };
     readonly Button download = new RiffButton("Open downloads on GitHub");
     readonly RichTextBox notes = new() { Height = 360, ReadOnly = true, BorderStyle = BorderStyle.None, BackColor = Surface, ForeColor = Ink, Font = BodyFont, DetectUrls = true, ScrollBars = RichTextBoxScrollBars.Vertical, AccessibleName = "Latest companion release notes" };
     readonly Label notesHeading = Label("What’s new", SectionFont);
     readonly System.Windows.Forms.Timer timer = new() { Interval = 60 * 60 * 1000 };
     CompanionRelease? release;
+    string? releaseMarkdown;
     DateTime nextCheck;
     bool checking;
     public event Action<bool>? UpdateAvailable;
@@ -35,7 +36,7 @@ public sealed class CompanionUpdatesView : UserControl
         notes.LinkClicked += (_, args) => { if (ReleaseMarkdown.ClickedLink(args.LinkText) is { } url) Open(url); };
         var releaseNotes = new RoundedCard();
         Add(releaseNotes, notesHeading, notes); Add(content, releaseNotes);
-        Add(content, Label("Updates are checked automatically. Downloads open on GitHub, and you choose when to install. Your decks and clips stay on this PC.", color: Muted));
+        Add(content, Label("Updates are checked automatically. Downloads open on GitHub, and you choose when to install. Your decks and clips stay on this PC.", color: () => Muted));
         var license = new LinkLabel { Text = "Markdown renderer license", AutoSize = true, LinkColor = Accent, ActiveLinkColor = Accent, VisitedLinkColor = Muted, Margin = new(0, 8, 0, 0) };
         license.LinkClicked += (_, _) => ShowLicense(); Add(content, license);
         Controls.Add(page);
@@ -55,7 +56,7 @@ public sealed class CompanionUpdatesView : UserControl
             if (latest is null)
             {
                 versions.Text = $"Installed {CompanionBuild.Version}";
-                state.Text = "No stable Windows release has been published yet."; notes.Clear();
+                state.Text = "No stable Windows release has been published yet."; releaseMarkdown = null; notes.Clear();
                 UpdateAvailable?.Invoke(false); return;
             }
             var current = CompanionVersion.Parse(CompanionBuild.Version);
@@ -66,12 +67,13 @@ public sealed class CompanionUpdatesView : UserControl
                 : latest.Version.CompareTo(current) == 0 ? "You’re up to date." : "You’re running a build ahead of the latest stable release.";
             UpdateAvailable?.Invoke(newer);
             notesHeading.Text = $"What’s new in {latest.Version.Value}";
-            notes.Text = "Loading release notes…";
+            releaseMarkdown = null; notes.Text = "Loading release notes…";
             try
             {
                 var markdown = await client.FetchChangelog(latest, lifetime.Token);
                 if (lifetime.IsCancellationRequested) return;
-                notes.Rtf = ReleaseMarkdown.ToRtf(markdown, latest.Page);
+                releaseMarkdown = markdown;
+                RefreshAppearance();
                 notes.Select(0, 0); notes.ScrollToCaret();
             }
             catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidDataException or System.Text.Json.JsonException or OperationCanceledException or System.Text.DecoderFallbackException)
@@ -88,6 +90,14 @@ public sealed class CompanionUpdatesView : UserControl
             }
         }
         finally { checking = false; if (!IsDisposed) check.Enabled = true; }
+    }
+    internal void RefreshAppearance()
+    {
+        if (releaseMarkdown is null || release is null) return;
+        var start = notes.SelectionStart; var length = notes.SelectionLength;
+        notes.Rtf = ReleaseMarkdown.ToRtf(releaseMarkdown, release.Page,
+            Ink.ToArgb(), Accent.ToArgb(), Inset.ToArgb(), Muted.ToArgb());
+        notes.Select(Math.Min(start, notes.TextLength), Math.Min(length, Math.Max(0, notes.TextLength - start)));
     }
     void Open(Uri url)
     {

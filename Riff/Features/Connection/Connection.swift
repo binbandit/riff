@@ -82,6 +82,10 @@ final class PinnedSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecked 
         if path == "/api/playback" { request.timeoutInterval = 2 }
         request.setValue("Bearer \(pairing.token)", forHTTPHeaderField: "Authorization")
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        if path == "/api/state" {
+            request.setValue(ThemePreferences.shared.theme.rawValue, forHTTPHeaderField: "X-Riff-Theme")
+            request.setValue(ThemePreferences.shared.companionAppearance, forHTTPHeaderField: "X-Riff-Appearance")
+        }
         let (data, response) = try await session.data(for: request)
         guard let response = response as? HTTPURLResponse else { throw RiffError.message("The PC did not respond.") }
         guard (200..<300).contains(response.statusCode) else {

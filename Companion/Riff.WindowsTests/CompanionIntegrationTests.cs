@@ -36,8 +36,22 @@ public class CompanionIntegrationTests
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.PutAsJsonAsync("/api/queue", new QueueUpdate("clear", "pc", 0), Wire.Json)).StatusCode);
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/clips/nope/audio")).StatusCode);
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/sound-suggestions", new SoundSuggestionRequest(["nope"], "Game night"), Wire.Json)).StatusCode);
+                client.DefaultRequestHeaders.Add("X-Riff-Theme", "ocean");
+                client.DefaultRequestHeaders.Add("X-Riff-Appearance", "dark");
+                Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
+                var appearancePath = Path.Combine(folder, "appearance.json");
+                Assert.False(File.Exists(appearancePath));
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", identity.Token);
                 var snapshot = (await client.GetFromJsonAsync<Snapshot>("/api/state", Wire.Json))!;
+                Assert.Equal(new CompanionAppearance("ocean", true),
+                    System.Text.Json.JsonSerializer.Deserialize<CompanionAppearance>(await File.ReadAllTextAsync(appearancePath)));
+                client.DefaultRequestHeaders.Remove("X-Riff-Theme");
+                client.DefaultRequestHeaders.Add("X-Riff-Theme", "future-theme");
+                (await client.GetAsync("/api/state")).EnsureSuccessStatusCode();
+                Assert.Equal(new CompanionAppearance("ocean", true),
+                    System.Text.Json.JsonSerializer.Deserialize<CompanionAppearance>(await File.ReadAllTextAsync(appearancePath)));
+                client.DefaultRequestHeaders.Remove("X-Riff-Theme");
+                client.DefaultRequestHeaders.Remove("X-Riff-Appearance");
                 Assert.Equal(2, snapshot.Decks.Count);
                 Assert.True(snapshot.SoundboardOnly);
                 Assert.Contains("soundboard-only-v1", snapshot.Capabilities!);

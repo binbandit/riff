@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Riff.Companion/AppearancePreferences.cs" Link="AppearancePreferences.cs" />
     <Compile Include="../Riff.Companion/LoopingWaveStream.cs" Link="LoopingWaveStream.cs" />
     <PackageReference Include="NAudio.Core" Version="2.2.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />

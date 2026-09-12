@@ -14,10 +14,10 @@ public sealed class MainForm : Form
     readonly NotifyIcon tray;
     readonly System.Windows.Forms.Timer timer = new() { Interval = 2000 };
     readonly Label status = Label("Starting companion…", StrongFont);
-    readonly Label connectionDetail = Label("Private connection on your network", color: Muted);
+    readonly Label connectionDetail = Label("Private connection on your network", color: () => Muted);
     readonly RoundedCard pairingStatus = new() { Dock = DockStyle.Top };
     readonly Label pairingStatusTitle = Label("Starting companion…", SectionFont);
-    readonly Label pairingStatusDetail = Label("Your connection status will appear here.", color: Muted);
+    readonly Label pairingStatusDetail = Label("Your connection status will appear here.", color: () => Muted);
     readonly TextBox pairingLink = new() { Multiline = true, AutoSize = false, ReadOnly = true, Height = 76, ScrollBars = ScrollBars.Vertical, AccessibleName = "Private pairing link" };
     readonly ComboBox addresses = new() { DropDownStyle = ComboBoxStyle.DropDownList, AccessibleName = "PC network address" };
     readonly PictureBox qr = new() { Width = 224, Height = 224, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White, AccessibleName = "Scan this pairing code with Riff on your iPad", TabStop = false };
@@ -27,10 +27,11 @@ public sealed class MainForm : Form
     readonly TrackBar monitorVolume = new() { Minimum = 0, Maximum = 100, TickStyle = TickStyle.None, AccessibleName = "Headphone volume", BackColor = Surface };
     readonly TrackBar volume = new() { Minimum = 0, Maximum = 100, TickStyle = TickStyle.None, AccessibleName = "Sound volume", BackColor = Surface };
     readonly ListBox apps = new() { Height = 220, DisplayMember = "Name", BorderStyle = BorderStyle.None, BackColor = Surface, ForeColor = Ink, AccessibleName = "Allowed applications", IntegralHeight = false };
-    readonly Label emptyApps = Label("No applications yet. Add an app to make it available on your iPad.", color: Muted);
+    readonly Label emptyApps = Label("No applications yet. Add an app to make it available on your iPad.", color: () => Muted);
     readonly TextBox log = new() { Multiline = true, AutoSize = false, ReadOnly = true, Dock = DockStyle.Fill, ScrollBars = ScrollBars.Vertical, BorderStyle = BorderStyle.None, BackColor = Surface, ForeColor = Muted, AccessibleName = "Companion activity", Font = new("Consolas", 10) };
     readonly Panel pageHost = new() { Dock = DockStyle.Fill, Margin = Padding.Empty };
     readonly List<(RiffButton Button, Control Page)> navigation = [];
+    bool highContrast = SystemInformation.HighContrast;
     bool exiting;
     bool stopping;
     bool serverStarted;
@@ -52,7 +53,7 @@ public sealed class MainForm : Form
         sidebar.RowStyles.Add(new(SizeType.AutoSize)); sidebar.RowStyles.Add(new(SizeType.Percent, 100)); sidebar.RowStyles.Add(new(SizeType.AutoSize));
         var brand = Stack();
         var wordmark = Label("riff", new Font("Segoe UI", 38, FontStyle.Bold)); wordmark.Margin = new(10, 0, 0, 0);
-        var tagline = Label("Your PC. In harmony.", color: Muted); tagline.Margin = new(12, 0, 0, 32);
+        var tagline = Label("Your PC. In harmony.", color: () => Muted); tagline.Margin = new(12, 0, 0, 32);
         Add(brand, wordmark, tagline); sidebar.Controls.Add(brand, 0, 0);
         var links = Stack();
         void AddPage(string title, string glyph, Color tint, Control page)
@@ -80,11 +81,13 @@ public sealed class MainForm : Form
         main.Controls.Add(pageHost, 0, 0);
         var footer = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 2, Padding = new(32, 12, 32, 12), Margin = Padding.Empty };
         footer.ColumnStyles.Add(new(SizeType.Percent, 100)); footer.ColumnStyles.Add(new(SizeType.AutoSize));
-        var caption = Label("Windows companion  ·  " + CompanionBuild.Version, color: Muted); caption.Anchor = AnchorStyles.Left; caption.Dock = DockStyle.None; caption.Margin = Padding.Empty;
+        var caption = Label("Windows companion  ·  " + CompanionBuild.Version, color: () => Muted); caption.Anchor = AnchorStyles.Left; caption.Dock = DockStyle.None; caption.Margin = Padding.Empty;
         footer.Controls.Add(caption, 0, 0);
         var stop = Button("Stop all sounds", runner.Stop); stop.Margin = Padding.Empty; footer.Controls.Add(stop, 1, 0);
         main.Controls.Add(footer, 0, 1);
         layout.Controls.Add(sidebar, 0, 0); layout.Controls.Add(main, 1, 0); Controls.Add(layout);
+        Foreground(log, () => Muted);
+        Apply(this, server.Appearance.Current);
         SelectPage(navigation[0].Page);
         Shown += async (_, _) => await updates.Check();
         // Data-bound lists need the form's BindingContext before selecting an item.
@@ -118,10 +121,15 @@ public sealed class MainForm : Form
     }
     void RefreshConnectionStatus()
     {
+        if (CompanionTheme.Appearance != server.Appearance.Current || highContrast != SystemInformation.HighContrast)
+        {
+            highContrast = SystemInformation.HighContrast;
+            Apply(this, server.Appearance.Current);
+        }
         var connected = serverStarted && DateTime.UtcNow - server.LastSeen < TimeSpan.FromSeconds(12);
         hasConnected |= connected;
         status.Text = !serverStarted ? "Companion offline" : connected ? "iPad connected" : hasConnected ? "iPad disconnected" : "Waiting for your iPad";
-        status.ForeColor = !serverStarted ? Accent : connected ? Color.FromArgb(50, 99, 68) : Ink;
+        status.ForeColor = !serverStarted ? Accent : connected ? Success : Ink;
         connectionDetail.Text = !serverStarted ? "Open Activity for details." : connected ? "Encrypted connection\nOn your local network" : "Open Riff on your iPad to connect.";
         pairingStatusTitle.Text = status.Text;
         pairingStatusTitle.ForeColor = status.ForeColor;
@@ -129,7 +137,7 @@ public sealed class MainForm : Form
             : connected ? "You’re ready to play. Sounds and controls from your iPad are connected to this PC."
             : hasConnected ? "Open Riff on your iPad and check that both devices are on the same network. Your iPad will reconnect automatically."
             : "Open Riff on your iPad and scan the code below. Already paired? Keep the app open to reconnect.";
-        var surface = connected ? Green : Surface;
+        var surface = connected && !SystemInformation.HighContrast ? Mix(Surface, Success, 0.12f) : Surface;
         if (pairingStatus.SurfaceColor != surface) { pairingStatus.SurfaceColor = surface; pairingStatus.Invalidate(); }
         tray.Text = "Riff · " + status.Text;
         if (connected != wasConnected)
@@ -309,6 +317,7 @@ public sealed class MainForm : Form
                 Button("Enable suggestions", () => { server.AI.Save(key.Text); key.Clear(); aiStatus.Text = "AI suggestions are enabled."; }, primary: true),
                 Button("Disable & remove key", () => { server.AI.Disable(); key.Clear(); aiStatus.Text = "AI suggestions are disabled. Your API key was removed."; })),
             Body("Your key is encrypted for your Windows account and never sent to the iPad. You can edit suggestions or turn them off while adding a button.")));
+        Add(content, Card("Appearance", Body("Your companion follows the theme and light or dark appearance on your iPad. Choose a look in Riff’s Settings → Appearance. The last look stays in place while disconnected.")));
         Add(content, Disclosure("Built to stay outside the game", Body("Riff does not inject code, inspect game memory, install hooks, or modify game files. Steam deck switching reads only local library files and running-game registry flags. For voice chat, use a virtual audio device and hold your physical push-to-talk key yourself, or use voice activation where allowed."),
             Body("Soundboard mode reduces automation risk; it is not anti-cheat approval. Follow your game’s rules for third-party audio and voice chat. Never bypass anti-cheat blocks or enable automation to gain a gameplay advantage.")));
         return page;
@@ -378,7 +387,7 @@ public sealed class MainForm : Form
         emptyApps.Visible = apps.Items.Count == 0;
         apps.Visible = apps.Items.Count > 0;
     }
-    static Label Body(string text) => Label(text, color: Muted);
+    static Label Body(string text) => Label(text, color: () => Muted);
     static TableLayoutPanel VolumeControl(string title, TrackBar slider)
     {
         var stack = Stack();

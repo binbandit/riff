@@ -70,6 +70,8 @@ An optional [firewall script](scripts/allow-private-network.ps1) can add a rule 
 
 ## Using the soundboard
 
+Choose a theme in **Settings → Appearance** on iPad. The Windows companion follows the same colors and light or dark appearance while connected, including AMOLED, and remembers the last look while disconnected. Both apps need a version that supports theme sharing.
+
 Deck editing works before pairing and while your PC is offline. Saved changes survive restarting the app and sync on the next connection while Riff is open. Changes to different decks, buttons, and appearance fields are merged; if both devices change the same field, the pending iPad edit wins. Local deletions are also synced. Saving finishes locally; transfers and retries run quietly in the background without blocking further edits. Failed transfers keep the local edits for retry, including when the PC saved a change but its reply was interrupted.
 
 Games discovered on your PC are remembered on the iPad, including when a Steam library drive is temporarily unavailable. After connecting once, you can choose those games and your saved allowed applications while creating or configuring decks offline. Newly discovered games and updated names arrive automatically; pairing a different PC starts its own game list. Allowed applications and audio outputs keep the latest list received from the PC.
