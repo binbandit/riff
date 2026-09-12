@@ -22,9 +22,9 @@ struct ActionFields: View {
             Text("Plays through the output selected in Audio settings. For game chat, choose your virtual cable.").font(.caption).foregroundStyle(.secondary)
         case "hotkey":
             TextField("Ctrl+Shift+M", text: $value).textInputAutocapitalization(.never).autocorrectionDisabled()
-            Text("Use Ctrl, Alt, Shift, Win, letters, digits, F1-F24, or names like Space and Enter. The shortcut goes to the focused Windows app.").font(.caption).foregroundStyle(.secondary)
+            Text("Enter a single key like K or Enter, or combine keys with +, like Ctrl+Shift+M. Supports Ctrl, Alt, Shift, Win, letters, digits, F1-F24, and Space. To type a message between key presses, choose Action sequence.").font(.caption).foregroundStyle(.secondary)
         case "text":
-            TextField("Text to type", text: $value, axis: .vertical).lineLimit(3...6)
+            TextField("Text to type", text: $value, axis: .vertical).lineLimit(3...6).textInputAutocapitalization(.never).autocorrectionDisabled()
             Text("Types into the focused field on your PC. Add an Enter shortcut as the next sequence step if you want to send it.").font(.caption).foregroundStyle(.secondary)
         case "url": TextField("https://example.com", text: $value).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
         case "app":

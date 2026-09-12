@@ -93,7 +93,7 @@ struct PadEditor: View {
                 }
             }
             .onChange(of: pad.kind) { _, kind in
-                pad.value = defaultValue(kind); pad.steps = ActionKind(rawValue: kind)?.isSequence == true ? [ActionStep()] : []
+                pad.value = defaultValue(kind); pad.steps = ["switch", "random"].contains(kind) ? [ActionStep()] : []
                 pad.alternateSteps = kind == "switch" ? [ActionStep()] : nil
                 if !suggestionEdits.icon { pad.icon = ActionKind(rawValue: kind)?.icon ?? "sparkles" }
             }

@@ -138,6 +138,10 @@ Link a game under **Deck settings**, then enable **Follow my Steam game** in Set
 
 Keyboard shortcuts and typed text go to the focused Windows app. To launch an application, first add its `.exe` under **Allowed apps** in the companion. Riff doesn't accept arbitrary shell commands from the iPad.
 
+Choose **Action sequence** to build a custom button. **Add step** lets you choose a keyboard shortcut (including a single key), typed text, sound, website, allowed app, or media control. Mix them in any order, edit every value, duplicate steps, move them up or down, or remove them. Each step has its own **Wait before** delay. Sequences support up to 20 steps, up to 5 seconds per wait, and 30 seconds of total delays.
+
+To send a game chat message with one button, name it **Good Game**, choose **Action sequence**, then tap **Add game chat message**. This optional template adds three editable steps: press **K**, wait **300 ms** and type **GG**, then wait **100 ms** and press **Enter**. Change K to your game's chat key and GG to your message. Each **Wait before** delay applies before that step; increase the delay before the text if chat opens slowly. Keep the game focused on your PC, with chat closed before tapping. Desktop controls must be enabled in the Windows companion; Soundboard mode blocks keyboard actions and sequences.
+
 Riff doesn't run Elgato plugins or include a dedicated OBS integration. You can control OBS through its configured hotkeys. Elevated applications and protected games may block simulated input.
 
 ## Updates and backups
