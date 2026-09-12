@@ -1,14 +1,14 @@
-# Optional sound packs
+# On-device sound packs
 
-Riff includes five downloadable packs with 35 recognizable streamer reactions and short-form montage memes. The requested clips are preserved as exact downloads: Sad Violin (the meme one), Smoke Detector Beep, They Ask You How You Are, Social Credit Music, Welcome Aboard Delta Airlines, And We Say Bye Bye, and Car Horns, Heavy Traffic. The two 101soundboards MP3s were supplied by the user after downloading from the requested pages.
+Riff includes five bundled packs with 35 recognizable streamer reactions and short-form montage memes. The requested clips are preserved as exact recordings: Sad Violin (the meme one), Smoke Detector Beep, They Ask You How You Are, Social Credit Music, Welcome Aboard Delta Airlines, And We Say Bye Bye, and Car Horns, Heavy Traffic. The two 101soundboards MP3s were supplied by the user after downloading from the requested pages.
 
 ## Using packs
 
 Open **Sounds → Explore sound packs**. Search by pack or sound name, open a pack, and tap a play button to preview privately on the iPad. Each sound's menu links to its original page.
 
-With an updated Windows companion connected, tap **Install pack**. Riff downloads the selected sounds on the iPad and transfers them to the paired PC. Progress identifies the current sound. **Pause** keeps completed sounds; **Resume download** skips those already installed. After installation, **Add pack to deck** offers a named new deck or an existing deck. The usual library rename, favorites, preview, and deletion controls also apply to pack sounds. Remove sounds from their buttons before deleting them.
+All 35 sounds ship with the iPad app and can be previewed without internet or a PC connection. With a compatible Windows companion connected, tap **Add to PC** to copy the bundled audio to its library over your local connection. **Pause** keeps completed sounds; **Continue adding to PC** skips those already copied. Then **Add pack to deck** offers a named new deck or an existing deck. Existing library renames, favorites, and deletion still apply; remove sounds from buttons before deleting them.
 
-Only the catalog and existing six starter WAVs ship in either application. There is no pack audio, cover art download, account, or automatic pack installation at launch. Preview data is transient; installed clips live in the PC library and work without internet. The catalog can be browsed offline. Previews and first-time installation need internet. Metadata is shared by both apps; catalog updates require updating both apps.
+Pack buttons in cached decks also play from the bundled audio when the PC is disconnected. The six starter WAVs remain unchanged. The companion stores transferred sounds as local WAV files for Windows playback. No external audio requests, download cache, or first-use internet connection are needed. Catalog updates still require updating both apps.
 
 ## Research and selection
 
@@ -21,21 +21,21 @@ Researched 12 September 2026 (Australia/Melbourne). The selection favors recogni
 
 ## Sources and rights
 
-The app requests files from Riff's public GitHub repository only when the user previews or installs them. The MP3s live in the repository's root-level `sound-packs/audio` folder, outside both app targets. Each filename includes the recording's SHA-256 and is checked against the catalog before installation. The source page, provider, uploader (when listed), reviewed duration, byte count, and SHA-256 are recorded for every clip. Original upstream download URLs are retained where available. Uploader names identify the upload, not necessarily the recording's copyright owner. The files are not represented as CC0, royalty-free, or cleared for commercial broadcasts or redistribution.
+The MP3s live in `Riff/Resources/PackSounds` and are included in the iPad application. Each filename includes the recording's SHA-256 and the audio is checked against the catalog before transfer to the PC. The source page, provider, uploader (when listed), reviewed duration, byte count, and SHA-256 are recorded for every clip. Original upstream download URLs are retained where available. Uploader names identify the upload, not necessarily the recording's copyright owner. The files are not represented as CC0, royalty-free, or cleared for commercial broadcasts or redistribution.
 
 [Myinstants' terms](https://www.myinstants.com/en/terms_of_use.html) describe limited personal/noncommercial site access. Its download buttons and Tuna's community download functionality establish availability, not a blanket distribution license. Rights clearance remains unresolved for public redistribution and commercial broadcasts. Hosting on GitHub does not change the recordings' rights status, and any license for Riff's code does not cover these recordings.
 
-All local audio files were hash-checked against the catalog during development. GitHub URLs become live once the audio and catalog reach the repository's `main` branch. Keep published filenames available for older app versions; replacement recordings get new filenames. See [hosting instructions](../sound-packs/README.md). If a GitHub file is missing, blocked, or replaced, Riff reports a download error and retains completed sounds; it never silently substitutes a different recording. No GitHub token or PC pairing token is sent with public audio requests.
+All bundled audio files are checked against the catalog in the offline test suite, including decoding them as playable audio. The app reports a missing or damaged resource instead of substituting a different recording. Source links open only when explicitly selected. See [bundled audio details](../sound-packs/README.md).
 
 ## Catalog
 
-Download sizes below refer to source MP3s. The companion converts installed sounds to 44.1 kHz mono PCM WAV, so installed disk usage is larger.
+Sizes below refer to bundled MP3s. The companion converts installed sounds to 44.1 kHz mono PCM WAV, so installed disk usage is larger.
 
 ### Streamer Essentials
 
 The reactions everyone recognizes. Punchlines, disbelief, and awkward silence.
 
-6 sounds, 295 KB download.
+6 sounds, 295 KB bundled.
 
 | Sound | Seconds | Source |
 | --- | ---: | --- |
@@ -50,7 +50,7 @@ The reactions everyone recognizes. Punchlines, disbelief, and awkward silence.
 
 Missed shots and instant regret. Featuring the original Sad Violin meme clip.
 
-7 sounds, 341 KB download.
+7 sounds, 341 KB bundled.
 
 | Sound | Seconds | Source |
 | --- | ---: | --- |
@@ -66,7 +66,7 @@ Missed shots and instant regret. Featuring the original Sad Violin meme clip.
 
 Big plays deserve a little noise. Celebrate the clutch, the reveal, and the win.
 
-6 sounds, 356 KB download.
+6 sounds, 356 KB bundled.
 
 | Sound | Seconds | Source |
 | --- | ---: | --- |
@@ -81,7 +81,7 @@ Big plays deserve a little noise. Celebrate the clutch, the reveal, and the win.
 
 Hard cuts, suspicious moments, and over-the-top reveals. Short-form edit staples.
 
-7 sounds, 662 KB download.
+7 sounds, 662 KB bundled.
 
 | Sound | Seconds | Source |
 | --- | ---: | --- |
@@ -97,7 +97,7 @@ Hard cuts, suspicious moments, and over-the-top reveals. Short-form edit staples
 
 Tiny interruptions and perfectly timed distractions. Includes Smoke Detector Beep.
 
-9 sounds, 651 KB download.
+9 sounds, 651 KB bundled.
 
 | Sound | Seconds | Source |
 | --- | ---: | --- |
@@ -113,7 +113,6 @@ Tiny interruptions and perfectly timed distractions. Includes Smoke Detector Bee
 
 ## Validation
 
-- Swift tests cover the shared catalog, exact requested source URLs, every repository MP3's size/hash and GitHub path, partial installation identity, renames, search, and rejected corrupt/truncated/oversized/failed downloads.
-- After publication, `RIFF_TEST_PACK_DOWNLOADS=1 swift test` additionally downloads every GitHub file through the same native downloader used by the app and verifies the reviewed hashes. Normal CI checks the actual audio files in its checkout without depending on public audio hosting.
+- Swift tests cover the shared catalog, exact requested source URLs, every bundled MP3's size/hash and audio decoding, stable clip IDs for disconnected playback, partial transfer identity, renames, search, and corrupt/truncated/oversized audio. They require no public audio hosting.
 - Companion unit tests cover catalog loading, allowed pack/sound pairs, and payload integrity. Windows integration tests cover capability negotiation, invalid uploads without state changes, normalization/persistence, and idempotent retry preserving renamed clips.
 - Windows integration tests require Windows; cross-compilation on macOS does not execute them.

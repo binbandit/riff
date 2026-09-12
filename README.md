@@ -121,7 +121,7 @@ Riff/
 │   ├── Sounds/      Library, recording, trimming, and sound packs
 │   └── Updates/     Companion releases and Markdown changelogs
 ├── Preview/      Development preview scenarios
-└── Resources/    Asset catalog, starter audio, sound-pack catalog, and licenses
+└── Resources/    Asset catalog, starter and pack audio, sound-pack catalog, and licenses
 ```
 
 Keep feature-specific views and supporting logic together. Put app-wide models and reusable visual components in `Models/` and `Design/`. Xcode discovers files inside `Riff/` automatically; update `Package.swift` when adding portable code or excluding an iPad-only view from the Mac test target. The sound generator writes starter audio to both `Shared/Sounds/` and `Riff/Resources/Sounds/`.

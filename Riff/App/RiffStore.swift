@@ -29,23 +29,20 @@ import Observation
                     try Task.checkCancellation()
                     guard generation == epoch, connected else { throw RiffError.message("Reconnect your PC, then resume this pack.") }
                     if snapshot.clips.contains(where: { $0.id == sound.clipID }) { continue }
-                    packInstallStatus = "Downloading \(sound.name)…"
-                    let data = try await SoundPacks.download(sound)
-                    try Task.checkCancellation()
-                    guard generation == epoch, connected else { throw RiffError.message("Reconnect your PC, then resume this pack.") }
+                    let data = try SoundPacks.audioData(for: sound)
                     packInstallStatus = "Saving \(sound.name) to PC…"
                     let next: Snapshot = try await client.request("/api/packs/\(pack.id)/sounds/\(sound.id)", method: "POST", body: data, contentType: "application/octet-stream")
                     guard generation == epoch, connected else { throw RiffError.message("Reconnect your PC, then resume this pack.") }
                     apply(next)
                     packInstallProgress = pack.installed(in: snapshot.clips).count
                 }
-                message("\(pack.name) installed. Add it to a deck to start playing.")
+                message("\(pack.name) added to PC. Add it to a deck to start playing.")
             } catch {
                 let cancelled = Task.isCancelled
                 // Refresh after an interrupted upload; the PC may have saved it before the response was lost.
                 if generation == epoch, let next: Snapshot = try? await client.request("/api/state") { apply(next) }
-                if cancelled { message("Download paused. Installed sounds are kept.") }
-                else { packInstallError = "\(error.localizedDescription) Installed sounds are kept; resume to finish the pack." }
+                if cancelled { message("Transfer paused. Sounds already on your PC are kept.") }
+                else { packInstallError = "\(error.localizedDescription) Sounds already on your PC are kept; resume to finish copying the pack." }
             }
         }
     }
@@ -191,7 +188,7 @@ import Observation
     }
     func trigger(_ pad: Pad) async {
         if !connected {
-            guard pad.kind == "sound", let url = Bundle.main.url(forResource: pad.value, withExtension: "wav") else {
+            guard pad.kind == "sound", let url = SoundPacks.audioURL(forClipID: pad.value) ?? Bundle.main.url(forResource: pad.value, withExtension: "wav") else {
                 error = "Connect your PC to use this action."; return
             }
             do {

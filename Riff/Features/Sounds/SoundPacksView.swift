@@ -15,7 +15,7 @@ struct SoundPacksView: View {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Find your next reaction.").font(.system(.title, design: .rounded, weight: .bold))
-                    Text("Recognizable memes, streamer favorites, and montage staples. Download only the packs you want.")
+                    Text("Recognizable memes, streamer favorites, and montage staples. Every sound is included on this iPad.")
                         .foregroundStyle(.secondary)
                 }.padding(.vertical, 6)
                 if let failure { Text(failure).foregroundStyle(.red) }
@@ -37,12 +37,12 @@ struct SoundPacksView: View {
                                 Text(pack.sounds.prefix(3).map(\.name).joined(separator: " · "))
                                     .font(.caption).foregroundStyle(.secondary).lineLimit(2)
                                 HStack {
-                                    Text("\(pack.sounds.count) sounds · \(pack.downloadSize)")
+                                    Text("\(pack.sounds.count) sounds · On this iPad")
                                     Spacer()
                                     if store.installingPackID == pack.id { ProgressView() }
                                     else if pack.installed(in: store.snapshot.clips).count == pack.sounds.count {
-                                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityLabel("Installed on PC")
-                                    } else { Image(systemName: "arrow.down.circle").foregroundStyle(pack.tint) }
+                                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityLabel("Added to PC")
+                                    } else { Image(systemName: "ipad.landscape").foregroundStyle(pack.tint) }
                                 }.font(.caption.weight(.medium)).foregroundStyle(.secondary)
                             }.padding(20).frame(maxWidth: .infinity, minHeight: 250, alignment: .topLeading)
                                 .background(Palette.panel, in: RoundedRectangle(cornerRadius: 22))
@@ -52,7 +52,7 @@ struct SoundPacksView: View {
                 if !packs.isEmpty && packs.filter({ $0.matches(search) }).isEmpty {
                     ContentUnavailableView.search(text: search)
                 }
-                Text("Packs install to your paired PC. Preview any clip on this iPad before downloading a pack.")
+                Text("Preview every sound offline on this iPad. Add a pack to your paired PC to use it in your decks.")
                     .font(.footnote).foregroundStyle(.secondary)
             }.padding(20)
         }.background(Palette.background)
@@ -91,7 +91,7 @@ struct SoundPackDetailView: View {
                             .frame(width: 60, height: 60).background(pack.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 18))
                         VStack(alignment: .leading, spacing: 6) {
                             Text(pack.name).font(.system(.title2, design: .rounded, weight: .bold))
-                            Text("\(pack.sounds.count) sounds · \(pack.downloadSize) download")
+                            Text("\(pack.sounds.count) sounds · On this iPad")
                                 .font(.subheadline).foregroundStyle(.secondary)
                         }
                     }
@@ -102,10 +102,8 @@ struct SoundPackDetailView: View {
                 ForEach(pack.sounds) { sound in
                     HStack(spacing: 14) {
                         Button { preview.toggle(sound) } label: {
-                            Group {
-                                if preview.loadingID == sound.id { ProgressView() }
-                                else { Image(systemName: preview.playingID == sound.id ? "stop.fill" : "play.fill") }
-                            }.frame(width: 44, height: 44).foregroundStyle(pack.tint)
+                            Image(systemName: preview.playingID == sound.id ? "stop.fill" : "play.fill")
+                                .frame(width: 44, height: 44).foregroundStyle(pack.tint)
                                 .background(pack.tint.opacity(0.10), in: Circle())
                         }.buttonStyle(.borderless)
                             .accessibilityLabel(preview.playingID == sound.id ? "Stop \(sound.name)" : "Preview \(sound.name) on iPad")
@@ -115,7 +113,7 @@ struct SoundPackDetailView: View {
                         }
                         Spacer()
                         if installed.contains(where: { $0.id == sound.clipID }) {
-                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityLabel("Installed on PC")
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityLabel("Added to PC")
                         }
                         Menu {
                             Link("Open original on \(sound.provider)", destination: sound.sourceURL)
@@ -125,7 +123,7 @@ struct SoundPackDetailView: View {
                     }.padding(.vertical, 4)
                 }
             } header: { Text("In this pack") } footer: {
-                Text("Download only the packs you want. Original source details are available beside each sound.")
+                Text("Every sound is included on this iPad. Original source details are available beside each sound.")
             }
             if let error = preview.error { Section { Text(error).foregroundStyle(.red) } }
             if let error = store.packInstallError { Section { Text(error).foregroundStyle(.red) } }
@@ -139,7 +137,7 @@ struct SoundPackDetailView: View {
                 HStack {
                     Label("Previews play on iPad", systemImage: "ipad.landscape").font(.caption).foregroundStyle(.secondary)
                     Spacer()
-                    Button("Stop preview") { preview.stop() }.font(.caption).disabled(preview.playingID == nil && preview.loadingID == nil)
+                    Button("Stop preview") { preview.stop() }.font(.caption).disabled(preview.playingID == nil)
                 }
                 if installing {
                     ProgressView(value: Double(store.packInstallProgress), total: Double(pack.sounds.count))
@@ -152,16 +150,16 @@ struct SoundPackDetailView: View {
                     Button { preview.stop(); adding = true } label: {
                         Label("Add pack to deck", systemImage: "plus.square.on.square").frame(maxWidth: .infinity)
                     }.buttonStyle(AccentButtonStyle()).disabled(!store.connected || store.busy)
-                    Text("Installed on PC · \(installed.count) sounds").font(.caption).foregroundStyle(.secondary)
+                    Text("Added to PC · \(installed.count) sounds").font(.caption).foregroundStyle(.secondary)
                 } else {
                     Button { preview.stop(); store.installPack(pack) } label: {
-                        Label(installed.isEmpty ? "Install pack" : "Resume download · \(installed.count)/\(pack.sounds.count)", systemImage: "arrow.down.circle")
+                        Label(installed.isEmpty ? "Add to PC" : "Continue adding to PC · \(installed.count)/\(pack.sounds.count)", systemImage: "desktopcomputer")
                             .frame(maxWidth: .infinity)
                     }.buttonStyle(AccentButtonStyle()).disabled(!store.connected || !store.supportsPacks || store.busy)
                 }
-                if !store.connected { Text("Connect your PC to install packs and add buttons.").font(.caption).foregroundStyle(.secondary) }
-                else if !store.supportsPacks { Text("Update the Windows companion to install sound packs.").font(.caption).foregroundStyle(.secondary) }
-                else if store.busy && !installing { Text("Wait for the current download or change to finish.").font(.caption).foregroundStyle(.secondary) }
+                if !store.connected { Text("Connect your PC to add packs and buttons.").font(.caption).foregroundStyle(.secondary) }
+                else if !store.supportsPacks { Text("Update the Windows companion to add sound packs.").font(.caption).foregroundStyle(.secondary) }
+                else if store.busy && !installing { Text("Wait for the current transfer or change to finish.").font(.caption).foregroundStyle(.secondary) }
             }.padding(20).background(.regularMaterial)
         }
         .sheet(isPresented: $adding, onDismiss: { if added { onAdded() } }) {
@@ -172,40 +170,30 @@ struct SoundPackDetailView: View {
 }
 
 private extension SoundPack {
-    var downloadSize: String { ByteCountFormatter.string(fromByteCount: Int64(byteCount), countStyle: .file) }
     var tint: Color {
         switch color { case "purple": .purple; case "green": .green; case "pink": .pink; case "blue": .blue; default: Palette.accent }
     }
 }
 
 @MainActor @Observable final class PackPreview: NSObject, AVAudioPlayerDelegate {
-    var loadingID: String?
     var playingID: String?
     var error: String?
     private var player: AVAudioPlayer?
-    private var task: Task<Void, Never>?
     func toggle(_ sound: PackSound) {
-        let wasSelected = playingID == sound.id || loadingID == sound.id
+        let wasSelected = playingID == sound.id
         stop(); error = nil
         guard !wasSelected else { return }
-        loadingID = sound.id
-        task = Task {
-            do {
-                let data = try await SoundPacks.download(sound)
-                try Task.checkCancellation()
-                try AVAudioSession.sharedInstance().setCategory(.playback)
-                try AVAudioSession.sharedInstance().setActive(true)
-                let next = try AVAudioPlayer(data: data)
-                next.delegate = self; next.volume = 0.65
-                guard next.play() else { throw RiffError.message("This preview could not be played.") }
-                player = next; playingID = sound.id; loadingID = nil
-            } catch {
-                guard !Task.isCancelled else { return }
-                loadingID = nil; self.error = error.localizedDescription
-            }
-        }
+        do {
+            let url = try SoundPacks.audioURL(for: sound)
+            try AVAudioSession.sharedInstance().setCategory(.playback)
+            try AVAudioSession.sharedInstance().setActive(true)
+            let next = try AVAudioPlayer(contentsOf: url)
+            next.delegate = self; next.volume = 0.65
+            guard next.play() else { throw RiffError.message("This preview could not be played.") }
+            player = next; playingID = sound.id
+        } catch { self.error = error.localizedDescription }
     }
-    func stop() { task?.cancel(); task = nil; player?.stop(); player = nil; loadingID = nil; playingID = nil }
+    func stop() { player?.stop(); player = nil; playingID = nil }
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor in if self.player === player { self.playingID = nil; self.player = nil } }
     }

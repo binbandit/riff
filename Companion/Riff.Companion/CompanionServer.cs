@@ -132,7 +132,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
                 int read;
                 while ((read = await request.Body.ReadAsync(buffer, request.HttpContext.RequestAborted)) > 0)
                 {
-                    if (bytes.Length + read > sound.ByteCount) throw new ArgumentException("The sound download is larger than expected.");
+                    if (bytes.Length + read > sound.ByteCount) throw new ArgumentException("The sound transfer is larger than expected.");
                     bytes.Write(buffer, 0, read);
                 }
                 sound.Validate(bytes.GetBuffer().AsSpan(0, (int)bytes.Length));

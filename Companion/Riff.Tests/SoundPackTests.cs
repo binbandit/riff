@@ -16,7 +16,7 @@ public class SoundPackTests
         Assert.DoesNotContain(Defaults.Decks.SelectMany(d => d.Pads), p => sounds.Any(s => s.ClipId == p.Value));
         Assert.All(sounds, s =>
         {
-            Assert.Equal("https", new Uri(s.Url).Scheme);
+            Assert.Equal($"{s.Id}-{s.Sha256}.mp3", s.FileName);
             Assert.InRange(s.ByteCount, 1, 20 * 1024 * 1024);
             Assert.InRange(s.Duration, 0.01, 60);
             Assert.Equal(64, s.Sha256.Length);

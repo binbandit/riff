@@ -28,7 +28,7 @@ struct LibraryView: View {
                             Image(systemName: "square.stack.3d.up.fill").font(.title2).foregroundStyle(Palette.accent)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Explore sound packs").font(.headline).foregroundStyle(.primary)
-                                Text("Streamer favorites & meme classics. Download only what you want.").font(.subheadline).foregroundStyle(.secondary)
+                                Text("Streamer favorites & meme classics. Included on this iPad.").font(.subheadline).foregroundStyle(.secondary)
                             }
                             Spacer()
                             Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.secondary)

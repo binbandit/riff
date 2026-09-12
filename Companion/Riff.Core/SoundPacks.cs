@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Riff.Core;
 
-public record PackSound(string Id, string Name, string Url, string SourceURL, string Provider,
+public record PackSound(string Id, string Name, string FileName, string SourceURL, string Provider,
     string Uploader, string Rights, int ByteCount, string Sha256, double Duration)
 {
     public string? OriginalDownloadURL { get; init; }
@@ -12,7 +12,7 @@ public record PackSound(string Id, string Name, string Url, string SourceURL, st
     public void Validate(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length != ByteCount || !Convert.ToHexString(SHA256.HashData(bytes)).Equals(Sha256, StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException($"The download for {Name} changed or is incomplete. Update Riff and try again.");
+            throw new ArgumentException($"The audio for {Name} changed or is incomplete. Update Riff and try again.");
     }
 }
 public record SoundPack(string Id, string Name, string Description, string Icon, string Color, List<PackSound> Sounds);

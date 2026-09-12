@@ -55,7 +55,7 @@ let package = Package(
                 "Features/Updates/MarkdownDisplay.swift",
                 "Features/Updates/ReleaseChangelog.swift"
             ],
-            resources: [.process("Resources/sound-packs.json")],
+            resources: [.process("Resources/sound-packs.json"), .process("Resources/PackSounds")],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(
