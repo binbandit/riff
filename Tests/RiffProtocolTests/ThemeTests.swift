@@ -25,15 +25,35 @@ import Testing
     @Test func everyAccentHasReadableTextAndButtonContrast() {
         for theme in AppTheme.allCases {
             let colours = theme.colors
-            for backdrop in [colours.canvas.light, colours.surface.light] {
-                #expect(contrast(colours.highlight.light, backdrop) >= 4.5, "\(theme.name) light accent text")
+            if theme.colorScheme != .dark {
+                for backdrop in [colours.canvas.light, colours.surface.light] {
+                    #expect(contrast(colours.highlight.light, backdrop) >= 4.5, "\(theme.name) light accent text")
+                }
+                #expect(contrast(colours.highlight.light, 0xFFFFFF) >= 4.5, "\(theme.name) light button label")
             }
             for backdrop in [colours.canvas.dark, colours.surface.dark] {
                 #expect(contrast(colours.highlight.dark, backdrop) >= 4.5, "\(theme.name) dark accent text")
             }
-            #expect(contrast(colours.highlight.light, 0xFFFFFF) >= 4.5, "\(theme.name) light button label")
             #expect(contrast(colours.highlight.dark, 0x14191D) >= 4.5, "\(theme.name) dark button label")
         }
+    }
+
+    @Test(arguments: AppAppearance.allCases)
+    func amoledStaysDarkAndPreservesAppearance(appearance: AppAppearance) throws {
+        let name = "RiffThemeTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = ThemePreferences(defaults: defaults)
+        preferences.appearance = appearance
+        preferences.theme = .amoled
+        #expect(preferences.colorScheme == .dark)
+
+        let restored = ThemePreferences(defaults: defaults)
+        #expect(restored.theme == .amoled)
+        #expect(restored.colorScheme == .dark)
+        #expect(restored.appearance == appearance)
+        restored.theme = .warm
+        #expect(restored.colorScheme == appearance.colorScheme)
     }
 
     private func contrast(_ first: Int, _ second: Int) -> Double {

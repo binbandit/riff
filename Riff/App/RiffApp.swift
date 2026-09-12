@@ -6,9 +6,9 @@ import SwiftUI
         WindowGroup {
             ContentView().environment(store).tint(Palette.accent)
 #if DEBUG
-                .preferredColorScheme(DesignPreview.colorScheme ?? ThemePreferences.shared.appearance.colorScheme)
+                .preferredColorScheme(ThemePreferences.shared.theme.colorScheme ?? DesignPreview.colorScheme ?? ThemePreferences.shared.colorScheme)
 #else
-                .preferredColorScheme(ThemePreferences.shared.appearance.colorScheme)
+                .preferredColorScheme(ThemePreferences.shared.colorScheme)
 #endif
         }
     }

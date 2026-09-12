@@ -14,13 +14,22 @@ struct AppearanceView: View {
                     Text("Your deck, in your colours.")
                         .foregroundStyle(.secondary)
                 }
-                Picker("Appearance", selection: $preferences.appearance) {
+                Picker("Appearance", selection: Binding(
+                    get: { preferences.theme == .amoled ? .dark : preferences.appearance },
+                    set: { preferences.appearance = $0 }
+                )) {
                     ForEach(AppAppearance.allCases) { appearance in
                         Text(appearance.name).tag(appearance)
                     }
                 }
                 .pickerStyle(.segmented)
+                .disabled(preferences.theme == .amoled)
                 .accessibilityHint("Choose whether Riff follows your iPad’s appearance or always uses light or dark colours.")
+
+                if preferences.theme == .amoled {
+                    Text("AMOLED always uses dark appearance, with true black backgrounds and buttons to reduce display power use on OLED screens.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: typeSize.isAccessibilitySize ? 1 : 2), spacing: 18) {
                     ForEach(AppTheme.allCases) { theme in
@@ -37,7 +46,7 @@ struct AppearanceView: View {
                         .accessibilityHint("Use this theme throughout Riff.")
                     }
                 }
-                Text("Button colours stay familiar across every theme. These settings are just for this iPad.")
+                Text("AMOLED keeps your button colours in icons and outlines. These settings are just for this iPad.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             .frame(maxWidth: 600)
@@ -54,6 +63,7 @@ struct AppearanceView: View {
 private struct ThemePreview: View {
     let theme: AppTheme
     let selected: Bool
+    @Environment(\.colorScheme) private var colorScheme
     private let icons = ["sparkles", "airplane", "hand.raised", "theatermasks", "timer", "playpause"]
     private let colours = ["orange", "blue", "pink", "purple", "green", "blue"]
 
@@ -72,10 +82,15 @@ private struct ThemePreview: View {
                     ForEach(icons.indices, id: \.self) { index in
                         Image(systemName: icons[index])
                             .font(.system(size: 22, weight: .medium, design: .rounded))
-                            .foregroundStyle(Palette.ink)
+                            .foregroundStyle(theme.padForeground(Palette.color(colours[index])))
                             .frame(maxWidth: .infinity)
                             .frame(height: 51)
-                            .background(Palette.color(colours[index]), in: RoundedRectangle(cornerRadius: 11))
+                            .background(theme.padBackground(Palette.color(colours[index])), in: RoundedRectangle(cornerRadius: 11))
+                            .overlay {
+                                if theme == .amoled {
+                                    RoundedRectangle(cornerRadius: 11).strokeBorder(Palette.color(colours[index]).opacity(0.5))
+                                }
+                            }
                     }
                 }
                 HStack {
@@ -91,6 +106,7 @@ private struct ThemePreview: View {
             }
             .padding(14)
             .background(theme.colors.background, in: RoundedRectangle(cornerRadius: 19))
+            .environment(\.colorScheme, theme.colorScheme ?? colorScheme)
             HStack {
                 Text(theme.name).font(.body.weight(.semibold))
                 Spacer()
