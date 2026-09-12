@@ -14,13 +14,20 @@ enum Palette {
     static var accent: Color { ThemePreferences.shared.theme.colors.accent }
     static var accentInk: Color { ThemeColor.adaptive(light: 0xFFFFFF, dark: 0x14191D) }
     static let ink = Color(red: 0.19, green: 0.16, blue: 0.15)
-    static let colors = ["orange", "purple", "blue", "green", "pink"]
+    static let colors = ["orange", "purple", "blue", "green", "pink", "coral", "peach", "yellow", "mint", "teal", "indigo", "sand"]
     static func color(_ name: String) -> Color {
         switch name {
         case "purple": Color(red: 0.81, green: 0.75, blue: 0.95)
         case "blue": Color(red: 0.68, green: 0.83, blue: 0.94)
         case "green": Color(red: 0.75, green: 0.86, blue: 0.62)
         case "pink": Color(red: 0.98, green: 0.70, blue: 0.72)
+        case "coral": Color(red: 0.96, green: 0.61, blue: 0.53)
+        case "peach": Color(red: 1.0, green: 0.82, blue: 0.68)
+        case "yellow": Color(red: 0.97, green: 0.88, blue: 0.55)
+        case "mint": Color(red: 0.69, green: 0.88, blue: 0.77)
+        case "teal": Color(red: 0.55, green: 0.79, blue: 0.78)
+        case "indigo": Color(red: 0.67, green: 0.71, blue: 0.90)
+        case "sand": Color(red: 0.86, green: 0.80, blue: 0.70)
         default: Color(red: 1.0, green: 0.76, blue: 0.38)
         }
     }

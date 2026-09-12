@@ -50,7 +50,7 @@ public static class Rules
                 CheckId(pad.Id, ids);
                 CheckText(pad.Title, 40, "Button name");
                 CheckText(pad.Icon, 80, "Icon");
-                if (pad.Color is not ("orange" or "purple" or "blue" or "green" or "pink")) throw new ArgumentException("Unknown button color.");
+                if (pad.Color is not ("orange" or "purple" or "blue" or "green" or "pink" or "coral" or "peach" or "yellow" or "mint" or "teal" or "indigo" or "sand")) throw new ArgumentException("Unknown button color.");
                 ValidateAction(pad.Kind, pad.Value, clips, apps);
                 if (pad.Steps is null || pad.Steps.Count > 20) throw new ArgumentException("Use at most 20 sequence steps.");
                 if (pad.Kind == "macro")

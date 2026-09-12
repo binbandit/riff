@@ -20,6 +20,25 @@ public class DeckRulesTests
         Assert.Contains("\"steamAppId\":\"\"", json);
     }
     [Theory]
+    [InlineData("coral")]
+    [InlineData("peach")]
+    [InlineData("yellow")]
+    [InlineData("mint")]
+    [InlineData("teal")]
+    [InlineData("indigo")]
+    [InlineData("sand")]
+    public void ExpandedAppearanceSurvivesDeckSave(string color)
+    {
+        var pad = Sound with { Color = color, Icon = "emoji:🎧" };
+        var json = JsonSerializer.Serialize(new DeckUpdate(1, With(pad)), Wire.Json);
+        var decoded = JsonSerializer.Deserialize<DeckUpdate>(json, Wire.Json)!;
+        Rules.ValidateDecks(decoded.Decks, Clips, new HashSet<string>());
+        Assert.Equal(color, decoded.Decks[0].Pads[0].Color);
+        Assert.Equal(pad.Icon, decoded.Decks[0].Pads[0].Icon);
+        Assert.Equal(pad.Value, decoded.Decks[0].Pads[0].Value);
+    }
+    [Fact] public void UnknownButtonColorsAreRejected() => Assert.Throws<ArgumentException>(() => Rules.ValidateDecks(With(Sound with { Color = "neon" }), Clips, new HashSet<string>()));
+    [Theory]
     [InlineData("file:///C:/Windows/System32/cmd.exe")]
     [InlineData("javascript:alert(1)")]
     [InlineData("shell:AppsFolder")]
