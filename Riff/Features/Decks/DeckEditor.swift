@@ -24,7 +24,7 @@ struct DeckEditor: View {
         DeckSuggestionRequest(gameId: deck.steamAppId, appId: deck.linkedAppId ?? "", name: nameEdited ? cleanName : "", intent: intent.trimmingCharacters(in: .whitespacesAndNewlines))
     }
     private var request: DeckSuggestionRequest? {
-        guard isNew, useAI, !saving, store.padSuggestionsEnabled, store.supportsDeckSuggestions, context.hasContext,
+        guard isNew, useAI, !saving, store.padSuggestionsEnabled, context.hasContext,
               context.intent.utf16.count <= 500, context.name.utf16.count <= 40,
               context.gameId.count <= 12, context.gameId.allSatisfy({ $0.isASCII && $0.isNumber }) else { return nil }
         return context
@@ -111,7 +111,7 @@ struct DeckEditor: View {
     }
     @ViewBuilder private var starterSuggestions: some View {
         Section {
-            if store.supportsDeckSuggestions && store.padSuggestionsEnabled {
+            if store.padSuggestionsEnabled {
                 Toggle("Suggest starter buttons", isOn: $useAI)
                 if useAI {
                     TextField("What do you want this space for?", text: $intent, axis: .vertical)

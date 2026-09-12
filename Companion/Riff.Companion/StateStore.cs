@@ -14,6 +14,9 @@ public sealed class StateStore
     {
         Folder = folder;
         Directory.CreateDirectory(Path.Combine(folder, "clips"));
+        // Remove credentials left by versions that ran AI suggestions on Windows, without reading them.
+        File.Delete(Path.Combine(folder, "openai-key.bin"));
+        File.Delete(Path.Combine(folder, "openai-key.bin.tmp"));
         if (File.Exists(StatePath))
             State = JsonSerializer.Deserialize<SavedState>(File.ReadAllText(StatePath), Wire.Json) ?? throw new InvalidDataException("Cannot read saved decks. Restore state.json from a backup.");
         else

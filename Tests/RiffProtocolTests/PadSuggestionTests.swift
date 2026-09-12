@@ -62,8 +62,8 @@ import Testing
         try process.run()
         defer { process.terminate(); process.waitUntilExit() }
         let pairing = try JSONDecoder().decode(Pairing.self, from: pipe.fileHandleForReading.availableData)
-        let client = CompanionClient(pairing: pairing)
-        let store = RiffStore(cacheURL: cache, pairing: pairing)
+        let ai = SuggestionTestTransport()
+        let store = RiffStore(cacheURL: cache, pairing: pairing, aiKey: "test-device-key", aiSuggestions: ai.client)
         await store.refresh()
         let pad = Pad(value: state.clips[0].id)
         let request = try #require(PadSuggestionRequest(pad: pad, snapshot: state, titleHint: ""))
@@ -74,21 +74,18 @@ import Testing
         do {
             _ = try await store.suggestPadAppearance(failure)
             Issue.record("A failed AI request should report an error.")
-        } catch { #expect(error.localizedDescription == "AI is unavailable.") }
+        } catch { #expect(error.localizedDescription.contains("unavailable")) }
         #expect(store.error == nil && !store.busy)
         let held = try #require(PadSuggestionRequest(pad: pad, snapshot: state, titleHint: "hold"))
         let pending = Task { try await store.suggestPadAppearance(held) }
-        let started: Acknowledgement = try await client.request("/test/suggestion-started")
-        #expect(started.ok)
+        while !ai.started { await Task.yield() }
         pending.cancel()
-        let _: Acknowledgement = try await client.request("/test/release-suggestion")
         do { _ = try await pending.value; Issue.record("A cancelled request must not return a suggestion.") }
         catch { #expect(error is CancellationError || (error as? URLError)?.code == .cancelled) }
         #expect(store.snapshot.decks == state.decks && !store.busy)
         store.snapshot.capabilities = nil
-        #expect(!store.padSuggestionsEnabled)
-        do { _ = try await store.suggestPadAppearance(request); Issue.record("Older companions cannot suggest appearances.") }
-        catch { #expect(error.localizedDescription.contains("Set up AI suggestions")) }
+        #expect(store.padSuggestionsEnabled)
+        #expect(try await store.suggestPadAppearance(request).label == "Air Horn")
     }
 
     @Test func requestsIncludeBothSwitchSidesAndNavigationActions() throws {

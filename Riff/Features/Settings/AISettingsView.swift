@@ -33,12 +33,6 @@ struct AISettingsView: View {
                 Text("Suggestions send relevant sound, game, app, and button names, your descriptions, and selected action details to OpenAI. Audio files and pairing details stay on your devices. Website credentials and query strings are removed. Your manual edits are kept, and suggestions never run actions.")
                     .font(.footnote).foregroundStyle(.secondary)
             } header: { Text("What is shared") }
-            if !store.hasDeviceAIKey {
-                Section {
-                    Text("If you already enabled AI on your Windows companion, Riff can use it while connected. Add a key here to use suggestions independently.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-            }
         }
         .scrollContentBackground(.hidden).background(Palette.background)
         .navigationTitle("AI suggestions").navigationBarTitleDisplayMode(.inline)

@@ -41,7 +41,7 @@ import Testing
         defer { try? FileManager.default.removeItem(at: folder) }
         let cache = folder.appendingPathComponent("snapshot.json")
         var state = Snapshot.starter
-        state.capabilities = ["deck-suggestions-v1", "pad-suggestions-enabled-v1", "bundled-sounds-v1"]
+        state.capabilities = ["bundled-sounds-v1"]
         try JSONEncoder().encode(state).write(to: cache)
         let process = Process(); process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
         process.arguments = [URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Fixtures/companion_state_server.py").path, cache.path]
@@ -49,11 +49,12 @@ import Testing
         try process.run()
         defer { process.terminate(); process.waitUntilExit() }
         let pairing = try JSONDecoder().decode(Pairing.self, from: pipe.fileHandleForReading.availableData)
-        let store = RiffStore(cacheURL: cache, pairing: pairing)
+        let ai = SuggestionTestTransport()
+        let store = RiffStore(cacheURL: cache, pairing: pairing, aiKey: "test-device-key", aiSuggestions: ai.client)
         await store.refresh()
         let suggestion = try await store.suggestDeck(DeckSuggestionRequest(gameId: "730", appId: "", name: "", intent: "Reactions"))
         #expect(store.snapshot.decks == state.decks && store.snapshot.clips == state.clips && !store.busy)
-        let selected = try #require(suggestion.buttons.first(where: { $0.packId != nil }))
+        let selected = try #require(suggestion.buttons.first)
         let deck = Deck(name: suggestion.name, icon: suggestion.icon, steamAppId: "730")
         let client = CompanionClient(pairing: pairing)
         let _: Acknowledgement = try await client.request("/test/fail-next-deck-save")

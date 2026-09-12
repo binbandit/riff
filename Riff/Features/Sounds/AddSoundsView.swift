@@ -32,7 +32,7 @@ struct AddSoundsView: View {
                                       gameId: deck?.steamAppId ?? "", appId: deck?.linkedAppId ?? "")
     }
     private var request: SoundSuggestionRequest? {
-        useAI && store.padSuggestionsEnabled && store.supportsSoundSuggestions && !saving ? suggestionContext : nil
+        useAI && store.padSuggestionsEnabled && !saving ? suggestionContext : nil
     }
     private var target: SoundDeckTarget {
         targetID.isEmpty ? .new(id: newDeckID, name: name, icon: icon) : .existing(targetID)
@@ -138,7 +138,7 @@ struct AddSoundsView: View {
         Section {
             Toggle("AI suggestions", isOn: $useAI)
             if useAI {
-                if !store.supportsSoundSuggestions || !store.padSuggestionsEnabled {
+                if !store.padSuggestionsEnabled {
                     AISetupLink()
                 } else if loading {
                     HStack { ProgressView(); Text("Choosing labels, icons, and colors…").font(.subheadline) }

@@ -35,7 +35,7 @@ public class CompanionIntegrationTests
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/playback")).StatusCode);
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.PutAsJsonAsync("/api/queue", new QueueUpdate("clear", "pc", 0), Wire.Json)).StatusCode);
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/clips/nope/audio")).StatusCode);
-                Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/sound-suggestions", new SoundSuggestionRequest(["nope"], "Game night"), Wire.Json)).StatusCode);
+                Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/sound-suggestions", new { clipIds = new[] { "nope" }, deckName = "Game night" }, Wire.Json)).StatusCode);
                 client.DefaultRequestHeaders.Add("X-Riff-Theme", "ocean");
                 client.DefaultRequestHeaders.Add("X-Riff-Appearance", "dark");
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
@@ -58,8 +58,9 @@ public class CompanionIntegrationTests
                 Assert.Contains("deck-actions-v1", snapshot.Capabilities!);
                 Assert.Contains("pinned-pads-v1", snapshot.Capabilities!);
                 Assert.Contains("smart-profiles-v1", snapshot.Capabilities!);
-                Assert.Contains("sound-suggestions-v1", snapshot.Capabilities!);
-                Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PostAsJsonAsync("/api/sound-suggestions", new SoundSuggestionRequest(["nope"], "Game night"), Wire.Json)).StatusCode);
+                Assert.DoesNotContain(snapshot.Capabilities!, capability => capability.Contains("suggestions"));
+                foreach (var endpoint in new[] { "/api/pad-suggestion", "/api/deck-suggestion", "/api/sound-suggestions" })
+                    Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsJsonAsync(endpoint, new { }, Wire.Json)).StatusCode);
                 Assert.NotNull(snapshot.SwitchState);
                 Assert.Empty(snapshot.SwitchState.PadIds);
                 Assert.NotNull(snapshot.ActiveAppId);

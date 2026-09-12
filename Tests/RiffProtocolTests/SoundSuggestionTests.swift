@@ -60,8 +60,8 @@ import Testing
         try process.run()
         defer { process.terminate(); process.waitUntilExit() }
         let pairing = try JSONDecoder().decode(Pairing.self, from: pipe.fileHandleForReading.availableData)
-        let client = CompanionClient(pairing: pairing)
-        let store = RiffStore(cacheURL: cache, pairing: pairing)
+        let ai = SuggestionTestTransport()
+        let store = RiffStore(cacheURL: cache, pairing: pairing, aiKey: "test-device-key", aiSuggestions: ai.client)
         await store.refresh()
         let ids = Array(state.clips.prefix(3).map(\.id))
         let request = SoundSuggestionRequest(clipIds: ids, deckName: "Game night", gameId: "730")
@@ -75,16 +75,14 @@ import Testing
             } catch { #expect(!error.localizedDescription.isEmpty) }
         }
         let pending = Task { try await store.suggestSoundAppearances(SoundSuggestionRequest(clipIds: ids, deckName: "hold")) }
-        let started: Acknowledgement = try await client.request("/test/suggestion-started")
-        #expect(started.ok)
+        while !ai.started { await Task.yield() }
         pending.cancel()
-        let _: Acknowledgement = try await client.request("/test/release-suggestion")
         do { _ = try await pending.value; Issue.record("Cancelled batches must not return appearances.") }
         catch { #expect(error is CancellationError || (error as? URLError)?.code == .cancelled) }
         #expect(store.snapshot.decks == state.decks && !store.busy && store.error == nil)
         store.snapshot.capabilities = ["pad-suggestions-enabled-v1"]
-        do { _ = try await store.suggestSoundAppearances(request); Issue.record("Older companions cannot suggest batches.") }
-        catch { #expect(error.localizedDescription.contains("updated Windows companion")) }
+        #expect(store.padSuggestionsEnabled)
+        #expect(try await store.suggestSoundAppearances(request).count == 3)
     }
 
 }

@@ -309,14 +309,8 @@ public sealed class MainForm : Form
         Add(content, Card("Just sounds while you play", soundboard,
             Body("Recommended for games. Sounds, recording, imports, volume, and Stop all stay available. Keyboard shortcuts, typed text, media keys, app and website launches, and sequences are blocked."),
             Body("Turn this off here when you want desktop shortcuts. The iPad cannot change this setting. Changing modes cancels pending sequence steps; your choice is saved.")));
-        var aiStatus = Body(server.AI.Enabled ? "AI suggestions are enabled." : "Add your OpenAI API key to enable suggestions.");
-        var key = new TextBox { UseSystemPasswordChar = true, PlaceholderText = "OpenAI API key", AccessibleName = "OpenAI API key" };
-        Add(content, Card("AI button suggestions", Body("Get suggested names, icons, colors, and starter decks with GPT-5.6 Luna. Review every suggestion on your iPad before using it."),
-            Body("Suggestions send game/app and sound names, descriptions, existing button names, and action details (including typed text) to OpenAI. Audio files and app paths stay on your devices. OpenAI API usage is billed to your account."),
-            aiStatus, Label("OpenAI API key", StrongFont), Field(key), Actions(
-                Button("Enable suggestions", () => { server.AI.Save(key.Text); key.Clear(); aiStatus.Text = "AI suggestions are enabled."; }, primary: true),
-                Button("Disable & remove key", () => { server.AI.Disable(); key.Clear(); aiStatus.Text = "AI suggestions are disabled. Your API key was removed."; })),
-            Body("Your key is encrypted for your Windows account and never sent to the iPad. You can edit suggestions or turn them off while adding a button.")));
+        Add(content, Card("AI suggestions", Body("Set up AI suggestions in Settings on your iPad. Your iPad stores the key and connects directly to OpenAI.")));
+
         Add(content, Card("Appearance", Body("Your companion follows the theme and light or dark appearance on your iPad. Choose a look in Riff’s Settings → Appearance. The last look stays in place while disconnected.")));
         Add(content, Disclosure("Built to stay outside the game", Body("Riff does not inject code, inspect game memory, install hooks, or modify game files. Steam deck switching reads only local library files and running-game registry flags. For voice chat, use a virtual audio device and hold your physical push-to-talk key yourself, or use voice activation where allowed."),
             Body("Soundboard mode reduces automation risk; it is not anti-cheat approval. Follow your game’s rules for third-party audio and voice chat. Never bypass anti-cheat blocks or enable automation to gain a gameplay advantage.")));

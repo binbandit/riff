@@ -17,11 +17,6 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
     readonly SteamPresence steam = new();
     readonly ConcurrentDictionary<string, DateTime> received = new();
     readonly SemaphoreSlim importGate = new(1, 1);
-    public AISettings AI { get; } = new(store.Folder);
-    static readonly HttpClient suggestionClient = new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(25), MaxResponseContentBufferSize = 64 * 1024 };
-    readonly PadSuggestions suggestions = new(suggestionClient);
-    readonly DeckSuggestions deckSuggestions = new(suggestionClient);
-    readonly SoundSuggestions soundSuggestions = new(suggestionClient);
     internal AppearancePreferences Appearance { get; } = new(store.Folder);
     public event Action<string>? Activity;
     public DateTime LastSeen { get; private set; }
@@ -33,7 +28,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             var s = store.State;
             return new(s.Version, s.Decks, s.Clips, audio.Devices(), s.OutputId, s.Volume,
                 s.Apps.Select(a => new LaunchTargetInfo(a.Id, a.Name)).ToList(), Environment.MachineName,
-                presence.Games, presence.Id, presence.Name, ["audio-monitor-v1", "soundboard-playback-v1", "soundboard-queue-v1", "soundboard-queue-edit-v1", "soundboard-loop-v1", "bundled-sounds-v1", "soundboard-only-v1", "deck-actions-v1", "pinned-pads-v1", "key-logic-v1", "smart-profiles-v1", "clip-audio-v1", "pad-suggestions-v1", "deck-suggestions-v1", "sound-suggestions-v1", .. AI.Enabled ? new[] { "pad-suggestions-enabled-v1" } : Array.Empty<string>()], CompanionBuild.Version, s.SoundboardOnly, AppPresence.Read(s.Apps), runner.SwitchStatus(), s.MonitorEnabled, s.MonitorOutputId, s.MonitorVolume);
+                presence.Games, presence.Id, presence.Name, ["audio-monitor-v1", "soundboard-playback-v1", "soundboard-queue-v1", "soundboard-queue-edit-v1", "soundboard-loop-v1", "bundled-sounds-v1", "soundboard-only-v1", "deck-actions-v1", "pinned-pads-v1", "key-logic-v1", "smart-profiles-v1", "clip-audio-v1"], CompanionBuild.Version, s.SoundboardOnly, AppPresence.Read(s.Apps), runner.SwitchStatus(), s.MonitorEnabled, s.MonitorOutputId, s.MonitorVolume);
         }
     }
     public async Task Start()
@@ -50,10 +45,6 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
         builder.Services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = 429;
-            options.AddFixedWindowLimiter("suggestions", limiter =>
-            {
-                limiter.PermitLimit = 30; limiter.Window = TimeSpan.FromMinutes(1); limiter.QueueLimit = 0;
-            });
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
                 RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     _ => new FixedWindowRateLimiterOptions { PermitLimit = 100, Window = TimeSpan.FromSeconds(1), QueueLimit = 0 }));
@@ -94,47 +85,6 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             }
             return Snapshot();
         });
-        app.MapPost("/api/deck-suggestion", async (DeckSuggestionRequest request, HttpContext context) =>
-        {
-            var key = AI.ApiKey;
-            if (string.IsNullOrEmpty(key)) return Results.Json(new { error = "Set up AI suggestions in the Windows companion's Controls tab." }, statusCode: 503);
-            List<DeckSuggestionOption> options;
-            string input;
-            var games = steam.Read().Games;
-            lock (store.Gate)
-            {
-                options = DeckSuggestions.Options(store.State);
-                input = DeckSuggestions.Context(request, games, store.State.Apps, options);
-            }
-            try { return Results.Ok(await deckSuggestions.Suggest(input, options, key, context.RequestAborted)); }
-            catch (PadSuggestionException ex) { return Results.Json(new { error = ex.Message }, statusCode: 502); }
-            catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException && !context.RequestAborted.IsCancellationRequested)
-            { return Results.Json(new { error = "AI suggestions could not connect. Try again or create an empty deck." }, statusCode: 503); }
-        }).RequireRateLimiting("suggestions");
-        app.MapPost("/api/sound-suggestions", async (SoundSuggestionRequest request, HttpContext context) =>
-        {
-            var key = AI.ApiKey;
-            if (string.IsNullOrEmpty(key)) return Results.Json(new { error = "Set up AI suggestions in the Windows companion's Controls tab." }, statusCode: 503);
-            string input;
-            var gameName = steam.Read().Games.FirstOrDefault(g => g.Id == request.GameId)?.Name ?? "";
-            lock (store.Gate)
-                input = SoundSuggestions.Context(request, store.State.Clips, gameName, store.State.Apps.FirstOrDefault(a => a.Id == request.AppId)?.Name ?? "");
-            try { return Results.Ok(await soundSuggestions.Suggest(input, request.ClipIds, key, context.RequestAborted)); }
-            catch (PadSuggestionException ex) { return Results.Json(new { error = ex.Message }, statusCode: 502); }
-            catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException && !context.RequestAborted.IsCancellationRequested)
-            { return Results.Json(new { error = "AI suggestions could not connect. Try again or use the current buttons." }, statusCode: 503); }
-        }).RequireRateLimiting("suggestions");
-        app.MapPost("/api/pad-suggestion", async (PadSuggestionRequest request, HttpContext context) =>
-        {
-            var key = AI.ApiKey;
-            if (string.IsNullOrEmpty(key)) return Results.Json(new { error = "Set up AI suggestions in the Windows companion's Controls tab." }, statusCode: 503);
-            string input;
-            lock (store.Gate) input = PadSuggestions.Context(request, store.State.Clips, store.State.Apps, store.State.Decks);
-            try { return Results.Ok(await suggestions.Suggest(input, key, context.RequestAborted)); }
-            catch (PadSuggestionException ex) { return Results.Json(new { error = ex.Message }, statusCode: 502); }
-            catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException && !context.RequestAborted.IsCancellationRequested)
-            { return Results.Json(new { error = "AI suggestions could not connect. Try again or choose your own appearance." }, statusCode: 503); }
-        }).RequireRateLimiting("suggestions");
         app.MapGet("/api/playback", () => audio.Status());
         app.MapGet("/api/clips/{id}/audio", (string id) =>
         {

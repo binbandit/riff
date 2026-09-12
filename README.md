@@ -100,13 +100,13 @@ Without a PC connection, you can create and edit decks and play bundled sounds o
 
 On the iPad, open **Settings → AI suggestions**, paste your OpenAI API key, and select **Enable suggestions**. You can also open setup directly from a button, bulk addition, or starter deck editor. The key stays in this iPad’s Keychain and is sent only to OpenAI. Suggestions work without pairing or connecting a PC.
 
-Alternatively, enable suggestions under **Controls → AI button suggestions** in the Windows companion. That key is encrypted for your Windows account and never sent to the iPad. Riff uses the iPad key when configured; otherwise it can use the companion while connected. OpenAI API usage is billed separately to your OpenAI account; your key needs access to `gpt-5.6-luna`.
+AI setup and requests are handled only on the iPad. The Windows companion does not accept, store, or use an OpenAI API key. Previously stored Windows keys are deleted when the updated companion starts. OpenAI API usage is billed separately to your OpenAI account; your key needs access to `gpt-5.6-luna`.
 
 When adding a button on the iPad, Riff automatically suggests its label, icon, and color after you choose or change its action. Typing a label also helps guide the icon and color. Your manual choices stay in place, existing and duplicated buttons keep their appearance, and you can turn off **AI suggestions** in the editor. Suggestions never change or run the action. Saving does not wait for AI, and still works if suggestions fail.
 
 Bulk additions use the same AI setup. Select sounds in **Quick add**, including sounds from a bulk import, then review the suggested labels, icons, and colors together before adding them. Riff requests the whole set at once, considers the destination deck’s linked game or app, and preserves the sounds, selection order, existing buttons, and your manual edits. Turn **AI suggestions** off to use the original appearances; adding still works offline or if AI fails.
 
-Enabling suggestions sends the selected sound, app, or destination deck name, action details (including typed text and sequence steps), and a label you type to OpenAI directly from the iPad, or through the companion when using its key. Audio files, app executable paths, and pairing keys are not sent. Website query strings, fragments, and embedded credentials are removed. Responses use `store: false`. Choose **Remove key from this iPad** in AI settings to remove the local key, or **Disable & remove key** on Windows to remove the companion key. The editor’s AI toggle stops suggestions for that edit.
+Enabling suggestions sends the selected sound, app, or destination deck name, action details (including typed text and sequence steps), and a label you type to OpenAI directly from the iPad. Audio files, app executable paths, and pairing keys are not sent. Website query strings, fragments, and embedded credentials are removed. Responses use `store: false`. Choose **Remove key from this iPad** in AI settings to remove the key and disable suggestions. The editor’s AI toggle stops suggestions for that edit.
 
 ### AI starter decks
 

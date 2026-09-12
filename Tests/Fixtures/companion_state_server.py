@@ -13,6 +13,7 @@ import threading
 state = json.loads(pathlib.Path(sys.argv[1]).read_text())
 audio_requests = 0
 pc_previews = 0
+suggestion_requests = 0
 button_triggers = []
 audio_started = threading.Event()
 audio_release = threading.Event()
@@ -73,6 +74,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif self.path == "/test/fail-next-deck-save":
             fail_next_deck_save = True
             self.reply({"ok": True})
+        elif self.path == "/test/suggestion-count":
+            self.reply({"count": suggestion_requests})
         elif self.path == "/test/suggestion-started":
             self.reply({"ok": suggestion_started.wait(5)})
         elif self.path == "/test/release-suggestion":
@@ -205,10 +208,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.reply(response)
 
     def do_POST(self):
-        global pc_previews
+        global pc_previews, suggestion_requests
         if not self.authorized():
             return
         body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+        if self.path in ("/api/pad-suggestion", "/api/deck-suggestion", "/api/sound-suggestions"):
+            suggestion_requests += 1
         if self.path == "/api/trigger":
             button_triggers.append(json.loads(body))
             self.reply({"ok": True})

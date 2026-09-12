@@ -43,7 +43,6 @@ import Testing
         }
         let store = RiffStore(cacheURL: folder.appendingPathComponent("state.json"), pairing: nil, aiKey: "test-device-key", aiSuggestions: client)
         #expect(!store.connected && !store.paired && store.padSuggestionsEnabled)
-        #expect(store.supportsPadSuggestions && store.supportsSoundSuggestions && store.supportsDeckSuggestions)
         let original = store.snapshot.decks
         let pad = try #require(PadSuggestionRequest(pad: Pad(value: "level-up"), snapshot: store.snapshot, titleHint: ""))
         #expect(try await store.suggestPadAppearance(pad).icon == "star")
@@ -59,6 +58,42 @@ import Testing
         #expect(reloaded.snapshot.decks.last == store.snapshot.decks.last)
         #expect(names == ["button_appearance", "sound_button_appearances", "starter_deck"])
         #expect(!reloaded.hasDeviceAIKey && !reloaded.padSuggestionsEnabled)
+    }
+    @Test(arguments: [false, true]) func legacyCompanionNeverHandlesSuggestions(hasIPadKey: Bool) async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let cache = folder.appendingPathComponent("snapshot.json")
+        var state = Snapshot.starter
+        state.capabilities = ["pad-suggestions-v1", "sound-suggestions-v1", "deck-suggestions-v1", "pad-suggestions-enabled-v1"]
+        try JSONEncoder().encode(state).write(to: cache)
+        let process = Process(); process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        process.arguments = [URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Fixtures/companion_state_server.py").path, cache.path]
+        let pipe = Pipe(); process.standardOutput = pipe
+        try process.run()
+        defer { process.terminate(); process.waitUntilExit() }
+        let pairing = try JSONDecoder().decode(Pairing.self, from: pipe.fileHandleForReading.availableData)
+        let ai = SuggestionTestTransport()
+        let store = RiffStore(cacheURL: cache, pairing: pairing, aiKey: hasIPadKey ? "test-device-key" : nil, aiSuggestions: ai.client)
+        await store.refresh()
+        #expect(store.connected && store.hasDeviceAIKey == hasIPadKey)
+        #expect(store.padSuggestionsEnabled == hasIPadKey)
+        let pad = try #require(PadSuggestionRequest(pad: Pad(value: state.clips[0].id), snapshot: state, titleHint: ""))
+        let sounds = SoundSuggestionRequest(clipIds: [state.clips[0].id], deckName: "Game night")
+        let deck = DeckSuggestionRequest(gameId: "", appId: "", name: "Game night", intent: "")
+        if hasIPadKey {
+            #expect(try await store.suggestPadAppearance(pad).label == "Air Horn")
+            #expect(try await store.suggestSoundAppearances(sounds).count == 1)
+            #expect(try await store.suggestDeck(deck).buttons.count == 1)
+        } else {
+            await #expect(throws: (any Error).self) { try await store.suggestPadAppearance(pad) }
+            await #expect(throws: (any Error).self) { try await store.suggestSoundAppearances(sounds) }
+            await #expect(throws: (any Error).self) { try await store.suggestDeck(deck) }
+        }
+        #expect(store.snapshot.decks == state.decks)
+        struct Count: Decodable { let count: Int }
+        let count: Count = try await CompanionClient(pairing: pairing).request("/test/suggestion-count")
+        #expect(count.count == 0)
     }
     @Test func directRequestsRejectFailuresIncompleteAndInvalidResults() async throws {
         let snapshot = Snapshot.starter

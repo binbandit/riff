@@ -79,38 +79,21 @@ import Observation
     var hasDeviceAIKey: Bool { aiKey != nil }
     func saveAIKey(_ value: String) throws { aiKey = try AIKeyVault.save(value) }
     func removeAIKey() throws { try AIKeyVault.delete(); aiKey = nil }
-    var supportsPadSuggestions: Bool { hasDeviceAIKey || snapshot.capabilities?.contains("pad-suggestions-v1") == true }
-    var supportsDeckSuggestions: Bool { hasDeviceAIKey || snapshot.capabilities?.contains("deck-suggestions-v1") == true }
-    var supportsSoundSuggestions: Bool { hasDeviceAIKey || snapshot.capabilities?.contains("sound-suggestions-v1") == true }
     func suggestSoundAppearances(_ request: SoundSuggestionRequest) async throws -> [String: PadSuggestion] {
-        if let key = aiKey {
-            let generation = epoch
-            let result = try await aiSuggestions.sounds(request, snapshot: snapshot, key: key)
-            try Task.checkCancellation()
-            guard generation == epoch, aiKey == key else { throw CancellationError() }
-            return result
-        }
-        guard let client, padSuggestionsEnabled, supportsSoundSuggestions else { throw RiffError.message("Set up AI suggestions in Riff, or enable them in the updated Windows companion.") }
+        guard let key = aiKey else { throw RiffError.message("Set up AI suggestions in Settings on this iPad.") }
         let generation = epoch
-        let result: SoundSuggestionBatch = try await client.request("/api/sound-suggestions", method: "POST", body: JSONEncoder().encode(request))
+        let result = try await aiSuggestions.sounds(request, snapshot: snapshot, key: key)
         try Task.checkCancellation()
-        guard generation == epoch, connected else { throw CancellationError() }
-        return try result.appearances(for: request.clipIds)
+        guard generation == epoch, aiKey == key else { throw CancellationError() }
+        return result
     }
     func suggestDeck(_ request: DeckSuggestionRequest) async throws -> DeckSuggestion {
-        if let key = aiKey {
-            let generation = epoch
-            let result = try await aiSuggestions.deck(request, snapshot: snapshot, key: key)
-            try Task.checkCancellation()
-            guard generation == epoch, aiKey == key else { throw CancellationError() }
-            return result
-        }
-        guard let client, padSuggestionsEnabled, supportsDeckSuggestions else { throw RiffError.message("Set up AI suggestions in Riff, or enable them in the updated Windows companion.") }
+        guard let key = aiKey else { throw RiffError.message("Set up AI suggestions in Settings on this iPad.") }
         let generation = epoch
-        let result: DeckSuggestion = try await client.request("/api/deck-suggestion", method: "POST", body: JSONEncoder().encode(request))
+        let result = try await aiSuggestions.deck(request, snapshot: snapshot, key: key)
         try Task.checkCancellation()
-        guard generation == epoch, connected else { throw CancellationError() }
-        return try result.validated()
+        guard generation == epoch, aiKey == key else { throw CancellationError() }
+        return result
     }
     func createSuggestedDeck(_ deck: Deck, buttons: [DeckSuggestedButton], progress: (String) -> Void = { _ in }) async throws {
         if buttons.isEmpty {
@@ -126,21 +109,14 @@ import Observation
         selectedDeckId = deck.id
     }
 
-    var padSuggestionsEnabled: Bool { hasDeviceAIKey || (connected && snapshot.capabilities?.contains("pad-suggestions-enabled-v1") == true) }
+    var padSuggestionsEnabled: Bool { hasDeviceAIKey }
     func suggestPadAppearance(_ request: PadSuggestionRequest) async throws -> PadSuggestion {
-        if let key = aiKey {
-            let generation = epoch
-            let result = try await aiSuggestions.pad(request, snapshot: snapshot, key: key)
-            try Task.checkCancellation()
-            guard generation == epoch, aiKey == key else { throw CancellationError() }
-            return result
-        }
-        guard let client, padSuggestionsEnabled else { throw RiffError.message("Set up AI suggestions in Riff’s AI settings.") }
+        guard let key = aiKey else { throw RiffError.message("Set up AI suggestions in Settings on this iPad.") }
         let generation = epoch
-        let result: PadSuggestion = try await client.request("/api/pad-suggestion", method: "POST", body: JSONEncoder().encode(request))
+        let result = try await aiSuggestions.pad(request, snapshot: snapshot, key: key)
         try Task.checkCancellation()
-        guard generation == epoch else { throw CancellationError() }
-        return try result.validated()
+        guard generation == epoch, aiKey == key else { throw CancellationError() }
+        return result
     }
     private var players: [String: any LocalSoundPlayer] = [:]
     private var localQueue: [(pad: Pad, url: URL)] = []

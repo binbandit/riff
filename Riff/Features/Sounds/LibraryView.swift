@@ -236,7 +236,7 @@ struct LibraryView: View {
     }
     private func quickAdd() {
         guard canQuickAdd else { return }
-        if store.padSuggestionsEnabled && store.supportsSoundSuggestions { addingSounds = true; return }
+        if store.padSuggestionsEnabled { addingSounds = true; return }
         saving = true
         Task {
             defer { saving = false }
