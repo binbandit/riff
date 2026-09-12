@@ -28,4 +28,86 @@ import Testing
         let restored = try JSONDecoder().decode(Snapshot.self, from: JSONEncoder().encode(current))
         #expect(restored.capabilities == ["soundboard-playback-v1"])
     }
+    @Test func queueOrderSurvivesDelayedStatusAndOlderCompanions() throws {
+        var tracker = SoundPlaybackTracker()
+        tracker.accept(SoundPlaybackState(sessionId: "pc", revision: 4, padIds: ["first"], queuedPadIds: ["third", "second"]))
+        tracker.accept(SoundPlaybackState(sessionId: "pc", revision: 3, padIds: ["first"], queuedPadIds: ["second"]))
+        #expect(tracker.queuedPadIDs == ["third", "second"])
+        let old = try JSONDecoder().decode(SoundPlaybackState.self, from: Data(#"{"sessionId":"old","revision":0,"padIds":[]}"#.utf8))
+        tracker.accept(old)
+        #expect(tracker.queuedPadIDs.isEmpty)
+    }
+    @Test func olderCompanionUsesSingleUntilQueueIsSupported() {
+        let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil)
+        let originalMode = store.soundMode
+        defer { store.soundMode = originalMode }
+        store.soundMode = .queue
+        store.connected = true
+        store.snapshot.capabilities = ["soundboard-playback-v1"]
+        #expect(store.effectiveSoundMode == .single)
+        #expect(!store.availablePlaybackModes.contains(.queue))
+        store.snapshot.capabilities?.append("soundboard-queue-v1")
+        #expect(store.effectiveSoundMode == .queue)
+        #expect(store.availablePlaybackModes.contains(.queue))
+    }
+    @Test func offlineQueueSupportsRemovingSkippingAndStopAll() async throws {
+        let sound = try #require(SoundPacks.load().flatMap(\.sounds).first { $0.id == "sad-violin" })
+        let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil)
+        let originalMode = store.soundMode
+        defer { store.soundMode = originalMode }
+        store.snapshot.volume = 0; store.soundMode = .queue
+        let first = Pad(id: "first", title: "First", value: sound.clipID)
+        let second = Pad(id: "second", title: "Second", value: sound.clipID)
+        let third = Pad(id: "third", title: "Third", value: sound.clipID)
+        await store.trigger(first); await store.trigger(second); await store.trigger(third)
+        #expect(store.error == nil)
+        #expect(store.playingPadIDs == ["first"])
+        #expect(store.queuedPadIDs == ["second", "third"])
+        #expect(store.queuePosition(for: "third") == 2)
+        await store.trigger(second)
+        #expect(store.playingPadIDs == ["first"])
+        #expect(store.queuedPadIDs == ["third"])
+        await store.trigger(first)
+        #expect(store.playingPadIDs == ["third"])
+        #expect(store.queuedPadIDs.isEmpty)
+        await store.trigger(second)
+        await store.stopAll()
+        await store.refreshPlayback()
+        #expect(store.playingPadIDs.isEmpty)
+        #expect(store.queuedPadIDs.isEmpty)
+    }
+    @Test func switchingAwayFromQueueClearsWaitingSoundsOnNextTap() async throws {
+        let sound = try #require(SoundPacks.load().flatMap(\.sounds).first { $0.id == "sad-violin" })
+        let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil)
+        let originalMode = store.soundMode
+        defer { store.soundMode = originalMode }
+        store.snapshot.volume = 0; store.soundMode = .queue
+        await store.trigger(Pad(id: "first", title: "First", value: sound.clipID))
+        await store.trigger(Pad(id: "waiting", title: "Waiting", value: sound.clipID))
+        store.soundMode = .overlap
+        await store.trigger(Pad(id: "new", title: "New", value: sound.clipID))
+        #expect(store.queuedPadIDs.isEmpty)
+        #expect(store.playingPadIDs == ["first", "new"])
+        await store.stopAll()
+    }
+    @Test func offlineQueueAdvancesOnCompletionWithoutPolling() async throws {
+        let sounds = try SoundPacks.load().flatMap(\.sounds)
+        let short = try #require(sounds.min { $0.duration < $1.duration })
+        let long = try #require(sounds.first { $0.id == "sad-violin" })
+        let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil)
+        let originalMode = store.soundMode
+        defer { store.soundMode = originalMode }
+        store.snapshot.volume = 0; store.soundMode = .queue
+        await store.trigger(Pad(id: "short", title: "Short", value: short.clipID))
+        await store.trigger(Pad(id: "long", title: "Long", value: long.clipID))
+        #expect(store.queuedPadIDs == ["long"])
+        let deadline = ContinuousClock.now + .seconds(short.duration + 3)
+        while !store.playingPadIDs.contains("long") && ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        #expect(store.error == nil)
+        #expect(store.playingPadIDs == ["long"])
+        #expect(store.queuedPadIDs.isEmpty)
+        await store.stopAll()
+    }
 }

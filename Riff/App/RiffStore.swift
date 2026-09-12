@@ -84,6 +84,8 @@ import Observation
     }
     private var client: CompanionClient?
     private var players: [String: AVAudioPlayer] = [:]
+    private var localQueue: [(pad: Pad, url: URL)] = []
+    private let playbackObserver = SoundPlaybackObserver()
     private var previewPlayer: AVAudioPlayer?
     private var previewTask: Task<Void, Never>?
     private var previewGeneration = UUID()
@@ -91,6 +93,13 @@ import Observation
     private var playback = SoundPlaybackTracker()
     private var playbackRefreshRunning = false
     var playingPadIDs: Set<String> = []
+    var queuedPadIDs: [String] = []
+    func queuePosition(for padID: String) -> Int? { queuedPadIDs.firstIndex(of: padID).map { $0 + 1 } }
+    var supportsQueue: Bool { snapshot.capabilities?.contains("soundboard-queue-v1") == true }
+    var availablePlaybackModes: [SoundPlaybackMode] {
+        SoundPlaybackMode.allCases.filter { $0 != .queue || !connected || supportsQueue }
+    }
+    var effectiveSoundMode: SoundPlaybackMode { connected && soundMode == .queue && !supportsQueue ? .single : soundMode }
     var soundMode = SoundPlaybackMode(rawValue: UserDefaults.standard.string(forKey: "soundMode") ?? "") ?? .overlap {
         didSet { UserDefaults.standard.set(soundMode.rawValue, forKey: "soundMode") }
     }
@@ -98,16 +107,15 @@ import Observation
     private func stopLocalSounds() {
         stopPreview()
         for player in players.values { player.stop() }
-        players.removeAll(); playingPadIDs.removeAll()
+        players.removeAll(); playingPadIDs.removeAll(); localQueue.removeAll(); queuedPadIDs.removeAll()
     }
     private func acceptPlayback(_ next: SoundPlaybackState?) {
         guard let next else { return }
-        playback.accept(next); playingPadIDs = playback.padIDs
+        playback.accept(next); playingPadIDs = playback.padIDs; queuedPadIDs = playback.queuedPadIDs
     }
     func refreshPlayback() async {
         if !connected {
-            players = players.filter { $0.value.isPlaying }
-            playingPadIDs = Set(players.keys)
+            refreshLocalPlayback()
             return
         }
         guard supportsPlayback, let client, !playbackRefreshRunning else { return }
@@ -118,7 +126,7 @@ import Observation
             guard generation == epoch, connected else { return }
             acceptPlayback(state)
         } catch {
-            if generation == epoch { playingPadIDs.removeAll() }
+            if generation == epoch { playingPadIDs.removeAll(); queuedPadIDs.removeAll() }
         }
     }
     private var lastGame = ""
@@ -171,7 +179,7 @@ import Observation
             apply(state); connected = true; connectionIssue = nil
         } catch {
             if generation == epoch {
-                connected = false; playingPadIDs.removeAll()
+                connected = false; playingPadIDs.removeAll(); queuedPadIDs.removeAll()
                 connectionIssue = error is RiffError ? error.localizedDescription : "Make sure Riff is open on your PC and both devices are on the same network."
             }
         }
@@ -201,17 +209,24 @@ import Observation
                 try AVAudioSession.sharedInstance().setCategory(.playback)
                 try AVAudioSession.sharedInstance().setActive(true)
 #endif
-                players = players.filter { $0.value.isPlaying }
+                if soundMode != .queue { localQueue.removeAll(); queuedPadIDs.removeAll() }
+                refreshLocalPlayback()
+                if let index = localQueue.firstIndex(where: { $0.pad.id == pad.id }) {
+                    localQueue.remove(at: index); queuedPadIDs = localQueue.map { $0.pad.id }
+                    message("Removed \(pad.title) from queue"); return
+                }
                 if let playing = players.removeValue(forKey: pad.id) {
-                    playing.stop(); playingPadIDs = Set(players.keys)
+                    playing.stop(); refreshLocalPlayback()
                     message("Stopped \(pad.title)"); return
                 }
                 if soundMode == .single { stopLocalSounds() }
+                if soundMode == .queue && !players.isEmpty {
+                    guard localQueue.count < 48 else { throw RiffError.message("48 sounds are already queued. Remove a sound or wait for one to finish.") }
+                    localQueue.append((pad, url)); queuedPadIDs = localQueue.map { $0.pad.id }
+                    message("Queued: \(pad.title)"); return
+                }
                 guard players.count < 16 else { throw RiffError.message("16 sounds are already playing. Stop a sound before starting another.") }
-                let player = try AVAudioPlayer(contentsOf: url)
-                player.volume = snapshot.volume
-                guard player.play() else { throw RiffError.message("This sound could not be played.") }
-                players[pad.id] = player; playingPadIDs = Set(players.keys)
+                try playLocalSound(pad, url: url)
                 message("Playing on iPad: \(pad.title)")
             } catch { self.error = error.localizedDescription }
             return
@@ -222,11 +237,30 @@ import Observation
         defer { if activePad == pad.id { activePad = nil } }
         do {
             struct Trigger: Encodable { let padId: String; let requestId: String; let toggle: Bool?; let soundMode: String? }
-            let result: Acknowledgement = try await client.request("/api/trigger", method: "POST", body: JSONEncoder().encode(Trigger(padId: pad.id, requestId: UUID().uuidString, toggle: supportsPlayback ? true : nil, soundMode: supportsPlayback ? soundMode.rawValue : nil)))
+            let result: Acknowledgement = try await client.request("/api/trigger", method: "POST", body: JSONEncoder().encode(Trigger(padId: pad.id, requestId: UUID().uuidString, toggle: supportsPlayback ? true : nil, soundMode: supportsPlayback ? effectiveSoundMode.rawValue : nil)))
             guard generation == epoch, connected else { return }
             acceptPlayback(result.playback)
             if pad.kind != "sound" || !supportsPlayback { message("\(pad.title) sent to PC") }
         } catch { self.error = "\(error.localizedDescription) The action was not retried, to avoid playing it twice." }
+    }
+    private func playLocalSound(_ pad: Pad, url: URL) throws {
+        let player = try AVAudioPlayer(contentsOf: url)
+        playbackObserver.onCompletion = { [weak self] in self?.refreshLocalPlayback() }
+        player.delegate = playbackObserver
+        player.volume = snapshot.volume
+        guard player.play() else { throw RiffError.message("This sound could not be played.") }
+        players[pad.id] = player; playingPadIDs = Set(players.keys)
+    }
+    private func refreshLocalPlayback() {
+        guard !connected else { return }
+        players = players.filter { $0.value.isPlaying }
+        playingPadIDs = Set(players.keys)
+        while players.isEmpty && !localQueue.isEmpty {
+            let next = localQueue.removeFirst()
+            queuedPadIDs = localQueue.map { $0.pad.id }
+            do { try playLocalSound(next.pad, url: next.url) }
+            catch { self.error = "Could not play queued sound \(next.pad.title): \(error.localizedDescription)" }
+        }
     }
     func stopAll() async {
         stopLocalSounds()
@@ -368,7 +402,7 @@ import Observation
             do {
                 let generation = epoch
                 struct Preview: Encodable { let clipId: String; let soundMode: String? }
-                let result: Acknowledgement = try await client.request("/api/preview", method: "POST", body: JSONEncoder().encode(Preview(clipId: clip.id, soundMode: supportsPlayback ? soundMode.rawValue : nil)))
+                let result: Acknowledgement = try await client.request("/api/preview", method: "POST", body: JSONEncoder().encode(Preview(clipId: clip.id, soundMode: supportsPlayback ? effectiveSoundMode.rawValue : nil)))
                 guard generation == epoch, connected else { return }
                 acceptPlayback(result.playback)
                 message("Playing on PC: \(clip.name)")

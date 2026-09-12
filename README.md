@@ -10,7 +10,7 @@ It's a native SwiftUI app with a Windows companion. Both run on your own devices
 
 ## What it does
 
-- **Soundboard:** play overlapping clips or one at a time, tap a playing button to stop it, or stop everything at once. Six original sounds are included.
+- **Soundboard:** play overlapping clips, replace them one at a time, or queue them in order, tap a playing button to stop it, or stop everything at once. Six original sounds are included.
 - **Recording and imports:** record on your iPad or import WAV, MP3, M4A, AAC, and AIFF files. Trim clips with a waveform editor and listen before saving.
 - **Private previews:** library previews play on your iPad, even while connected to your PC. Imported and recorded sounds require a companion with iPad preview support. Deck buttons and explicit PC audio tests use your saved Windows output.
 - **Custom decks:** choose button colors, symbols, and emoji; rearrange buttons; adjust the grid; and add several sounds to a deck at once.
@@ -68,7 +68,7 @@ To add several library sounds to a board, open **+ → Add sounds from library**
 
 For files, use **Sounds → + → Import audio files** and select several at once, then **Import all**. Filenames become sound names, progress and individual failures are shown, and successful imports can be added to a deck together. Files longer than 60 seconds must be imported individually for trimming. The Windows companion’s **Import sounds from PC** also accepts multiple files.
 
-Tap the output label below the deck, or open **… → Sound controls**, to choose volume, output, and playback mode. **Overlap** layers effects; **One at a time** replaces the previous clip. **Stop all** stops sounds and cancels any remaining sequence steps.
+Tap the output label below the deck, or open **… → Sound controls**, to choose volume, output, and playback mode. **Overlap** layers effects; **One at a time** replaces the previous clip; **Queue** waits for each sound to finish before starting the next. Waiting buttons show their queue position. Tap a waiting button to remove it, or tap the playing button to skip to the next sound. Up to 48 sounds can wait in the queue. Switching to another mode clears waiting sounds on your next tap. **Stop all** stops sounds, clears the queue, and cancels any remaining sequence steps. Queue mode requires an updated Windows companion and also works with offline iPad sounds.
 
 Recordings and saved clips can be up to 60 seconds long. On iPad, you can import a file up to 10 minutes long and 100 MB in size, at 96 kHz or below, then trim it before upload. Direct Windows imports are limited to 20 MB and 60 seconds. Trimming leaves the original file unchanged.
 

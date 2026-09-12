@@ -10,7 +10,7 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
     CancellationTokenSource cancellation = new();
     public async Task Run(Pad pad, bool toggle = false, string? soundMode = null)
     {
-        if (soundMode is not (null or "overlap" or "single")) throw new ArgumentException("Choose Overlap or One at a time.");
+        if (soundMode is not (null or "overlap" or "single" or "queue")) throw new ArgumentException("Choose Overlap, One at a time, or Queue.");
         CancellationToken token;
         lock (cancelGate)
         {

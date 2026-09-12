@@ -21,6 +21,7 @@ struct PadTile: View {
     var editing = false
     var active = false
     var playing = false
+    var queuePosition: Int?
     var blocked = false
     var action: () -> Void = {}
     private var theme: AppTheme { ThemePreferences.shared.theme }
@@ -58,6 +59,10 @@ struct PadTile: View {
                         Image(systemName: "stop.fill").font(.caption.weight(.bold))
                             .foregroundStyle(foreground).padding(10)
                             .background(theme == .amoled ? Palette.raised : .white.opacity(0.45), in: Circle()).padding(12)
+                    } else if let queuePosition {
+                        Text("\(queuePosition)").font(.caption.weight(.bold)).monospacedDigit()
+                            .foregroundStyle(foreground).padding(10)
+                            .background(theme == .amoled ? Palette.raised : .white.opacity(0.45), in: Circle()).padding(12)
                     }
                 }
                 .overlay(RoundedRectangle(cornerRadius: compact ? 24 : 34).strokeBorder(playing ? foreground.opacity(0.6) : theme == .amoled ? pad.tint.opacity(0.5) : .white.opacity(0.3), lineWidth: playing ? 3 : 1))
@@ -65,8 +70,8 @@ struct PadTile: View {
             }.buttonStyle(PadPressStyle())
                 .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: tapFeedback)
                 .accessibilityLabel("\(pad.title), \(pad.typeName)")
-                .accessibilityValue(blocked ? "Desktop actions disabled on PC" : playing ? "Playing" : "")
-                .accessibilityHint(editing ? "Customize this button" : blocked ? "Learn about soundboard-only mode" : playing ? "Tap again to stop this sound" : "Run this action")
+                .accessibilityValue(blocked ? "Desktop actions disabled on PC" : playing ? "Playing" : queuePosition != nil ? "Queued, position \(queuePosition ?? 0)" : "")
+                .accessibilityHint(editing ? "Customize this button" : blocked ? "Learn about soundboard-only mode" : playing ? "Tap again to stop this sound" : queuePosition != nil ? "Tap again to remove from queue" : "Run this action")
         }
     }
 }

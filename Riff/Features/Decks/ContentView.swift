@@ -321,11 +321,11 @@ struct ContentView: View {
     @ViewBuilder private func tile(_ pad: Pad, pads: [Pad]) -> some View {
         let blocked = store.connected && store.snapshot.blocksDesktopAction(pad)
         if playMode {
-            PadTile(pad: pad, active: store.activePad == pad.id, playing: store.playingPadIDs.contains(pad.id), blocked: blocked) {
+            PadTile(pad: pad, active: store.activePad == pad.id, playing: store.playingPadIDs.contains(pad.id), queuePosition: store.queuePosition(for: pad.id), blocked: blocked) {
                 trigger(pad)
             }
         } else {
-            PadTile(pad: pad, editing: store.editing, active: store.activePad == pad.id, playing: store.playingPadIDs.contains(pad.id), blocked: blocked && !store.editing) {
+            PadTile(pad: pad, editing: store.editing, active: store.activePad == pad.id, playing: store.playingPadIDs.contains(pad.id), queuePosition: store.queuePosition(for: pad.id), blocked: blocked && !store.editing) {
                 if store.editing { editor = pad } else { trigger(pad) }
             }
             .modifier(PadReordering(enabled: store.editing, id: pad.id) { id in Task { await store.movePad(id, to: pad.id) } })
@@ -364,7 +364,7 @@ struct ContentView: View {
                         Label(store.paired && !store.connected ? "PC disconnected" : store.connected ? store.outputName : "iPad speakers",
                               systemImage: store.paired && !store.connected ? "wifi.slash" : store.cableSelected ? "mic" : "speaker.wave.2")
                             .font(.subheadline.weight(.medium)).lineLimit(1).truncationMode(.middle)
-                        Text(store.connected && !store.supportsPlayback ? "Sound controls" : store.soundMode.label)
+                        Text(store.connected && !store.supportsPlayback ? "Sound controls" : store.effectiveSoundMode.label + (store.queuedPadIDs.isEmpty ? "" : " · \(store.queuedPadIDs.count) queued"))
                             .font(.caption).foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, minHeight: 48, alignment: .leading).contentShape(Rectangle())
                 }.buttonStyle(.plain).accessibilityHint("Open sound controls and game chat setup")

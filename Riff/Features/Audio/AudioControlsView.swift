@@ -15,17 +15,18 @@ struct AudioControlsView: View {
         NavigationStack {
             Form {
                 Section {
-                    Picker("Playback", selection: Binding(get: { store.soundMode }, set: { store.soundMode = $0 })) {
-                        ForEach(SoundPlaybackMode.allCases) { Text($0.label).tag($0) }
+                    Picker("Playback", selection: Binding(get: { store.effectiveSoundMode }, set: { store.soundMode = $0 })) {
+                        ForEach(store.availablePlaybackModes) { Text($0.label).tag($0) }
                     }.pickerStyle(.segmented)
                         .disabled(store.connected && !store.supportsPlayback)
                 } header: { Text("When you tap a sound") } footer: {
                     if store.connected && !store.supportsPlayback {
                         Text("Update Riff on your PC to use these playback controls.")
                     } else {
-                        Text(store.soundMode == .single
-                             ? "Each new sound stops the previous one. Tap a playing button again to stop it. This choice is saved automatically."
-                             : "Different sounds can play together. Tap a playing button again to stop just that sound. This choice is saved automatically.")
+                        Text(store.effectiveSoundMode.explanation + " This choice is saved automatically. Switching to another mode clears waiting sounds on your next tap.")
+                        if store.connected && !store.supportsQueue {
+                            Text("Update Riff on your PC to add Queue mode.")
+                        }
                     }
                 }
                 if !store.connected {

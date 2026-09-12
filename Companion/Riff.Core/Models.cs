@@ -15,7 +15,7 @@ public record SteamGame(string Id, string Name);
 public record LaunchTargetInfo(string Id, string Name);
 public record DeckUpdate(int Version, List<Deck> Decks);
 public record Trigger(string PadId, string RequestId, bool Toggle = false, string? SoundMode = null);
-public record PlaybackState(string SessionId, long Revision, List<string> PadIds);
+public record PlaybackState(string SessionId, long Revision, List<string> PadIds, List<string>? QueuedPadIds = null);
 public record AudioSettings(string OutputId, float Volume);
 public record ClipRename(int Version, string Name);
 public record SavedState(int Version, List<Deck> Decks, List<Clip> Clips, string OutputId, float Volume, List<LaunchTarget> Apps, bool SoundboardOnly = true);

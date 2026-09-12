@@ -12,6 +12,8 @@ public sealed class AudioEngine : IDisposable
     long revision;
     string soundMode = "overlap";
     readonly List<Playback> playing = [];
+    readonly List<QueuedSound> queued = [];
+    sealed record QueuedSound(string Id, string PadId, string Path, string OutputId);
     float volume = .75f;
     sealed record Playback(string Id, string PadId, WasapiOut Output, AudioFileReader Reader, MMDevice Device) : IDisposable
     {
@@ -31,7 +33,7 @@ public sealed class AudioEngine : IDisposable
     }
     public Riff.Core.PlaybackState Status()
     {
-        lock (gate) return new(sessionId, revision, playing.Select(p => p.PadId).Where(id => id.Length > 0).Distinct().ToList());
+        lock (gate) return new(sessionId, revision, playing.Select(p => p.PadId).Where(id => id.Length > 0).Distinct().ToList(), queued.Select(p => p.PadId).ToList());
     }
     public void Play(string path, string outputId, string padId = "", bool toggle = false, string? mode = null)
     {
@@ -42,47 +44,74 @@ public sealed class AudioEngine : IDisposable
             lock (gate)
             {
                 var selectedMode = mode ?? soundMode;
-                plan = PlaybackPolicy.Plan(playing.Select(p => new ActiveSound(p.Id, p.PadId)).ToList(), padId, toggle, selectedMode);
+                plan = PlaybackPolicy.Plan(playing.Select(p => new ActiveSound(p.Id, p.PadId)).ToList(), padId, toggle, selectedMode,
+                    queued.Select(p => new ActiveSound(p.Id, p.PadId)).ToList());
                 soundMode = selectedMode;
                 stopped = playing.Where(p => plan.StopIds.Contains(p.Id)).ToArray();
                 foreach (var item in stopped) playing.Remove(item);
-                if (stopped.Length > 0) revision++;
+                var removed = queued.RemoveAll(p => plan.RemoveQueuedIds?.Contains(p.Id) == true);
+                if (plan.Enqueue) queued.Add(new(Guid.NewGuid().ToString("N"), padId, path, outputId));
+                if (stopped.Length > 0 || removed > 0 || plan.Enqueue) revision++;
             }
             Stop(stopped);
-            if (!plan.Start) return;
-            using var enumerator = new MMDeviceEnumerator();
-            var device = outputId == "" ? enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia) : enumerator.GetDevice(outputId);
-            AudioFileReader? reader = null;
-            WasapiOut? output = null;
-            var registered = false;
-            try
+            if (plan.Start) Start(path, outputId, padId);
+            else StartNext();
+        }
+    }
+    // Called with controlGate held so completion and Stop All cannot race a new start.
+    void Start(string path, string outputId, string padId)
+    {
+        using var enumerator = new MMDeviceEnumerator();
+        var device = outputId == "" ? enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia) : enumerator.GetDevice(outputId);
+        AudioFileReader? reader = null;
+        WasapiOut? output = null;
+        var registered = false;
+        try
+        {
+            reader = new AudioFileReader(path) { Volume = volume };
+            output = new WasapiOut(device, AudioClientShareMode.Shared, true, 40);
+            var playback = new Playback(Guid.NewGuid().ToString("N"), padId, output, reader, device);
+            output.Init(reader);
+            output.PlaybackStopped += (_, _) =>
             {
-                reader = new AudioFileReader(path) { Volume = volume };
-                output = new WasapiOut(device, AudioClientShareMode.Shared, true, 40);
-                var playback = new Playback(Guid.NewGuid().ToString("N"), padId, output, reader, device);
-                output.Init(reader);
-                output.PlaybackStopped += (_, _) =>
+                // Dispose must run off NAudio's render thread, which it joins.
+                ThreadPool.QueueUserWorkItem(_ =>
                 {
-                    bool removed;
-                    lock (gate) { removed = playing.Remove(playback); if (removed) revision++; }
-                    // NAudio can invoke this on its render thread; Dispose joins that thread.
-                    if (removed) ThreadPool.QueueUserWorkItem(_ =>
+                    lock (controlGate)
                     {
+                        bool removed;
+                        lock (gate) { removed = playing.Remove(playback); if (removed) revision++; }
+                        if (!removed) return;
                         try { playback.Dispose(); }
                         catch (Exception error) { System.Diagnostics.Trace.TraceError("Audio cleanup failed: {0}", error); }
-                    });
-                };
-                lock (gate) { reader.Volume = volume; playing.Add(playback); revision++; registered = true; }
-                output.Play();
-            }
-            catch
+                        StartNext();
+                    }
+                });
+            };
+            lock (gate) { reader.Volume = volume; playing.Add(playback); revision++; registered = true; }
+            output.Play();
+        }
+        catch
+        {
+            bool owned;
+            lock (gate) { owned = playing.RemoveAll(p => ReferenceEquals(p.Output, output)) > 0; if (owned) revision++; }
+            // Before registering playback, this method still owns all resources.
+            if (!registered || owned) { output?.Dispose(); reader?.Dispose(); device.Dispose(); }
+            throw;
+        }
+    }
+    void StartNext()
+    {
+        while (true)
+        {
+            QueuedSound next;
+            lock (gate)
             {
-                bool owned;
-                lock (gate) { owned = playing.RemoveAll(p => ReferenceEquals(p.Output, output)) > 0; if (owned) revision++; }
-                // Before registering playback, this method still owns all resources.
-                if (!registered || owned) { output?.Dispose(); reader?.Dispose(); device.Dispose(); }
-                throw;
+                if (playing.Count > 0 || queued.Count == 0) return;
+                next = queued[0]; queued.RemoveAt(0); revision++;
             }
+            try { Start(next.Path, next.OutputId, next.PadId); return; }
+            catch (Exception error) { System.Diagnostics.Trace.TraceError("Queued sound failed: {0}", error); }
         }
     }
     static void Stop(IEnumerable<Playback> items)
@@ -100,7 +129,12 @@ public sealed class AudioEngine : IDisposable
         lock (controlGate)
         {
             Playback[] items;
-            lock (gate) { items = playing.ToArray(); playing.Clear(); if (items.Length > 0) revision++; }
+            lock (gate)
+            {
+                items = playing.ToArray(); playing.Clear();
+                if (items.Length > 0 || queued.Count > 0) revision++;
+                queued.Clear();
+            }
             Stop(items);
         }
     }

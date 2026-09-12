@@ -59,6 +59,7 @@ public class CompanionIntegrationTests
                 Assert.Equal(CompanionBuild.Version, snapshot.CompanionVersion);
                 Assert.True(Version.TryParse(snapshot.CompanionVersion!.Split('-')[0], out _));
                 Assert.Contains("soundboard-playback-v1", snapshot.Capabilities!);
+                Assert.Contains("soundboard-queue-v1", snapshot.Capabilities!);
                 Assert.Contains("clip-audio-v1", snapshot.Capabilities!);
                 var previewClip = snapshot.Clips.First();
                 var previewAudio = await client.GetAsync($"/api/clips/{previewClip.Id}/audio");
@@ -68,6 +69,8 @@ public class CompanionIntegrationTests
                 Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/clips/missing/audio")).StatusCode);
                 var playback = (await client.GetFromJsonAsync<PlaybackState>("/api/playback", Wire.Json))!;
                 Assert.Empty(playback.PadIds);
+                Assert.NotNull(playback.QueuedPadIds);
+                Assert.Empty(playback.QueuedPadIds);
                 Assert.False(string.IsNullOrWhiteSpace(playback.SessionId));
                 Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/trigger",
                     new Trigger(snapshot.Decks[0].Pads[0].Id, Guid.NewGuid().ToString(), true, "invalid"), Wire.Json)).StatusCode);
