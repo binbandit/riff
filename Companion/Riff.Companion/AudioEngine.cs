@@ -13,7 +13,7 @@ public sealed class AudioEngine : IDisposable
     string soundMode = "overlap";
     readonly List<Playback> playing = [];
     readonly List<QueuedSound> queued = [];
-    sealed record QueuedSound(string Id, string PadId, string Path, string OutputId, string? MonitorOutputId, float MonitorVolume);
+    sealed record QueuedSound(string Id, string PadId, string Path, string OutputId, string? MonitorOutputId, float MonitorVolume, bool Loop);
     public event Action<string>? Warning;
     float volume = .75f;
     sealed record AudioRoute(WasapiOut Output, AudioFileReader Reader, MMDevice Device, bool IsMonitor) : IDisposable
@@ -58,7 +58,7 @@ public sealed class AudioEngine : IDisposable
     {
         lock (gate) return new(sessionId, revision, playing.Select(p => p.PadId).Where(id => id.Length > 0).Distinct().ToList(), queued.Select(p => p.PadId).ToList());
     }
-    public void Play(string path, string outputId, string padId = "", bool toggle = false, string? mode = null, string? monitorOutputId = null, float monitorVolume = .75f)
+    public void Play(string path, string outputId, string padId = "", bool toggle = false, string? mode = null, string? monitorOutputId = null, float monitorVolume = .75f, bool loop = false)
     {
         lock (controlGate)
         {
@@ -73,19 +73,19 @@ public sealed class AudioEngine : IDisposable
                 stopped = playing.Where(p => plan.StopIds.Contains(p.Id)).ToArray();
                 foreach (var item in stopped) playing.Remove(item);
                 var removed = queued.RemoveAll(p => plan.RemoveQueuedIds?.Contains(p.Id) == true);
-                if (plan.Enqueue) queued.Add(new(Guid.NewGuid().ToString("N"), padId, path, outputId, monitorOutputId, monitorVolume));
+                if (plan.Enqueue) queued.Add(new(Guid.NewGuid().ToString("N"), padId, path, outputId, monitorOutputId, monitorVolume, loop));
                 if (stopped.Length > 0 || removed > 0 || plan.Enqueue) revision++;
             }
             Stop(stopped);
-            if (plan.Start) Start(path, outputId, padId, monitorOutputId, monitorVolume);
+            if (plan.Start) Start(path, outputId, padId, monitorOutputId, monitorVolume, loop);
             else StartNext();
         }
     }
     // Called with controlGate held so completion and Stop All cannot race a new start.
-    void Start(string path, string outputId, string padId, string? monitorOutputId, float monitorVolume)
+    void Start(string path, string outputId, string padId, string? monitorOutputId, float monitorVolume, bool loop)
     {
         using var enumerator = new MMDeviceEnumerator();
-        var primary = CreateRoute(enumerator, path, outputId, volume, false);
+        var primary = CreateRoute(enumerator, path, outputId, volume, false, loop);
         var playback = new Playback(Guid.NewGuid().ToString("N"), padId, [primary]);
         try
         {
@@ -96,7 +96,7 @@ public sealed class AudioEngine : IDisposable
                     // Compare resolved endpoints: "PC default" may be the selected primary device.
                     var device = ResolveDevice(enumerator, monitorOutputId);
                     if (device.ID == primary.Device.ID) device.Dispose();
-                    else playback.Routes.Add(CreateRoute(device, path, monitorVolume, true));
+                    else playback.Routes.Add(CreateRoute(device, path, monitorVolume, true, loop));
                 }
                 catch (Exception error) { ReportMonitorFailure(error); }
             }
@@ -114,7 +114,8 @@ public sealed class AudioEngine : IDisposable
                             {
                                 if (!playing.Contains(playback) || !playback.Routes.Contains(route)) return;
                                 playback.Finished.Add(route);
-                                finished = playback.Finished.Count == playback.Routes.Count;
+                                // A failed primary output must also stop its indefinitely looping monitor.
+                                finished = (!route.IsMonitor && args.Exception is not null) || playback.Finished.Count == playback.Routes.Count;
                                 if (finished) { playing.Remove(playback); revision++; }
                             }
                             if (args.Exception is not null && route.IsMonitor) ReportMonitorFailure(args.Exception);
@@ -149,9 +150,9 @@ public sealed class AudioEngine : IDisposable
     }
     static MMDevice ResolveDevice(MMDeviceEnumerator enumerator, string id) =>
         id == "" ? enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia) : enumerator.GetDevice(id);
-    static AudioRoute CreateRoute(MMDeviceEnumerator enumerator, string path, string id, float volume, bool monitor) =>
-        CreateRoute(ResolveDevice(enumerator, id), path, volume, monitor);
-    static AudioRoute CreateRoute(MMDevice device, string path, float volume, bool monitor)
+    static AudioRoute CreateRoute(MMDeviceEnumerator enumerator, string path, string id, float volume, bool monitor, bool loop) =>
+        CreateRoute(ResolveDevice(enumerator, id), path, volume, monitor, loop);
+    static AudioRoute CreateRoute(MMDevice device, string path, float volume, bool monitor, bool loop)
     {
         AudioFileReader? reader = null;
         WasapiOut? output = null;
@@ -159,7 +160,7 @@ public sealed class AudioEngine : IDisposable
         {
             reader = new AudioFileReader(path) { Volume = volume };
             output = new WasapiOut(device, AudioClientShareMode.Shared, true, 40);
-            output.Init(reader);
+            output.Init(loop ? new LoopingWaveStream(reader) : reader);
             return new(output, reader, device, monitor);
         }
         catch
@@ -186,7 +187,7 @@ public sealed class AudioEngine : IDisposable
                 if (playing.Count > 0 || queued.Count == 0) return;
                 next = queued[0]; queued.RemoveAt(0); revision++;
             }
-            try { Start(next.Path, next.OutputId, next.PadId, next.MonitorOutputId, next.MonitorVolume); return; }
+            try { Start(next.Path, next.OutputId, next.PadId, next.MonitorOutputId, next.MonitorVolume, next.Loop); return; }
             catch (Exception error) { System.Diagnostics.Trace.TraceError("Queued sound failed: {0}", error); }
         }
     }

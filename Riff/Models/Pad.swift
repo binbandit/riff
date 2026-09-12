@@ -13,6 +13,8 @@ struct Pad: Codable, Identifiable, Hashable {
     var pinned: Bool? = nil
     var doubleTapAction: PadGestureAction? = nil
     var holdAction: PadGestureAction? = nil
+    var loop: Bool? = nil
+    var isLooping: Bool { kind == "sound" && loop == true }
     var hasKeyLogic: Bool { doubleTapAction != nil || holdAction != nil }
     var gestureActions: [PadGestureAction] { [doubleTapAction, holdAction].compactMap { $0 } }
     var actionReferences: [(kind: String, value: String)] {
@@ -23,7 +25,7 @@ struct Pad: Codable, Identifiable, Hashable {
         guard let action = gesture == .doubleTap ? doubleTapAction : holdAction else { return nil }
         var result = self
         result.kind = action.kind; result.value = action.value
-        result.steps = []; result.alternateSteps = nil
+        result.steps = []; result.alternateSteps = nil; result.loop = nil
         result.doubleTapAction = nil; result.holdAction = nil
         return result
     }

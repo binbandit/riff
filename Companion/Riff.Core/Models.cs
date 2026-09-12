@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Riff.Core;
 
 public record ActionStep(string Kind, string Value, int DelayMs = 0);
-public record Pad(string Id, string Title, string Icon, string Color, string Kind, string Value, List<ActionStep> Steps, List<ActionStep>? AlternateSteps = null, bool Pinned = false, PadGestureAction? DoubleTapAction = null, PadGestureAction? HoldAction = null)
+public record Pad(string Id, string Title, string Icon, string Color, string Kind, string Value, List<ActionStep> Steps, List<ActionStep>? AlternateSteps = null, bool Pinned = false, PadGestureAction? DoubleTapAction = null, PadGestureAction? HoldAction = null, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Loop = false)
 {
     [JsonIgnore]
     public IEnumerable<PadGestureAction> GestureActions => new[] { DoubleTapAction, HoldAction }.OfType<PadGestureAction>();
@@ -16,7 +16,7 @@ public record Pad(string Id, string Title, string Icon, string Color, string Kin
         if (gesture is null or "tap") return this;
         var action = gesture switch { "doubleTap" => DoubleTapAction, "hold" => HoldAction, _ => throw new ArgumentException("Unknown button gesture.") };
         if (action is null) throw new ArgumentException("No action is assigned to this gesture.");
-        return this with { Kind = action.Kind, Value = action.Value, Steps = [], AlternateSteps = null, DoubleTapAction = null, HoldAction = null };
+        return this with { Kind = action.Kind, Value = action.Value, Steps = [], AlternateSteps = null, DoubleTapAction = null, HoldAction = null, Loop = false };
     }
 }
 public record PadGestureAction(string Kind, string Value);

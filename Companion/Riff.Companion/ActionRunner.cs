@@ -27,7 +27,7 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
         }
         if (pad.Kind == "sound")
         {
-            lock (cancelGate) Execute(pad.Kind, pad.Value, token, pad.Id == "preview" ? "" : pad.Id, toggle, soundMode);
+            lock (cancelGate) Execute(pad.Kind, pad.Value, token, pad.Id == "preview" ? "" : pad.Id, toggle, soundMode, pad.Loop);
             return;
         }
         if (!await actionGate.WaitAsync(0)) throw new ArgumentException("An action sequence is running. Stop it or wait for it to finish.");
@@ -45,7 +45,7 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
         }
         finally { actionGate.Release(); }
     }
-    void Execute(string kind, string value, CancellationToken token, string padId = "", bool toggle = false, string? mode = null)
+    void Execute(string kind, string value, CancellationToken token, string padId = "", bool toggle = false, string? mode = null, bool loop = false)
     {
         // Serialize cancellation with starting an action so Stop All cannot be overtaken by a late sound.
         lock (cancelGate)
@@ -58,7 +58,7 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
                     lock (store.Gate)
                     {
                         if (!store.State.Clips.Any(c => c.Id == value)) throw new ArgumentException("This sound no longer exists.");
-                        audio.Play(store.ClipPath(value), store.State.OutputId, padId, toggle, mode, store.State.MonitorEnabled ? store.State.MonitorOutputId : null, store.State.MonitorVolume);
+                        audio.Play(store.ClipPath(value), store.State.OutputId, padId, toggle, mode, store.State.MonitorEnabled ? store.State.MonitorOutputId : null, store.State.MonitorVolume, loop);
                     }
                     break;
                 case "hotkey": WindowsInput.Hotkey(value); break;

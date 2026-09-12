@@ -22,7 +22,7 @@ import Testing
         clips[index].name = "My reaction"
         clips.append(Clip(id: "recording", name: "My recording", duration: 1))
         let groups = SoundCatalog.groups(clips)
-        #expect(groups.count == 16)
+        #expect(Set(groups.map(\.id)) == Set(try SoundPacks.load().map(\.id)).union(["personal", "starter"]))
         #expect(groups.first?.name == "My sounds")
         #expect(groups.flatMap(\.clips).count == clips.count)
         #expect(Set(groups.flatMap(\.clips).map(\.id)).count == clips.count)

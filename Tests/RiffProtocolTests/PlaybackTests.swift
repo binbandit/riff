@@ -1,8 +1,91 @@
 import Foundation
+import AVFoundation
 import Testing
 @testable import RiffProtocol
 
 @MainActor struct PlaybackTests {
+    @Test func deviceLoopContinuesPastEndOfAudioAndStops() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".wav")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let format = try #require(AVAudioFormat(standardFormatWithSampleRate: 8000, channels: 1))
+        let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 400))
+        buffer.frameLength = 400
+        let samples = try #require(buffer.floatChannelData?[0])
+        for index in 0..<400 { samples[index] = 0 }
+        do {
+            let file = try AVAudioFile(forWriting: url, settings: format.settings)
+            try file.write(from: buffer)
+        }
+        let player = try DeviceSoundPlayer(url: url)
+        player.volume = 0; player.loops = true
+        defer { player.stop() }
+        #expect(player.play())
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(player.isPlaying)
+        player.stop()
+        #expect(!player.isPlaying)
+    }
+
+    @Test func loopSettingSurvivesSavingMergingAndDuplication() throws {
+        let original = Pad(id: "music", title: "Music", value: "level-up")
+        var loop = original; loop.loop = true
+        let restored = try JSONDecoder().decode(Pad.self, from: JSONEncoder().encode(loop))
+        #expect(restored.isLooping)
+        #expect(restored.duplicated().isLooping)
+        let legacy = try JSONDecoder().decode(Pad.self, from: JSONEncoder().encode(original))
+        #expect(!legacy.isLooping)
+        var remote = original; remote.title = "Renamed music"
+        let base = Deck(id: "deck", name: "Music", pads: [original])
+        var localDeck = base; localDeck.pads = [loop]
+        var remoteDeck = base; remoteDeck.pads = [remote]
+        let merged = DeckChanges(base: [base], decks: [localDeck]).merged(with: [remoteDeck])
+        #expect(merged.first?.pads.first?.isLooping == true)
+        #expect(merged.first?.pads.first?.title == "Renamed music")
+        loop.holdAction = PadGestureAction(kind: "sound", value: "nope")
+        #expect(loop.resolved(for: .hold)?.isLooping == false)
+        let package = try DeckPackage.make(deck: localDeck, snapshot: .starter, grid: GridPreferences())
+        #expect(package.compatibilityIssue(in: .starter) == "Update the Windows companion to loop sounds.")
+    }
+
+    @Test func loopCanBeStoppedAndQueuedLoopKeepsItsSetting() async throws {
+        let sound = try #require(SoundPacks.load().flatMap(\.sounds).first)
+        var players: [ControlledSoundPlayer] = []
+        let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil, makeLocalSoundPlayer: { _ in
+            let player = ControlledSoundPlayer(); players.append(player); return player
+        })
+        let previousMode = store.soundMode
+        defer { store.soundMode = previousMode }
+        store.soundMode = .queue
+        let first = Pad(id: "first", title: "First", value: sound.clipID)
+        let loop = Pad(id: "music", title: "Music", value: sound.clipID, loop: true)
+        await store.trigger(first)
+        await store.trigger(loop)
+        #expect(players.first?.loops == false)
+        #expect(store.queuedPadIDs == [loop.id])
+        try #require(players.first).finish()
+        #expect(players.last?.loops == true)
+        #expect(store.playingPadIDs == [loop.id])
+        await store.trigger(first)
+        await store.trigger(loop)
+        #expect(players[1].isPlaying == false)
+        #expect(store.playingPadIDs == [first.id])
+        await store.trigger(loop)
+        try #require(players.last).finish()
+        #expect(players.last?.loops == true)
+        await store.stopAll()
+        #expect(players.allSatisfy { !$0.isPlaying })
+        #expect(store.playingPadIDs.isEmpty)
+        #expect(store.queuedPadIDs.isEmpty)
+    }
+
+    @Test func olderCompanionCannotSilentlyPlayLoopOnce() async {
+        let store = RiffStore(cacheURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), pairing: nil)
+        store.connected = true
+        store.snapshot.capabilities = ["soundboard-playback-v1"]
+        await store.trigger(Pad(title: "Music", loop: true))
+        #expect(store.error == "Update the Windows companion to loop sounds.")
+    }
+
     @Test func delayedPollCannotRestoreStoppedButtons() {
         var tracker = SoundPlaybackTracker()
         tracker.accept(SoundPlaybackState(sessionId: "pc", revision: 2, padIds: ["pilot", "meme"]))
@@ -125,6 +208,7 @@ import Testing
 @MainActor private final class ControlledSoundPlayer: LocalSoundPlayer {
     private(set) var isPlaying = false
     var volume: Float = 1
+    var loops = false
     var onCompletion: (() -> Void)?
 
     func play() -> Bool { isPlaying = true; return true }

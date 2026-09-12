@@ -55,7 +55,10 @@ struct PadTile: View {
                     if pad.isPinned { Image(systemName: "pin.fill").font(.caption).foregroundStyle(foreground.opacity(0.65)).padding(14).accessibilityLabel("Pinned to every page") }
                 }
                 .overlay(alignment: .topLeading) {
-                    if pad.kind == "switch", !editing {
+                    if pad.isLooping {
+                        Image(systemName: "repeat").font(.caption.weight(.semibold))
+                            .foregroundStyle(foreground.opacity(0.7)).padding(14)
+                    } else if pad.kind == "switch", !editing {
                         Text(switched ? "2" : "1").font(.caption.weight(.bold))
                             .foregroundStyle(foreground).padding(10)
                             .background(foreground.opacity(0.12), in: Circle()).padding(12)
@@ -110,7 +113,7 @@ struct PadTile: View {
                 }
                 .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: tapFeedback)
                 .accessibilityLabel("\(pad.title), \(pad.typeName)")
-                .accessibilityValue(blocked ? "Desktop actions disabled on PC" : playing ? "Playing" : queuePosition != nil ? "Queued, position \(queuePosition ?? 0)" : pad.kind == "switch" ? (switched ? "Second sequence next" : "First sequence next") : "")
+                .accessibilityValue(blocked ? "Desktop actions disabled on PC" : playing ? (pad.isLooping ? "Looping" : "Playing") : queuePosition != nil ? "Queued, position \(queuePosition ?? 0)" : pad.kind == "switch" ? (switched ? "Second sequence next" : "First sequence next") : "")
                 .accessibilityHint(editing ? "Customize this button" : blocked ? "Learn about soundboard-only mode" : playing ? "Tap again to stop this sound" : queuePosition != nil ? "Tap again to remove from queue" : "Run this action")
         }
     }

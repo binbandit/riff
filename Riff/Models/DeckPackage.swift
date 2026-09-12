@@ -37,6 +37,7 @@ struct DeckPackage: Codable {
         }
         var package = Self(content: button == nil ? "deck" : "button", deck: deck, grid: grid, dependencies: [])
         if deck.pads.contains(where: \.hasKeyLogic) { package.schemaVersion = 2 }
+        if deck.pads.contains(where: { $0.loop == true }) { package.schemaVersion = 3 }
         package.dependencies = package.references.map { kind, value in
             let name: String?
             switch kind {
@@ -82,7 +83,7 @@ struct DeckPackage: Codable {
     }
 
     func validate() throws {
-        guard format == "riff-layout", [1, 2].contains(schemaVersion), ["deck", "button"].contains(content) else {
+        guard format == "riff-layout", [1, 2, 3].contains(schemaVersion), ["deck", "button"].contains(content) else {
             throw RiffError.message("This layout format isn't supported. Update Riff or export it again from a compatible version.")
         }
         func check(_ text: String, limit: Int, label: String) throws {
@@ -133,6 +134,7 @@ struct DeckPackage: Codable {
             try check(pad.icon, limit: 80, label: "Button icon")
             guard Palette.colors.contains(pad.color) else { throw RiffError.message("This layout contains an unknown button color.") }
             guard !pad.hasKeyLogic || schemaVersion >= 2 else { throw RiffError.message("Gesture actions require layout format 2.") }
+            guard pad.loop != true || schemaVersion >= 3 else { throw RiffError.message("Looping sounds require layout format 3.") }
             for action in pad.gestureActions {
                 guard ActionKind(rawValue: action.kind)?.isGestureAction == true else { throw RiffError.message("Double-tap and hold must use a single action.") }
                 try checkAction(action.kind, action.value)
@@ -178,6 +180,9 @@ struct DeckPackage: Codable {
     }
 
     func compatibilityIssue(in snapshot: Snapshot) -> String? {
+        if deck.pads.contains(where: { $0.loop == true }), snapshot.capabilities?.contains("soundboard-loop-v1") != true {
+            return "Update the Windows companion to loop sounds."
+        }
         if deck.pads.contains(where: \.hasKeyLogic), snapshot.capabilities?.contains("key-logic-v1") != true {
             return "Update the Windows companion to use double-tap and hold actions."
         }

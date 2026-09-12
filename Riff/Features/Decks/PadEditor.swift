@@ -56,6 +56,14 @@ struct PadEditor: View {
                 Section(pad.hasKeyLogic ? "Tap" : "Action") {
                     Picker("Action", selection: $pad.kind) { ForEach(store.availableActionKinds) { kind in Label(kind.label, systemImage: kind.icon).tag(kind.rawValue) } }
                     ActionFields(kind: pad.kind, value: $pad.value)
+                    if pad.kind == "sound" {
+                        Toggle("Loop sound", isOn: Binding(get: { pad.isLooping }, set: { pad.loop = $0 ? true : nil }))
+                            .disabled(!store.supportsSoundLoop && !pad.isLooping)
+                        Text(store.supportsSoundLoop
+                             ? "Repeats until you tap this button again or use Stop all. In Queue mode, waiting sounds start when you stop this loop."
+                             : "Update the Windows companion to loop sounds.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 if store.supportsPinnedPads {
                     Section {
@@ -93,6 +101,7 @@ struct PadEditor: View {
                 }
             }
             .onChange(of: pad.kind) { _, kind in
+                pad.loop = nil
                 pad.value = defaultValue(kind); pad.steps = ["switch", "random"].contains(kind) ? [ActionStep()] : []
                 pad.alternateSteps = kind == "switch" ? [ActionStep()] : nil
                 if !suggestionEdits.icon { pad.icon = ActionKind(rawValue: kind)?.icon ?? "sparkles" }

@@ -32,7 +32,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             var s = store.State;
             return new(s.Version, s.Decks, s.Clips, audio.Devices(), s.OutputId, s.Volume,
                 s.Apps.Select(a => new LaunchTargetInfo(a.Id, a.Name)).ToList(), Environment.MachineName,
-                presence.Games, presence.Id, presence.Name, ["audio-monitor-v1", "soundboard-playback-v1", "soundboard-queue-v1", "bundled-sounds-v1", "soundboard-only-v1", "deck-actions-v1", "pinned-pads-v1", "key-logic-v1", "smart-profiles-v1", "clip-audio-v1", "pad-suggestions-v1", "deck-suggestions-v1", "sound-suggestions-v1", .. AI.Enabled ? new[] { "pad-suggestions-enabled-v1" } : Array.Empty<string>()], CompanionBuild.Version, s.SoundboardOnly, AppPresence.Read(s.Apps), runner.SwitchStatus(), s.MonitorEnabled, s.MonitorOutputId, s.MonitorVolume);
+                presence.Games, presence.Id, presence.Name, ["audio-monitor-v1", "soundboard-playback-v1", "soundboard-queue-v1", "soundboard-loop-v1", "bundled-sounds-v1", "soundboard-only-v1", "deck-actions-v1", "pinned-pads-v1", "key-logic-v1", "smart-profiles-v1", "clip-audio-v1", "pad-suggestions-v1", "deck-suggestions-v1", "sound-suggestions-v1", .. AI.Enabled ? new[] { "pad-suggestions-enabled-v1" } : Array.Empty<string>()], CompanionBuild.Version, s.SoundboardOnly, AppPresence.Read(s.Apps), runner.SwitchStatus(), s.MonitorEnabled, s.MonitorOutputId, s.MonitorVolume);
         }
     }
     public async Task Start()

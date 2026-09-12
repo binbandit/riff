@@ -11,6 +11,7 @@ import Observation
     private var deckHistory: [String] = []
     var canGoBack: Bool { deckHistory.contains { id in snapshot.decks.contains { $0.id == id } } }
     var supportsKeyLogic: Bool { !connected || snapshot.capabilities?.contains("key-logic-v1") == true }
+    var supportsSoundLoop: Bool { !connected || snapshot.capabilities?.contains("soundboard-loop-v1") == true }
     var supportsPinnedPads: Bool { !connected || snapshot.capabilities?.contains("pinned-pads-v1") == true }
     var supportsDeckActions: Bool { !connected || snapshot.capabilities?.contains("deck-actions-v1") == true }
     var supportsSmartProfiles: Bool { !connected || snapshot.capabilities?.contains("smart-profiles-v1") == true }
@@ -365,6 +366,7 @@ import Observation
     }
     func trigger(_ source: Pad, gesture: PadGesture = .tap) async {
         guard let pad = source.resolved(for: gesture) else { error = "No action is assigned to this gesture."; return }
+        if pad.isLooping, !supportsSoundLoop { error = "Update the Windows companion to loop sounds."; return }
         if gesture != .tap, connected, !supportsKeyLogic { error = "Update the Windows companion to use double-tap and hold actions."; return }
         if connected, snapshot.blocksDesktopAction(pad) { error = "Turn off Soundboard mode in the Windows companion to use this desktop action."; return }
         if pad.kind == "deck" { openDeck(pad.value); return }
@@ -431,6 +433,7 @@ import Observation
         let player = try makeLocalSoundPlayer(url)
         player.onCompletion = { [weak self] in self?.refreshLocalPlayback() }
         player.volume = snapshot.volume
+        player.loops = pad.isLooping
         guard player.play() else { throw RiffError.message("This sound could not be played.") }
         players[pad.id] = player; playingPadIDs = Set(players.keys)
     }

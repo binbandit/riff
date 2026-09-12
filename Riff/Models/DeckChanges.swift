@@ -56,10 +56,10 @@ struct DeckChanges: Codable {
                     if local.pad.holdAction != original.pad.holdAction { pad.holdAction = local.pad.holdAction }
                     // Treat an action and both sequences as one unit to avoid mixing action types.
                     var action = original.pad
-                    action.kind = local.pad.kind; action.value = local.pad.value
+                    action.kind = local.pad.kind; action.value = local.pad.value; action.loop = local.pad.loop
                     action.steps = local.pad.steps; action.alternateSteps = local.pad.alternateSteps
                     if !Self.same(action, original.pad) {
-                        pad.kind = local.pad.kind; pad.value = local.pad.value
+                        pad.kind = local.pad.kind; pad.value = local.pad.value; pad.loop = local.pad.loop
                         pad.steps = local.pad.steps; pad.alternateSteps = local.pad.alternateSteps
                     }
                 } else { owner = local.deck; pad = local.pad }

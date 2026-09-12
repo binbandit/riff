@@ -40,6 +40,7 @@ struct SoundPlaybackTracker {
 protocol LocalSoundPlayer: AnyObject {
     var isPlaying: Bool { get }
     var volume: Float { get set }
+    var loops: Bool { get set }
     var onCompletion: (() -> Void)? { get set }
     func play() -> Bool
     func stop()
@@ -59,6 +60,10 @@ final class DeviceSoundPlayer: NSObject, LocalSoundPlayer, AVAudioPlayerDelegate
     var volume: Float {
         get { player.volume }
         set { player.volume = newValue }
+    }
+    var loops: Bool {
+        get { player.numberOfLoops == -1 }
+        set { player.numberOfLoops = newValue ? -1 : 0 }
     }
     func play() -> Bool { player.play() }
     func stop() { player.stop() }
