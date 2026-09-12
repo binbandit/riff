@@ -43,6 +43,13 @@ enum SoundPacks {
 
     static var clips: [Clip] { (try? load())?.flatMap { $0.sounds.map { Clip(id: $0.clipID, name: $0.name, duration: $0.duration) } } ?? [] }
 
+    static func refreshDurations(_ clips: inout [Clip]) {
+        let durations = Dictionary(uniqueKeysWithValues: Self.clips.map { ($0.id, $0.duration) })
+        for index in clips.indices {
+            if let duration = durations[clips[index].id] { clips[index].duration = duration }
+        }
+    }
+
     static func load() throws -> [SoundPack] {
         guard let url = bundle.url(forResource: "sound-packs", withExtension: "json") else {
             throw RiffError.message("The sound pack catalog is missing. Reinstall Riff to restore it.")

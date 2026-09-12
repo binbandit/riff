@@ -114,6 +114,26 @@ import Testing
         #expect(restored.error == nil)
     }
 
+    @Test func correctedMusicUpdatesCachedDurationAndPreservesItsIdentity() throws {
+        let sound = try #require(SoundPacks.load().flatMap(\.sounds).first { $0.id == "chipi-chapa" })
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let cache = folder.appendingPathComponent("snapshot.json")
+        var old = Snapshot.starter
+        let index = try #require(old.clips.firstIndex { $0.id == sound.clipID })
+        old.clips[index].name = "My music"; old.clips[index].duration = 11.991
+        try JSONEncoder().encode(old).write(to: cache)
+        let store = RiffStore(cacheURL: cache, pairing: nil)
+        let corrected = try #require(store.snapshot.clips.first { $0.id == sound.clipID })
+        #expect(corrected.name == "My music")
+        #expect(corrected.duration == sound.duration)
+        #expect(store.snapshot.decks == old.decks)
+        let player = try AVAudioPlayer(contentsOf: SoundPacks.audioURL(for: sound))
+        #expect(player.duration > 9.7 && player.duration < 9.9)
+        #expect(abs(player.duration - sound.duration) < 0.05)
+    }
+
     @Test func corruptTruncatedAndOversizedAudioIsRejected() throws {
         let sound = try #require(SoundPacks.load().first?.sounds.first)
         let data = try SoundPacks.audioData(for: sound)

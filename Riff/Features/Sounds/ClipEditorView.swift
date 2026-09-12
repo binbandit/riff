@@ -7,6 +7,7 @@ struct ClipEditorView: View {
     @Environment(\.scenePhase) private var scenePhase
     let url: URL
     @State var name: String
+    var savingCopy = false
     var onSaved: (Clip) -> Void
     @State private var inspection: ClipInspection?
     @State private var start = 0.0
@@ -29,6 +30,10 @@ struct ClipEditorView: View {
                     .padding(18).background(Palette.panel, in: RoundedRectangle(cornerRadius: 16))
                     .disabled(busy)
                 if cleanName.utf16.count > 60 { Text("Use 60 characters or fewer.").font(.caption).foregroundStyle(.red) }
+                if !store.connected {
+                    Label("Connect your PC to save. Trimming and previews work here.", systemImage: "desktopcomputer")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
                 if let inspection {
                     VStack(spacing: 18) {
                         waveform(inspection)
@@ -72,7 +77,7 @@ struct ClipEditorView: View {
                     }
                     Label("This preview stays on your iPad. It isn’t sent to game chat.", systemImage: "ipad")
                         .font(.subheadline).foregroundStyle(.secondary)
-                    Text("Only the selected section is saved. Your original file stays unchanged.")
+                    Text(savingCopy ? "Save a new sound with only the selected section. The original stays available." : "Only the selected section is saved. Your original file stays unchanged.")
                         .font(.caption).foregroundStyle(.secondary)
                 } else if failure == nil {
                     ProgressView("Reading audio…").frame(maxWidth: .infinity, minHeight: 180)
@@ -88,8 +93,8 @@ struct ClipEditorView: View {
             ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { editingTime = false } }
             ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(busy) }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save & add") { save() }.fontWeight(.semibold)
-                    .disabled(busy || inspection == nil || cleanName.isEmpty || cleanName.utf16.count > 60 || !store.connected)
+                Button(savingCopy ? "Save copy" : "Save & add") { save() }.fontWeight(.semibold)
+                    .disabled(busy || inspection == nil || cleanName.isEmpty || cleanName.utf16.count > 60 || !store.connected || store.busy)
             }
         }
         .interactiveDismissDisabled(busy)
@@ -166,6 +171,53 @@ struct ClipEditorView: View {
                 let clip = try await store.upload(output, name: cleanName)
                 if operation == token && !Task.isCancelled { onSaved(clip) }
             } catch { if !Task.isCancelled && operation == token { failure = error.localizedDescription } }
+        }
+    }
+}
+
+struct ExistingSoundEditorView: View {
+    @Environment(RiffStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let clip: Clip
+    var onSaved: (Clip) -> Void
+    @State private var sourceURL: URL?
+    @State private var failure: String?
+    @State private var attempt = UUID()
+
+    var body: some View {
+        NavigationStack {
+            if let sourceURL {
+                ClipEditorView(url: sourceURL, name: clip.editedCopyName, savingCopy: true, onSaved: onSaved)
+            } else {
+                VStack(spacing: 16) {
+                    if let failure {
+                        Text(failure).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        Button("Try again") { attempt = UUID() }.buttonStyle(AccentButtonStyle())
+                    } else {
+                        ProgressView("Loading sound…")
+                    }
+                }
+                .padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Palette.background)
+                .navigationTitle("Edit sound").navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            }
+        }
+        .task(id: attempt) {
+            store.stopPreview(); failure = nil
+            let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".wav")
+            do {
+                let data = try await store.audioData(for: clip)
+                try Task.checkCancellation()
+                try data.write(to: temporary, options: .atomic)
+                sourceURL = temporary
+            } catch {
+                try? FileManager.default.removeItem(at: temporary)
+                if !Task.isCancelled { failure = error.localizedDescription }
+            }
+        }
+        .onDisappear {
+            if let sourceURL { try? FileManager.default.removeItem(at: sourceURL); self.sourceURL = nil }
         }
     }
 }

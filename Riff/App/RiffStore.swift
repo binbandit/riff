@@ -222,6 +222,7 @@ import Observation
         snapshot.clips += bundled.filter { !existing.contains($0.id) && !knownBundledSoundIDs.contains($0.id) && !deletedClipIDs.contains($0.id) }
         knownBundledSoundIDs.formUnion(bundled.map(\.id))
         snapshot.clips.removeAll { deletedClipIDs.contains($0.id) }
+        SoundPacks.refreshDurations(&snapshot.clips)
         deckChanges = snapshot.localDeckChanges
         snapshot.localDeckChanges = nil
         if let deckChanges { snapshot.decks = deckChanges.decks }
@@ -283,6 +284,7 @@ import Observation
         state.localDeckChanges = nil
         state.localKnownBundledSoundIDs = nil; state.localDeletedClipIDs = nil
         state.clips.removeAll { deletedClipIDs.contains($0.id) }
+        SoundPacks.refreshDurations(&state.clips)
         if let changes = deckChanges {
             state.decks = changes.merged(with: incoming.decks)
             deckChanges = DeckChanges(base: incoming.decks, decks: state.decks)
@@ -600,23 +602,26 @@ import Observation
         previewTask?.cancel(); previewTask = nil
         previewPlayer?.stop(); previewPlayer = nil
     }
+    func audioData(for clip: Clip) async throws -> Data {
+        if let url = SoundPacks.audioURL(forClipID: clip.id) ?? Bundle.main.url(forResource: clip.id, withExtension: "wav") {
+            return try Data(contentsOf: url)
+        }
+        guard let client, connected else {
+            throw RiffError.message("Connect your PC to preview or edit this sound on your iPad.")
+        }
+        guard snapshot.capabilities?.contains("clip-audio-v1") == true else {
+            throw RiffError.message("Update Riff on your PC to preview or edit imported and recorded sounds on this iPad.")
+        }
+        let id = clip.id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+        return try await client.requestData("/api/clips/\(id)/audio")
+    }
     func preview(_ clip: Clip) async {
         stopPreview()
         let generation = previewGeneration
         let task = Task {
             defer { if generation == previewGeneration { previewTask = nil } }
             do {
-                let data: Data
-                if let url = SoundPacks.audioURL(forClipID: clip.id) ?? Bundle.main.url(forResource: clip.id, withExtension: "wav") {
-                    data = try Data(contentsOf: url)
-                } else if let client, connected, snapshot.capabilities?.contains("clip-audio-v1") == true {
-                    let id = clip.id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
-                    data = try await client.requestData("/api/clips/\(id)/audio")
-                } else {
-                    throw RiffError.message(connected
-                        ? "Update Riff on your PC to preview imported and recorded sounds on this iPad."
-                        : "Connect your PC to preview this sound on your iPad.")
-                }
+                let data = try await audioData(for: clip)
                 try Task.checkCancellation()
                 guard generation == previewGeneration else { return }
 #if os(iOS)

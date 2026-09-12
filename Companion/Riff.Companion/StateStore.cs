@@ -32,10 +32,13 @@ public sealed class StateStore
         var populated = SoundPacks.Populate(State);
         foreach (var sound in SoundPacks.Catalog.SelectMany(p => p.Sounds).Where(s => populated.Clips.Any(c => c.Id == s.ClipId)))
         {
-            if (File.Exists(ClipPath(sound.ClipId))) continue;
+            var existing = ClipPath(sound.ClipId);
+            if (File.Exists(existing) && (sound.PreviousHashes is not { Count: > 0 } || !sound.Replaces(File.ReadAllBytes(existing)))) continue;
             var source = Path.Combine(AppContext.BaseDirectory, "PackSounds", sound.FileName);
             sound.Validate(File.ReadAllBytes(source));
-            File.Copy(source, Path.Combine(Folder, "clips", sound.ClipId + ".mp3"), true);
+            var target = Path.Combine(Folder, "clips", sound.ClipId + ".mp3");
+            File.Copy(source, target + ".tmp", true);
+            File.Move(target + ".tmp", target, true);
         }
         if (!ReferenceEquals(populated, State)) Save(populated);
         Rules.ValidateDecks(State.Decks, State.Clips.Select(c => c.Id).ToHashSet(), State.Apps.Select(a => a.Id).ToHashSet());

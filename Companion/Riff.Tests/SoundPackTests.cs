@@ -57,4 +57,31 @@ public class SoundPackTests
         Assert.DoesNotContain(upgraded.Clips, c => c.Id == sound.ClipId);
     }
 
+    [Fact]
+    public void CorrectedSoundsRefreshDurationsWithoutLosingRenamesOrRestoringDeletions()
+    {
+        var sound = SoundPacks.Find("lobby-jukebox", "chipi-chapa");
+        var populated = SoundPacks.Populate(new SavedState(1, Defaults.Decks, [], "", .75f, []));
+        var old = populated with { Clips = populated.Clips.Select(c => c.Id == sound.ClipId ? c with { Name = "My music", Duration = 11.991 } : c).ToList() };
+        var updated = SoundPacks.Populate(old);
+        var clip = updated.Clips.Single(c => c.Id == sound.ClipId);
+        Assert.Equal("My music", clip.Name);
+        Assert.Equal(sound.Duration, clip.Duration);
+        Assert.InRange(clip.Duration, 9.7, 9.9);
+        Assert.Same(old.Decks, updated.Decks);
+        Assert.Same(updated, SoundPacks.Populate(updated));
+        var deleted = updated with { Clips = updated.Clips.Where(c => c.Id != sound.ClipId).ToList() };
+        Assert.DoesNotContain(SoundPacks.Populate(deleted).Clips, c => c.Id == sound.ClipId);
+    }
+
+    [Fact]
+    public void AudioReplacementOnlyMatchesAnExplicitPreviousRecording()
+    {
+        byte[] original = [1, 2, 3, 4];
+        var sound = SoundPacks.Find("lobby-jukebox", "chipi-chapa") with { PreviousHashes = [Convert.ToHexString(SHA256.HashData(original)).ToLowerInvariant()] };
+        Assert.True(sound.Replaces(original));
+        Assert.False(sound.Replaces([4, 3, 2, 1]));
+        Assert.False((sound with { PreviousHashes = null }).Replaces(original));
+    }
+
 }

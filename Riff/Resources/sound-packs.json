@@ -582,12 +582,15 @@
         "provider": "Myinstants",
         "uploader": "hola98",
         "rights": "Community upload; redistribution and broadcast rights not verified.",
-        "byteCount": 193140,
-        "sha256": "a2a8a26f0a37476941564e86f04e977ce7c9dd1df16d9699066c346994d62ad7",
-        "duration": 11.991,
+        "byteCount": 158031,
+        "sha256": "81e54c2974c662d6691c81684bfc8442e6b84b6535b4ee78bc19c9c10295d3b5",
+        "duration": 9.823,
         "originalDownloadURL": "https://www.myinstants.com/media/sounds/chipi-chipi-chapa-chapa.mp3",
-        "acquisition": "First 12.003 seconds of the source recording (source duration 12.003 seconds). Converted to 44.1 kHz mono 128 kbps MP3; FFmpeg loudnorm I=-18, TP=-2, LRA=7 and 0.3-second end fade.",
-        "fileName": "chipi-chapa-a2a8a26f0a37476941564e86f04e977ce7c9dd1df16d9699066c346994d62ad7.mp3"
+        "acquisition": "First 12.003 seconds of the source recording (source duration 12.003 seconds). Converted to 44.1 kHz mono 128 kbps MP3; FFmpeg loudnorm I=-18, TP=-2, LRA=7 and 0.3-second end fade. Removed the appended TikTok outro at the silent gap after the music (cut at 9.82 seconds), preserving the MP3 audio frames without re-encoding.",
+        "fileName": "chipi-chapa-81e54c2974c662d6691c81684bfc8442e6b84b6535b4ee78bc19c9c10295d3b5.mp3",
+        "previousHashes": [
+          "a2a8a26f0a37476941564e86f04e977ce7c9dd1df16d9699066c346994d62ad7"
+        ]
       },
       {
         "id": "coconut-mall",

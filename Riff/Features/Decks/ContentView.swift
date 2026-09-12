@@ -193,7 +193,7 @@ struct ContentView: View {
             case "grid": destination = .grid
             case "audio": destination = .audio
             case "playback-check": await DesignPreview.checkPlayback(store)
-            case "packs", "pack-detail", "sounds", "rename", "import", "bulk-import", "sound-selection", "add-sounds": destination = .sounds
+            case "packs", "pack-detail", "sounds", "edit-sound", "rename", "import", "bulk-import", "sound-selection", "add-sounds": destination = .sounds
             case "recording", "recording-trim": destination = .recording
             case "settings", "appearance", "ai-settings": destination = .settings
             case "audio-setup": destination = .audioSetup

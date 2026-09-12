@@ -8,6 +8,9 @@ public record PackSound(string Id, string Name, string FileName, string SourceUR
 {
     public string? OriginalDownloadURL { get; init; }
     public string? Acquisition { get; init; }
+    public List<string>? PreviousHashes { get; init; }
+    public bool Replaces(ReadOnlySpan<byte> bytes) => PreviousHashes is { Count: > 0 } hashes
+        && hashes.Contains(Convert.ToHexString(SHA256.HashData(bytes)), StringComparer.OrdinalIgnoreCase);
     public string ClipId => "pack-" + Id;
     public void Validate(ReadOnlySpan<byte> bytes)
     {
@@ -36,8 +39,10 @@ public static class SoundPacks
             .Where(s => !known.Contains(s.ClipId) && !existing.Contains(s.ClipId))
             .Select(s => new Clip(s.ClipId, s.Name, s.Duration)).ToList();
         known.UnionWith(Catalog.SelectMany(p => p.Sounds).Select(s => s.ClipId));
-        if (additions.Count == 0 && known.SetEquals(state.KnownBundledSoundIds ?? [])) return state;
-        return state with { Clips = [.. state.Clips, .. additions], KnownBundledSoundIds = known.Order().ToList(), Version = state.Version + 1 };
+        var revised = Catalog.SelectMany(p => p.Sounds).Where(s => s.PreviousHashes is { Count: > 0 }).ToDictionary(s => s.ClipId);
+        var clips = state.Clips.Select(c => revised.TryGetValue(c.Id, out var sound) ? c with { Duration = sound.Duration } : c).ToList();
+        if (additions.Count == 0 && clips.SequenceEqual(state.Clips) && known.SetEquals(state.KnownBundledSoundIds ?? [])) return state;
+        return state with { Clips = [.. clips, .. additions], KnownBundledSoundIds = known.Order().ToList(), Version = state.Version + 1 };
     }
 
     public static PackSound Find(string packId, string soundId) =>

@@ -42,6 +42,37 @@ import Testing
         #expect(try Data(contentsOf: input) == original)
     }
 
+    @Test func bundledSoundCanBeTrimmedOfflineWithoutChangingTheOriginal() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = RiffStore(cacheURL: folder.appendingPathComponent("snapshot.json"), pairing: nil)
+        let clip = try #require(store.snapshot.clips.first { SoundPacks.audioURL(forClipID: $0.id) != nil && $0.duration > 0.2 })
+        let originalURL = try #require(SoundPacks.audioURL(forClipID: clip.id))
+        let original = try Data(contentsOf: originalURL)
+        let source = folder.appendingPathComponent("source.wav")
+        try await store.audioData(for: clip).write(to: source)
+        let duration = try ClipAudio.inspect(source).duration
+        let output = try ClipAudio.export(source, start: duration / 4, end: duration / 2)
+        defer { try? FileManager.default.removeItem(at: output) }
+        let audio = try AVAudioFile(forReading: output)
+        let savedDuration = Double(audio.length) / audio.processingFormat.sampleRate
+        #expect(abs(savedDuration - duration / 4) < 0.001)
+        #expect(try Data(contentsOf: originalURL) == original)
+        #expect(store.snapshot.clips.contains(clip))
+        #expect(!store.connected)
+        #expect(store.error == nil)
+    }
+
+    @Test func editedNamesFitTheLibraryLimitIncludingEmoji() {
+        for name in ["Air horn", String(repeating: "🎉", count: 30), String(repeating: "a", count: 60)] {
+            let clip = Clip(id: "sound", name: name, duration: 2)
+            #expect(clip.editedCopyName.hasSuffix(" (edited)"))
+            #expect(clip.editedCopyName.utf16.count <= 60)
+            #expect(clip.name == name)
+        }
+    }
+
     @Test func rejectsInvalidRangesAndBoundsSixtySecondExports() throws {
         let input = try source(seconds: 62)
         defer { try? FileManager.default.removeItem(at: input) }

@@ -4,6 +4,8 @@ struct SoundPickerView: View {
     @Environment(RiffStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @Binding var selection: String
+    @State private var editing: Clip?
+    @State private var edited: Clip?
     @State private var query = ""
     @State private var scope = SoundScope.all
     private var clips: [Clip] {
@@ -41,8 +43,14 @@ struct SoundPickerView: View {
                     }.buttonStyle(.borderless)
                         .accessibilityLabel("\(store.favoriteClipIDs.contains(clip.id) ? "Unfavorite" : "Favorite") \(clip.name)")
                 }
+                .contextMenu { Button("Edit sound", systemImage: "scissors") { editing = clip } }
             }
             if clips.isEmpty { SoundEmptyView(scope: scope, searching: !query.isEmpty).listRowBackground(Color.clear) }
+        }
+        .sheet(item: $editing, onDismiss: {
+            if let edited { selection = edited.id; dismiss() }
+        }) { clip in
+            ExistingSoundEditorView(clip: clip) { saved in edited = saved; editing = nil }
         }
         .searchable(text: $query, prompt: "Find a sound")
         .scrollContentBackground(.hidden).background(Palette.background)

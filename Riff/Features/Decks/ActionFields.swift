@@ -3,6 +3,7 @@ import SwiftUI
 struct ActionFields: View {
     @Environment(RiffStore.self) private var store
     let kind: String
+    @State private var editingSound: Clip?
     @Binding var value: String
     var body: some View {
         switch kind {
@@ -11,6 +12,12 @@ struct ActionFields: View {
                 SoundPickerView(selection: $value)
             } label: {
                 LabeledContent("Sound", value: store.snapshot.clips.first(where: { $0.id == value })?.name ?? "Choose a sound")
+            }
+            if let clip = store.snapshot.clips.first(where: { $0.id == value }) {
+                Button("Edit sound", systemImage: "scissors") { editingSound = clip }
+                    .sheet(item: $editingSound) { sound in
+                        ExistingSoundEditorView(clip: sound) { saved in value = saved.id; editingSound = nil }
+                    }
             }
             Text("Plays through the output selected in Audio settings. For game chat, choose your virtual cable.").font(.caption).foregroundStyle(.secondary)
         case "hotkey":

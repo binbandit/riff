@@ -17,6 +17,7 @@ struct LibraryView: View {
     @State private var batchImport: SoundImportRequest?
     @State private var importedForDeck: [Clip] = []
     @State private var recording = false
+    @State private var editing: Clip?
     @State private var naming: SoundNameTarget?
     @State private var failure: String?
     @State private var deleteClip: Clip?
@@ -62,6 +63,7 @@ struct LibraryView: View {
                 selecting = true; selectedIDs = Array(store.snapshot.clips.prefix(3).map(\.id))
                 if DesignPreview.screen == "add-sounds" { addingSounds = true }
             }
+            if DesignPreview.screen == "edit-sound", let clip = store.snapshot.clips.first { editing = clip }
             if DesignPreview.screen == "rename", let clip = store.snapshot.clips.first { naming = .existing(clip) }
             if DesignPreview.screen == "bulk-import" {
                 let urls = ["level-up", "coin-drop", "red-alert"].compactMap { Bundle.main.url(forResource: $0, withExtension: "wav") }
@@ -121,6 +123,11 @@ struct LibraryView: View {
         }) { request in
             ImportSoundsView(urls: request.urls) { importedForDeck = $0 }
         }
+        .sheet(item: $editing, onDismiss: {
+            if let recorded { self.recorded = nil; onAssign(recorded) }
+        }) { clip in
+            ExistingSoundEditorView(clip: clip) { saved in recorded = saved; editing = nil }
+        }
         .sheet(item: $naming, onDismiss: {
             if let recorded { self.recorded = nil; onAssign(recorded) }
         }) { target in
@@ -165,12 +172,15 @@ struct LibraryView: View {
             } else {
                 soundName(clip)
                 Spacer()
+                Button { editing = clip } label: { Image(systemName: "scissors").frame(width: 44, height: 44) }
+                    .buttonStyle(.borderless).accessibilityLabel("Edit \(clip.name)")
                 Button { onAssign(clip) } label: { Image(systemName: "plus.circle.fill").font(.title2).padding(8) }
                     .buttonStyle(.borderless).disabled(store.busy).accessibilityLabel("Add \(clip.name) to deck")
             }
         }.padding(.vertical, 6)
             .swipeActions(allowsFullSwipe: false) {
                 Button("Delete", role: .destructive) { deleteClip = clip }
+                Button("Edit", systemImage: "scissors") { editing = clip }.tint(Palette.accent)
                 Button("Rename") { naming = .existing(clip) }.tint(Palette.accent).disabled(!store.connected)
             }
             .swipeActions(edge: .leading, allowsFullSwipe: true) {
@@ -183,6 +193,7 @@ struct LibraryView: View {
                 if let sound = try? SoundPacks.load().flatMap(\.sounds).first(where: { $0.clipID == clip.id }) {
                     Link("Original source · \(sound.provider)", destination: sound.sourceURL)
                 }
+                Button("Edit sound", systemImage: "scissors") { editing = clip }
                 Button("Rename sound", systemImage: "pencil") { naming = .existing(clip) }.disabled(!store.connected)
                 Button("Delete sound", role: .destructive) { deleteClip = clip }
             }

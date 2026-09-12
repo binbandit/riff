@@ -22,7 +22,7 @@ Researched 12 September 2026 (Australia/Melbourne). The selection favors recogni
 
 The communication packs add 36 short phrases for everyday voice chat and squad coordination. Quick Replies and Friendly Chat use the Andrew Chipper synthetic voice from [Coqui Voice Pack v2](https://github.com/coqui-ai/coqui-voice-pack/releases/tag/v2). Team Callouts combines that voice with Jeffrey M. Smith’s recordings from the [Kenney Voiceover Pack](https://kenney.nl/assets/voiceover-pack). All communication clips are under five seconds and are converted to 44.1 kHz mono MP3 with consistent loudness. Search the pack names or individual phrases, preview them, and use **Quick add** to make a communication board.
 
-Lobby Jukebox adds 16 musical soundboard excerpts for the same lobby use as Social Credit Music: meme dances, familiar Wii themes, novelty songs, and awkward waiting music. Selection uses the linked Myinstants source pages and searches for each track, not a measured ranking of game-lobby usage. The clips run about 10–19 seconds, use consistent loudness, and end with a short fade. Social Credit Music remains in Montage Memes with its original identity and recording.
+Lobby Jukebox adds 16 musical soundboard excerpts for the same lobby use as Social Credit Music: meme dances, familiar Wii themes, novelty songs, and awkward waiting music. Selection uses the linked Myinstants source pages and searches for each track, not a measured ranking of game-lobby usage. The clips run about 10–19 seconds, use consistent loudness, and end with a short fade. Social Credit Music remains in Montage Memes with its original identity and recording. Chipi Chipi Chapa Chapa ends after the music at 9.82 seconds; its appended TikTok outro has been removed without re-encoding the music.
 
 ## Sources and rights
 
@@ -105,7 +105,7 @@ Hard cuts, suspicious moments, and over-the-top reveals. Short-form edit staples
 
 Meme music for the lobby. Coffin Dance, Crab Rave, Wii themes, and more for Social Credit fans.
 
-16 sounds, 3404 KB bundled.
+16 sounds, 3370 KB bundled.
 
 | Sound | Seconds | Source |
 | --- | ---: | --- |
@@ -122,7 +122,7 @@ Meme music for the lobby. Coffin Dance, Crab Rave, Wii themes, and more for Soci
 | Trololo | 9.89 | [Myinstants](https://www.myinstants.com/en/instant/trololo/) |
 | Nyan Cat | 15.70 | [Myinstants](https://www.myinstants.com/en/instant/nyan-cat/) |
 | Pedro | 11.57 | [Myinstants](https://www.myinstants.com/en/instant/pedro-song-85902/) |
-| Chipi Chipi Chapa Chapa | 11.99 | [Myinstants](https://www.myinstants.com/en/instant/chipi-chipi-chapa-chapa-55314/) |
+| Chipi Chipi Chapa Chapa | 9.82 | [Myinstants](https://www.myinstants.com/en/instant/chipi-chipi-chapa-chapa-55314/) |
 | Coconut Mall | 9.60 | [Myinstants](https://www.myinstants.com/en/instant/mario-kart-coconut-mall-48871/) |
 | Mii Channel Theme | 16.98 | [Myinstants](https://www.myinstants.com/en/instant/mii-channel-music-82732/) |
 

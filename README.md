@@ -82,6 +82,8 @@ For files, use **Sounds → + → Import audio files** and select several at onc
 
 Tap the output label below the deck, or open **… → Sound controls**, to choose volume, output, and playback mode. **Overlap** layers effects; **One at a time** replaces the previous clip; **Queue** waits for each sound to finish before starting the next. Waiting buttons show their queue position. Tap a waiting button to remove it, or tap the playing button to skip to the next sound. Up to 48 sounds can wait in the queue. Switching to another mode clears waiting sounds on your next tap. **Stop all** stops sounds, clears the queue, and cancels any remaining sequence steps. Queue mode requires an updated Windows companion and also works with offline iPad sounds.
 
+To shorten an included or saved sound, open **Sounds** and tap its **scissors** button. Adjust the start point and clip length, listen on your iPad, then choose **Save copy** and add the result to a button. You can also choose **Edit sound** in a button’s settings to use the edited copy on that button. The original remains available. Included sounds can be trimmed and previewed offline; saving requires a connected PC.
+
 Recordings and saved clips can be up to 60 seconds long. On iPad, you can import a file up to 10 minutes long and 100 MB in size, at 96 kHz or below, then trim it before upload. Direct Windows imports are limited to 20 MB and 60 seconds. Trimming leaves the original file unchanged.
 
 Use **Sounds → Select → Add to deck** to build a deck from several clips. Favorites and search help you find them again. Long-press a button to duplicate it, or change its deck in the editor to move it. **… → Grid size** sets the rows and columns for each deck.

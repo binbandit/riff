@@ -11,3 +11,5 @@ The 36 communication clips come from Coqui Voice Pack v2 (MIT) and Kenney Voiceo
 Lobby Jukebox adds 16 music excerpts, with original sources and audio processing recorded per clip in the catalog. Music clips are level-matched and have a short end fade; Social Credit Music remains unchanged in Montage Memes.
 
 `swift test --filter SoundPackTests` checks every bundled resource's size, hash, and audio decoding without an internet connection.
+
+Corrected recordings list their previous hashes in the catalog. On upgrade, the companion replaces a local copy only if it matches one of those exact older recordings, preserving sound IDs, custom names, and deck assignments. Chipi Chipi Chapa Chapa now ends at the silent gap after the music, before the appended TikTok outro. Cached library durations refresh with the bundled catalog.
