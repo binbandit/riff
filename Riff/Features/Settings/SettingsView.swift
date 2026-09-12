@@ -51,6 +51,9 @@ struct SettingsView: View {
                         Label("Microphone, sounds & music", systemImage: "mic")
                     }
                 }
+                Section {
+                    NavigationLink { AISettingsView() } label: { Label("AI suggestions", systemImage: "sparkles") }
+                }
                 Section("Make it yours") {
                     NavigationLink { AppearanceView() } label: {
                         Label("Appearance", systemImage: "paintpalette")
@@ -82,6 +85,7 @@ struct SettingsView: View {
                 .sheet(isPresented: $connection) { ConnectionView(onConnectionChanged: loadAudio) }
 #if DEBUG
                 .navigationDestination(isPresented: .constant(DesignPreview.screen == "appearance")) { AppearanceView() }
+                .navigationDestination(isPresented: .constant(DesignPreview.screen == "ai-settings")) { AISettingsView() }
 #endif
         }.interactiveDismissDisabled(saving)
     }

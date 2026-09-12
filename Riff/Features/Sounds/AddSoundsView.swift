@@ -138,10 +138,8 @@ struct AddSoundsView: View {
         Section {
             Toggle("AI suggestions", isOn: $useAI)
             if useAI {
-                if !store.connected {
-                    Text("Connect your PC for AI suggestions. You can still add your sounds now.").font(.footnote).foregroundStyle(.secondary)
-                } else if !store.supportsSoundSuggestions || !store.padSuggestionsEnabled {
-                    Text("Enable AI suggestions in the updated Windows companion’s Controls tab.").font(.footnote).foregroundStyle(.secondary)
+                if !store.supportsSoundSuggestions || !store.padSuggestionsEnabled {
+                    AISetupLink()
                 } else if loading {
                     HStack { ProgressView(); Text("Choosing labels, icons, and colors…").font(.subheadline) }
                 } else if let suggestionError {
@@ -153,7 +151,7 @@ struct AddSoundsView: View {
                 }
             }
         } footer: {
-            Text("AI uses sound names and the deck’s game or app. Your edits stay in place, and you can add buttons without waiting.")
+            Text("AI sends sound names and the deck’s game or app to OpenAI. Your edits stay in place, and you can add buttons without waiting.")
         }
     }
     private func button(for clip: Clip, plan: SoundDeckAddition) -> Pad {

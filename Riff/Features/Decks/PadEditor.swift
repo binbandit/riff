@@ -146,8 +146,7 @@ struct PadEditor: View {
                 }
             } else {
                 Label("AI suggestions", systemImage: "sparkles")
-                Text(!store.connected ? "Connect your PC to use AI suggestions." : store.supportsPadSuggestions ? "Enable AI suggestions in the Windows companion's Controls tab." : "Update your Windows companion to set up AI suggestions.")
-                    .font(.caption).foregroundStyle(.secondary)
+                AISetupLink()
             }
         } footer: {
             if store.padSuggestionsEnabled && automaticSuggestions { Text("Action details are sent to OpenAI. Your manual choices are always kept.") }

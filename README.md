@@ -74,7 +74,7 @@ Deck editing works before pairing and while your PC is offline. Saved changes su
 
 Games discovered on your PC are remembered on the iPad, including when a Steam library drive is temporarily unavailable. After connecting once, you can choose those games and your saved allowed applications while creating or configuring decks offline. Newly discovered games and updated names arrive automatically; pairing a different PC starts its own game list. Allowed applications and audio outputs keep the latest list received from the PC.
 
-Library sounds already known to the iPad can be assigned offline. Copying new audio, AI suggestions, and running PC actions still need the companion. If a referenced sound or allowed app was removed on the PC, or the companion needs an update, the edits stay on the iPad and are retried automatically as the PC becomes ready. Grid preferences remain specific to this iPad.
+Library sounds already known to the iPad can be assigned offline. Copying new audio to the PC and running PC actions still need the companion. AI suggestions can use the iPad’s own setup with just an internet connection. If a referenced sound or allowed app was removed on the PC, or the companion needs an update, the edits stay on the iPad and are retried automatically as the PC becomes ready. Grid preferences remain specific to this iPad.
 
 To add several library sounds to a board, open **+ → Add sounds from library** on the board, select sounds (or **Select shown**), then tap **Add … to [deck name]**. In the Sounds library, **Quick add** opens the same selection flow. Buttons follow selection order, existing sound buttons are skipped, and each deck holds up to 48 buttons. You can also choose another deck or create one.
 
@@ -90,17 +90,19 @@ Without a PC connection, you can create and edit decks and play bundled sounds o
 
 ### AI button suggestions
 
-In the Windows companion, open **Controls → AI button suggestions**, paste your OpenAI API key, and select **Enable suggestions**. The key is encrypted for your Windows account and never sent to the iPad. OpenAI API usage is billed separately to your OpenAI account; your key needs access to `gpt-5.6-luna`.
+On the iPad, open **Settings → AI suggestions**, paste your OpenAI API key, and select **Enable suggestions**. You can also open setup directly from a button, bulk addition, or starter deck editor. The key stays in this iPad’s Keychain and is sent only to OpenAI. Suggestions work without pairing or connecting a PC.
+
+Alternatively, enable suggestions under **Controls → AI button suggestions** in the Windows companion. That key is encrypted for your Windows account and never sent to the iPad. Riff uses the iPad key when configured; otherwise it can use the companion while connected. OpenAI API usage is billed separately to your OpenAI account; your key needs access to `gpt-5.6-luna`.
 
 When adding a button on the iPad, Riff automatically suggests its label, icon, and color after you choose or change its action. Typing a label also helps guide the icon and color. Your manual choices stay in place, existing and duplicated buttons keep their appearance, and you can turn off **AI suggestions** in the editor. Suggestions never change or run the action. Saving does not wait for AI, and still works if suggestions fail.
 
 Bulk additions use the same AI setup. Select sounds in **Quick add**, including sounds from a bulk import, then review the suggested labels, icons, and colors together before adding them. Riff requests the whole set at once, considers the destination deck’s linked game or app, and preserves the sounds, selection order, existing buttons, and your manual edits. Turn **AI suggestions** off to use the original appearances; adding still works offline or if AI fails.
 
-Enabling suggestions sends the selected sound, app, or destination deck name, action details (including typed text and sequence steps), and a label you type to OpenAI through the companion. Audio files, app executable paths, and pairing keys are not sent. Website query strings, fragments, and embedded credentials are removed. Responses use `store: false`. Choose **Disable & remove key** on Windows to stop future requests and remove the saved key.
+Enabling suggestions sends the selected sound, app, or destination deck name, action details (including typed text and sequence steps), and a label you type to OpenAI directly from the iPad, or through the companion when using its key. Audio files, app executable paths, and pairing keys are not sent. Website query strings, fragments, and embedded credentials are removed. Responses use `store: false`. Choose **Remove key from this iPad** in AI settings to remove the local key, or **Disable & remove key** on Windows to remove the companion key. The editor’s AI toggle stops suggestions for that edit.
 
 ### AI starter decks
 
-Create a new deck and select a **Linked game**, link an application, or describe what the space is for under **Start with AI**. With AI enabled on your Windows companion, GPT-5.6 Luna automatically suggests a name, icon, and starter buttons with colors, labels, and short explanations.
+Create a new deck and select a **Linked game**, link an application, or describe what the space is for under **Start with AI**. With AI set up on your iPad or connected Windows companion, GPT-5.6 Luna automatically suggests a name, icon, and starter buttons with colors, labels, and short explanations.
 
 Deselect anything you don't want, then choose **Create deck**. All bundled sounds are already in the library on both devices. You can also turn suggestions off or choose **Create empty deck**, including while AI is loading or unavailable. Deck changes save on the iPad and sync to the PC. If sync fails, they remain saved and retry when connected. Existing decks are never replaced by suggestions.
 
@@ -109,7 +111,7 @@ Suggestions use actual sounds from your current library, plus Stop all and confi
 All 138 included sounds are ready immediately, with no pack downloads or installation. **Sounds** and the sound picker organize them into expandable categories, alongside **Riff essentials** and **My sounds**. Search finds sounds across groups. Swipe or hold a sound to delete it after removing it from buttons; deletion stays saved after restarting and syncs automatically when connected.
 
 
-Starter suggestions send the selected game/app name, your description and name hint, available sound names, and existing button names to OpenAI. Existing button action values and app executable paths are excluded. The same encrypted API key and `gpt-5.6-luna` model are used as for individual button suggestions.
+Starter suggestions send the selected game/app name, your description and name hint, available sound names, and existing button names to OpenAI. Existing button action values and app executable paths are excluded. The same securely stored API key and `gpt-5.6-luna` model are used as for individual button suggestions.
 
 ### Send clips to voice chat
 

@@ -128,8 +128,7 @@ struct DeckEditor: View {
                 }
             } else {
                 Label("AI starter suggestions", systemImage: "sparkles")
-                Text(!store.connected ? "Connect your PC to suggest sounds and buttons." : !store.supportsDeckSuggestions ? "Update the Windows companion to get starter suggestions." : "Enable AI suggestions in the Windows companion's Controls tab.")
-                    .font(.caption).foregroundStyle(.secondary)
+                AISetupLink()
             }
         } header: { Text("Start with AI") } footer: {
             if store.padSuggestionsEnabled && useAI {

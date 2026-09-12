@@ -195,13 +195,14 @@ struct ContentView: View {
             case "playback-check": await DesignPreview.checkPlayback(store)
             case "packs", "pack-detail", "sounds", "rename", "import", "bulk-import", "sound-selection", "add-sounds": destination = .sounds
             case "recording", "recording-trim": destination = .recording
-            case "settings", "appearance": destination = .settings
+            case "settings", "appearance", "ai-settings": destination = .settings
             case "audio-setup": destination = .audioSetup
             case "music-setup": destination = .musicSetup
             case "updates", "changelog", "markdown": destination = .updates
             case "connection": destination = .connection
             case "editor": editor = store.selectedDeck?.pads.first
             case "new-button": editor = Pad()
+            case "new-deck": editDeck = Deck(id: UUID().uuidString, name: "New deck", icon: "waveform", pads: [], steamAppId: "")
             case "decks": picker = true
             default: break
             }

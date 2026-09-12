@@ -88,7 +88,7 @@ import Testing
         store.snapshot.capabilities = nil
         #expect(!store.padSuggestionsEnabled)
         do { _ = try await store.suggestPadAppearance(request); Issue.record("Older companions cannot suggest appearances.") }
-        catch { #expect(error.localizedDescription.contains("Enable AI suggestions")) }
+        catch { #expect(error.localizedDescription.contains("Set up AI suggestions")) }
     }
 
     @Test func requestsIncludeBothSwitchSidesAndNavigationActions() throws {
