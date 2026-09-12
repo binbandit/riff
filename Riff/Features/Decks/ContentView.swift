@@ -16,7 +16,7 @@ struct ContentView: View {
     @State private var selectionFeedback = 0
     @State private var stopFeedback = 0
     enum Destination: String, Identifiable {
-        case sharing, connection, recording, settings, sounds, addSounds, grid, audio, updates, audioSetup, musicSetup
+        case sharing, connection, recording, settings, sounds, addSounds, presets, grid, audio, updates, audioSetup, musicSetup
         var id: String { rawValue }
     }
     var body: some View {
@@ -105,6 +105,7 @@ struct ContentView: View {
                             } label: { Image(systemName: "ellipsis") }.accessibilityLabel("Deck options")
                         }
                         Menu {
+                            Button("Add preset buttons", systemImage: "square.grid.2x2") { destination = .presets }
                             Button("Add sounds from library", systemImage: "waveform.badge.plus") { destination = .addSounds }
                             Button("Create custom button", systemImage: "slider.horizontal.3") {
                                 editor = Pad()
@@ -120,6 +121,9 @@ struct ContentView: View {
             if let clip = pendingClip { pendingClip = nil; editor = Pad(title: clip.buttonTitle, icon: "waveform", value: clip.id) }
         }) { choice in
             switch choice {
+            case .presets:
+                if #available(iOS 18.0, *) { ButtonPresetsView(deckID: store.selectedDeckId).presentationSizing(.page) }
+                else { ButtonPresetsView(deckID: store.selectedDeckId) }
             case .sharing:
                 if let deck = store.selectedDeck {
                     if #available(iOS 18.0, *) { LayoutSharingView(sourceDeck: deck, button: sharingButton).presentationSizing(.page) }
@@ -171,6 +175,7 @@ struct ContentView: View {
             try? await Task.sleep(for: .milliseconds(600))
             DesignPreview.orient()
             switch DesignPreview.screen {
+            case "button-presets": destination = .presets
             case "pinned-pages", "pinned-pages-second":
                 DesignPreview.configurePinnedPages(store)
                 if DesignPreview.screen == "pinned-pages-second" {

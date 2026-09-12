@@ -17,6 +17,7 @@ let package = Package(
                 "Features/Connection/ConnectionView.swift",
                 "Features/Connection/PairingScanner.swift",
                 "Features/Decks/ActionFields.swift",
+                "Features/Decks/ButtonPresetsView.swift",
                 "Features/Decks/ContentView.swift",
                 "Features/Decks/DeckEditor.swift",
                 "Features/Decks/GridLayoutView.swift",
