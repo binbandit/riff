@@ -110,7 +110,7 @@ Deselect anything you don't want, then choose **Create deck**. All bundled sound
 
 Suggestions use actual sounds from your current library, plus Stop all and configured controls. Soundboard mode limits suggestions to sounds and Stop all. In desktop mode, existing controls and media controls can also be suggested. Riff does not invent game shortcuts, download new game audio, or execute suggested actions. Available sounds may only loosely fit a game, and the suggestion explains that when appropriate.
 
-All 138 included sounds are ready immediately, with no pack downloads or installation. **Sounds** and the sound picker organize them into expandable categories, alongside **Riff essentials** and **My sounds**. Search finds sounds across groups. Swipe or hold a sound to delete it after removing it from buttons; deletion stays saved after restarting and syncs automatically when connected.
+All 137 included sounds are ready immediately, with no pack downloads or installation. **Sounds** and the sound picker organize them into expandable categories, alongside **Riff essentials** and **My sounds**. Search finds sounds across groups. Swipe or hold a sound to delete it after removing it from buttons; deletion stays saved after restarting and syncs automatically when connected.
 
 
 Starter suggestions send the selected game/app name, your description and name hint, available sound names, and existing button names to OpenAI. Existing button action values and app executable paths are excluded. The same securely stored API key and `gpt-5.6-luna` model are used as for individual button suggestions.

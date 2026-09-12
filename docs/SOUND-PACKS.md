@@ -1,6 +1,6 @@
 # On-device sound packs
 
-Riff includes fourteen bundled packs with 138 gaming, TikTok, meme, streamer, and communication sounds. The requested clips are preserved as exact recordings: Sad Violin (the meme one), Smoke Detector Beep, They Ask You How You Are, Social Credit Music, Welcome Aboard Delta Airlines, And We Say Bye Bye, and Car Horns, Heavy Traffic. The two 101soundboards MP3s were supplied by the user after downloading from the requested pages.
+Riff includes fourteen bundled packs with 137 gaming, TikTok, meme, streamer, and communication sounds. The requested clips are preserved as exact recordings: Sad Violin (the meme one), Smoke Detector Beep, They Ask You How You Are, Social Credit Music, Welcome Aboard Delta Airlines, And We Say Bye Bye, and Car Horns, Heavy Traffic. The two 101soundboards MP3s were supplied by the user after downloading from the requested pages.
 
 ## Using packs
 
@@ -8,14 +8,14 @@ Open **Sounds**. All included sounds are available immediately on both iPad and 
 
 Tap play to preview on iPad, tap plus to assign a sound, or use **Quick add** to select several sounds for a deck. Hold a sound for favorites, its original source, rename, or delete. Remove sounds from buttons and sequences before deleting them. Deletions persist across restarts and sync automatically when the PC reconnects.
 
-Both applications ship all 138 pack MP3s, alongside the six starter WAVs. There are no pack downloads, installation controls, or audio transfers between devices. The companion copies its bundled MP3s into its local library automatically. Existing renames and decks survive upgrades, and deleted catalog entries stay deleted. New catalog entries are added on an app update. Catalog updates require updating both apps.
+Both applications ship all 137 pack MP3s, alongside the six starter WAVs. There are no pack downloads, installation controls, or audio transfers between devices. The companion copies its bundled MP3s into its local library automatically. Existing renames and decks survive upgrades, and deleted catalog entries stay deleted. New catalog entries are added on an app update. Catalog updates require updating both apps.
 
 ## Research and selection
 
 Researched 12 September 2026 (Australia/Melbourne). The selection favors recognizable clips with clear uses in live conversation: punctuating a reveal, celebrating a win, reacting to failure, or setting up a visual cut. These are editorial pack groupings, not a measured ranking of Twitch usage.
 
 - [Myinstants all-time chart](https://www.myinstants.com/en/best_of_all_time/us/) lists Vine Boom, Bruh, Buzzer, MLG Airhorn, Roblox Oof, Sad Violin, Smoke Detector Beep, and many of the montage picks. Its [US trending page](https://www.myinstants.com/en/index/us/) also surfaces Vine Boom, FAHHH, Rizz, Among Us, and metal pipe.
-- The expanded catalog uses the [Games](https://www.myinstants.com/en/categories/games/us/), [TikTok Trends](https://www.myinstants.com/en/categories/tiktok%20trends/us/), [Memes](https://www.myinstants.com/en/categories/memes/us/), and [Reactions](https://www.myinstants.com/en/categories/reactions/us/) soundboards, plus direct searches for streamer names and familiar callouts. Fifty additional recordings are grouped into TikTok Reactions, Game Lobby, Meme Classics, Stream Chat, and Rage & Roasts. Rage & Roasts includes profanity; groupings describe their use, not a verified popularity ranking or an official collaboration with the games or streamers.
+- The expanded catalog uses the [Games](https://www.myinstants.com/en/categories/games/us/), [TikTok Trends](https://www.myinstants.com/en/categories/tiktok%20trends/us/), [Memes](https://www.myinstants.com/en/categories/memes/us/), and [Reactions](https://www.myinstants.com/en/categories/reactions/us/) soundboards, plus direct searches for streamer names and familiar callouts. Forty-nine additional recordings are grouped into TikTok Reactions, Game Lobby, Meme Classics, Stream Chat, and Rage & Roasts. Rage & Roasts includes profanity; groupings describe their use, not a verified popularity ranking or an official collaboration with the games or streamers.
 - [Voicemod Tuna](https://tuna.voicemod.net/sounds/) provides a second community soundboard reference and the source for crickets, sad trombone, applause, victory, and Clash Royale laughter. The [Tuna help page](https://support.voicemod.net/hc/en-us/articles/5963178555794-Tuna-The-community-content-web-hub) describes previewing, downloading, and importing community clips.
 - [Sound Alerts](https://soundalerts.com/library) provides streamer-oriented discovery with separate popular, trending, subscriber, and follower categories. [Blerp's streaming library](https://blerp.com/streaming) demonstrates the use of curated libraries for stream interactions.
 - Paid content was considered too: [Voicemod's product comparison](https://support.voicemod.net/hc/en-us/articles/360014301120-Which-are-Voicemod-s-features) describes PRO soundboards and its store's IP packs. A consumer subscription to a soundboard service is not evidence of a license for Riff to redistribute its catalog. No purchase or license agreement was made.
@@ -148,7 +148,7 @@ Tiny interruptions and perfectly timed distractions. Includes Smoke Detector Bee
 
 Side eyes, brainrot, and instant disbelief. Chicken Jockey, What the Sigma, and more.
 
-10 sounds, 962 KB bundled.
+9 sounds, 868 KB bundled.
 
 | Sound | Seconds | Source |
 | --- | ---: | --- |
@@ -161,7 +161,6 @@ Side eyes, brainrot, and instant disbelief. Chicken Jockey, What the Sigma, and 
 | We Do Not Care | 12.77 | [Myinstants](https://www.myinstants.com/en/instant/we-do-not-care-tiktok-sound-45123/) |
 | AUUGHHH | 9.47 | [Myinstants](https://www.myinstants.com/en/instant/auughhh-79002/) |
 | Hell Naw Dog | 0.97 | [Myinstants](https://www.myinstants.com/en/instant/hell-naw-dog-10357/) |
-| Tung Tung Sahur | 6.03 | [Myinstants](https://www.myinstants.com/en/instant/tung-tung-sahur-29124/) |
 
 ### Game Lobby
 

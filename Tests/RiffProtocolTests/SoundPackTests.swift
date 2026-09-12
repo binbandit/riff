@@ -7,7 +7,7 @@ import Testing
     @Test func catalogHasUniqueSoundsAndIncludesEverySoundInStarterLibrary() throws {
         let packs = try SoundPacks.load()
         let sounds = packs.flatMap(\.sounds)
-        #expect(packs.count >= 14 && sounds.count >= 138)
+        #expect(packs.count >= 14 && sounds.count >= 137)
         #expect(Set(sounds.map(\.id)).count == sounds.count)
         #expect(Set(sounds.map(\.sha256)).count == sounds.count)
         #expect(Set(packs.map(\.id)).count == packs.count)
