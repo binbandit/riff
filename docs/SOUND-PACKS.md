@@ -1,6 +1,6 @@
 # On-device sound packs
 
-Riff includes fourteen bundled packs with 137 gaming, TikTok, meme, streamer, and communication sounds. The requested clips are preserved as exact recordings: Sad Violin (the meme one), Smoke Detector Beep, They Ask You How You Are, Social Credit Music, Welcome Aboard Delta Airlines, And We Say Bye Bye, and Car Horns, Heavy Traffic. The two 101soundboards MP3s were supplied by the user after downloading from the requested pages.
+Riff includes fifteen bundled packs with 148 gaming, TikTok, meme, streamer, and communication sounds. The requested clips are preserved as exact recordings: Sad Violin (the meme one), Smoke Detector Beep, They Ask You How You Are, Social Credit Music, Welcome Aboard Delta Airlines, And We Say Bye Bye, and Car Horns, Heavy Traffic. The two 101soundboards MP3s were supplied by the user after downloading from the requested pages.
 
 ## Using packs
 
@@ -8,7 +8,7 @@ Open **Sounds**. All included sounds are available immediately on both iPad and 
 
 Tap play to preview on iPad, tap plus to assign a sound, or use **Quick add** to select several sounds for a deck. Hold a sound for favorites, its original source, rename, or delete. Remove sounds from buttons and sequences before deleting them. Deletions persist across restarts and sync automatically when the PC reconnects.
 
-Both applications ship all 137 pack MP3s, alongside the six starter WAVs. There are no pack downloads, installation controls, or audio transfers between devices. The companion copies its bundled MP3s into its local library automatically. Existing renames and decks survive upgrades, and deleted catalog entries stay deleted. New catalog entries are added on an app update. Catalog updates require updating both apps.
+Both applications ship all 148 pack MP3s, alongside the six starter WAVs. There are no pack downloads, installation controls, or audio transfers between devices. The companion copies its bundled MP3s into its local library automatically. Existing renames and decks survive upgrades, and deleted catalog entries stay deleted. New catalog entries are added on an app update. Catalog updates require updating both apps.
 
 ## Research and selection
 
@@ -24,9 +24,11 @@ The communication packs add 36 short phrases for everyday voice chat and squad c
 
 Lobby Jukebox adds 16 musical soundboard excerpts for the same lobby use as Social Credit Music: meme dances, familiar Wii themes, novelty songs, and awkward waiting music. Selection uses the linked Myinstants source pages and searches for each track, not a measured ranking of game-lobby usage. The clips run about 10–19 seconds, use consistent loudness, and end with a short fade. Social Credit Music remains in Montage Memes with its original identity and recording. Chipi Chipi Chapa Chapa ends after the music at 9.82 seconds; its appended TikTok outro has been removed without re-encoding the music.
 
+Trump Reactions adds 10 short clips from the linked Myinstants uploads. Chat Chaos also includes [Ace Alderman’s seven-second Scott Morrison Maccas meme](https://www.youtube.com/watch?v=gcNVgJ-Vcfg). The uploader identifies it as a deepfake experiment; the library labels it as a meme, and it is not an authentic Morrison statement.
+
 ## Sources and rights
 
-The MP3s live in `Riff/Resources/PackSounds` and are included in both applications. Each filename includes the recording's SHA-256 and the companion checks new audio against the catalog before adding it to its local library. The source page, provider, uploader (when listed), reviewed duration, byte count, and SHA-256 are recorded for every clip. Original upstream download URLs are retained where available. Uploader names identify the upload, not necessarily the recording's copyright owner. The Myinstants, Voicemod Tuna, and 101soundboards recordings are not represented as CC0, royalty-free, or cleared for commercial broadcasts or redistribution.
+The MP3s live in `Riff/Resources/PackSounds` and are included in both applications. Each filename includes the recording's SHA-256 and the companion checks new audio against the catalog before adding it to its local library. The source page, provider, uploader (when listed), reviewed duration, byte count, and SHA-256 are recorded for every clip. Original upstream download URLs are retained where available. Uploader names identify the upload, not necessarily the recording's copyright owner. The Myinstants, Voicemod Tuna, 101soundboards, and YouTube recordings are not represented as CC0, royalty-free, or cleared for commercial broadcasts or redistribution.
 
 [Myinstants' terms](https://www.myinstants.com/en/terms_of_use.html) describe limited personal/noncommercial site access. Its download buttons and Tuna's community download functionality establish availability, not a blanket distribution license. Rights clearance for those community recordings remains unresolved for public redistribution and commercial broadcasts. Hosting on GitHub does not change the recordings' rights status, and any license for Riff's code does not cover these recordings.
 
@@ -130,7 +132,7 @@ Meme music for the lobby. Coffin Dance, Crab Rave, Wii themes, and more for Soci
 
 Tiny interruptions and perfectly timed distractions. Includes Smoke Detector Beep.
 
-9 sounds, 651 KB bundled.
+10 sounds, 717 KB bundled.
 
 | Sound | Seconds | Source |
 | --- | ---: | --- |
@@ -143,6 +145,7 @@ Tiny interruptions and perfectly timed distractions. Includes Smoke Detector Bee
 | Welcome Aboard Delta Airlines | 13.10 | [Myinstants](https://www.myinstants.com/en/instant/welcome-aboard-delta-airlines-82730/) |
 | And We Say Bye Bye | 1.49 | [101soundboards](https://www.101soundboards.com/sounds/1506614-and-we-say-bye-bye) |
 | Car Horns, Heavy Traffic | 3.32 | [101soundboards](https://www.101soundboards.com/sounds/61212-car-horns-heavy-traffic) |
+| Scott Morrison: I Did Not Shit My Pants at Maccas (Meme) | 7.02 | [YouTube](https://www.youtube.com/watch?v=gcNVgJ-Vcfg) |
 
 ### TikTok Reactions
 
@@ -237,6 +240,25 @@ Swearing, rage, and cheeky trash talk. Deez Nuts, Skill Issue, and instant regre
 | Oh My God Bro, Oh Hell Nah | 10.80 | [Myinstants](https://www.myinstants.com/en/instant/oh-my-god-bro-oh-hell-nah-man-42939/) |
 | Skill Issue (Halo Announcer Meme) | 2.63 | [Myinstants](https://www.myinstants.com/en/instant/skill-issue-halo-announcer-35879/) |
 | I've Got This... FAHHH | 2.68 | [Myinstants](https://www.myinstants.com/en/instant/ive-got-this-faaaaaaaaahhhhh-66795/) |
+
+### Trump Reactions
+
+Wrong, fake news, China, and a little trolling. Short Trump reactions for the soundboard.
+
+10 sounds, 311 KB bundled.
+
+| Sound | Seconds | Source |
+| --- | ---: | --- |
+| Trump: Wrong! | 0.41 | [Myinstants](https://www.myinstants.com/en/instant/donald-trump-wrong-42407/) |
+| Trump: You Are Fake News | 1.44 | [Myinstants](https://www.myinstants.com/en/instant/donald-trump-fake-news-27329/) |
+| Trump: China | 0.73 | [Myinstants](https://www.myinstants.com/en/instant/trump-china-1416/) |
+| Trump: Bing Bing Bong | 2.02 | [Myinstants](https://www.myinstants.com/en/instant/trump-bing-bing-bong-bing-bing/) |
+| Trump: Quiet, Quiet | 1.12 | [Myinstants](https://www.myinstants.com/en/instant/trump-quiet-quiet-89785/) |
+| Trump: Stop It | 1.25 | [Myinstants](https://www.myinstants.com/en/instant/trump-stop-it-29017/) |
+| Trump: We Do a Little Trolling | 2.65 | [Myinstants](https://www.myinstants.com/en/instant/we-do-a-little-trolling-20222/) |
+| Trump: I Am the Chosen One | 1.80 | [Myinstants](https://www.myinstants.com/en/instant/donald-trump-i-am-the-chosen-one-1796/) |
+| Trump: Thank You Very Much | 1.10 | [Myinstants](https://www.myinstants.com/en/instant/trump-thank-you-very-much-4296/) |
+| Trump: Very Large Brain | 8.16 | [Myinstants](https://www.myinstants.com/en/instant/trump-very-large-brain-90282/) |
 
 ### Quick Replies
 

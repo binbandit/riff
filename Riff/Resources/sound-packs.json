@@ -745,6 +745,20 @@
         "duration": 3.318,
         "acquisition": "Original MP3 downloaded by the user from the source page on 2026-09-12.",
         "fileName": "car-horns-heavy-traffic-d59d7291a6a29fbd10ec3ad4d2a17867714c4388c7b50f302d48d466e36f1075.mp3"
+      },
+      {
+        "id": "scott-morrison-maccas",
+        "name": "Scott Morrison: I Did Not Shit My Pants at Maccas (Meme)",
+        "sourceURL": "https://www.youtube.com/watch?v=gcNVgJ-Vcfg",
+        "provider": "YouTube",
+        "uploader": "Ace Alderman",
+        "rights": "Parody/deepfake meme; redistribution and broadcast rights not verified.",
+        "byteCount": 83180,
+        "sha256": "ffb8be266f3ab46297000c33a5b55975e129e55245efc91a6024994ff3149657",
+        "duration": 7.024,
+        "originalDownloadURL": "https://www.youtube.com/watch?v=gcNVgJ-Vcfg",
+        "acquisition": "Audio extracted from the original seven-second parody/deepfake upload with yt-dlp and FFmpeg, converted from Opus to MP3. Preserves the full meme including the closing \"stop it\". This is not an authentic Scott Morrison statement.",
+        "fileName": "scott-morrison-maccas-ffb8be266f3ab46297000c33a5b55975e129e55245efc91a6024994ff3149657.mp3"
       }
     ]
   },
@@ -1427,6 +1441,145 @@
         "duration": 2.676,
         "originalDownloadURL": "https://www.myinstants.com/media/sounds/ive-got-this-faaaaaaaaahhhhh.mp3",
         "fileName": "ive-got-this-fah-2b92f32524688c5f4985e780285f130020cf298dc10b57bbc614e743649cfe30.mp3"
+      }
+    ]
+  },
+  {
+    "id": "trump-reactions",
+    "name": "Trump Reactions",
+    "description": "Wrong, fake news, China, and a little trolling. Short Trump reactions for the soundboard.",
+    "icon": "quote.bubble.fill",
+    "color": "orange",
+    "sounds": [
+      {
+        "id": "trump-wrong",
+        "name": "Trump: Wrong!",
+        "sourceURL": "https://www.myinstants.com/en/instant/donald-trump-wrong-42407/",
+        "provider": "Myinstants",
+        "uploader": "Community upload",
+        "rights": "Community upload; redistribution and broadcast rights not verified.",
+        "byteCount": 7358,
+        "sha256": "31c62afa88320dde883b7b1c7e75c9f8873461bb0f3176aa82796dd467c0c6ec",
+        "duration": 0.405,
+        "originalDownloadURL": "https://www.myinstants.com/media/sounds/my-movie_lu1KTdg.mp3",
+        "fileName": "trump-wrong-31c62afa88320dde883b7b1c7e75c9f8873461bb0f3176aa82796dd467c0c6ec.mp3"
+      },
+      {
+        "id": "trump-fake-news",
+        "name": "Trump: You Are Fake News",
+        "sourceURL": "https://www.myinstants.com/en/instant/donald-trump-fake-news-27329/",
+        "provider": "Myinstants",
+        "uploader": "DennisVNL",
+        "rights": "Community upload; redistribution and broadcast rights not verified.",
+        "byteCount": 23751,
+        "sha256": "aae4dfd30f432344fb7a5e95a64b05602cd08d1943b4e4fc292653653638c2d7",
+        "duration": 1.437,
+        "originalDownloadURL": "https://www.myinstants.com/media/sounds/donald-trump-fake-news-sound-effect.mp3",
+        "fileName": "trump-fake-news-aae4dfd30f432344fb7a5e95a64b05602cd08d1943b4e4fc292653653638c2d7.mp3"
+      },
+      {
+        "id": "trump-china",
+        "name": "Trump: China",
+        "sourceURL": "https://www.myinstants.com/en/instant/trump-china-1416/",
+        "provider": "Myinstants",
+        "uploader": "dmortimer",
+        "rights": "Community upload; redistribution and broadcast rights not verified.",
+        "byteCount": 12456,
+        "sha256": "a8addfecfb059e179e39052e3277f50add164056259c2019193424a5bb58ba98",
+        "duration": 0.731,
+        "originalDownloadURL": "https://www.myinstants.com/media/sounds/china_pH6AIw0.mp3",
+        "fileName": "trump-china-a8addfecfb059e179e39052e3277f50add164056259c2019193424a5bb58ba98.mp3"
+      },
+      {
+        "id": "trump-bing-bing-bong",
+        "name": "Trump: Bing Bing Bong",
+        "sourceURL": "https://www.myinstants.com/en/instant/trump-bing-bing-bong-bing-bing/",
+        "provider": "Myinstants",
+        "uploader": "OmegaWolf141",
+        "rights": "Community upload; redistribution and broadcast rights not verified.",
+        "byteCount": 33271,
+        "sha256": "d9fb5a6fdcf4405b8dfe63111eb644444f639ee112e8b060f788b303370d5379",
+        "duration": 2.024,
+        "originalDownloadURL": "https://www.myinstants.com/media/sounds/donald-trump-bing-bong-sound-effect_lTRFmBB.mp3",
+        "fileName": "trump-bing-bing-bong-d9fb5a6fdcf4405b8dfe63111eb644444f639ee112e8b060f788b303370d5379.mp3"
+      },
+      {
+        "id": "trump-quiet",
+        "name": "Trump: Quiet, Quiet",
+        "sourceURL": "https://www.myinstants.com/en/instant/trump-quiet-quiet-89785/",
+        "provider": "Myinstants",
+        "uploader": "AmannFilms",
+        "rights": "Community upload; redistribution and broadcast rights not verified.",
+        "byteCount": 18919,
+        "sha256": "334f3c45f59f1483ac0ff83e986b629c6b3c1cba4990a6ece90b88eb9db0e7db",
+        "duration": 1.123,
+        "originalDownloadURL": "https://www.myinstants.com/media/sounds/trump-quiet-quiet.mp3",
+        "fileName": "trump-quiet-334f3c45f59f1483ac0ff83e986b629c6b3c1cba4990a6ece90b88eb9db0e7db.mp3"
+      },
+      {
+        "id": "trump-stop-it",
+        "name": "Trump: Stop It",
+        "sourceURL": "https://www.myinstants.com/en/instant/trump-stop-it-29017/",
+        "provider": "Myinstants",
+        "uploader": "Community upload",
+        "rights": "Community upload; redistribution and broadcast rights not verified.",
+        "byteCount": 21233,
+        "sha256": "ab66f609fd3c465b37f4c935fda3642b57f212ba4062c8ed8bffd6a7fc07f4f4",
+        "duration": 1.255,
+        "originalDownloadURL": "https://www.myinstants.com/media/sounds/donald-trump.mp3",
+        "fileName": "trump-stop-it-ab66f609fd3c465b37f4c935fda3642b57f212ba4062c8ed8bffd6a7fc07f4f4.mp3"
+      },
+      {
+        "id": "trump-little-trolling",
+        "name": "Trump: We Do a Little Trolling",
+        "sourceURL": "https://www.myinstants.com/en/instant/we-do-a-little-trolling-20222/",
+        "provider": "Myinstants",
+        "uploader": "Marshadow2609",
+        "rights": "Community upload; redistribution and broadcast rights not verified.",
+        "byteCount": 21751,
+        "sha256": "b96ec9e74f5a36a190509faa939b4a431b224683d0852c7705aa646775355277",
+        "duration": 2.651,
+        "originalDownloadURL": "https://www.myinstants.com/media/sounds/we-do-a-little-trolling_80cJgd9.mp3",
+        "fileName": "trump-little-trolling-b96ec9e74f5a36a190509faa939b4a431b224683d0852c7705aa646775355277.mp3"
+      },
+      {
+        "id": "trump-chosen-one",
+        "name": "Trump: I Am the Chosen One",
+        "sourceURL": "https://www.myinstants.com/en/instant/donald-trump-i-am-the-chosen-one-1796/",
+        "provider": "Myinstants",
+        "uploader": "dutchmassive",
+        "rights": "Community upload; redistribution and broadcast rights not verified.",
+        "byteCount": 29693,
+        "sha256": "c9c4d8679051de55233a1dea70b0a4b468e7ab1dede1b9c4f36041ed96ca7606",
+        "duration": 1.796,
+        "originalDownloadURL": "https://www.myinstants.com/media/sounds/i-am-the-chosen-one.mp3",
+        "fileName": "trump-chosen-one-c9c4d8679051de55233a1dea70b0a4b468e7ab1dede1b9c4f36041ed96ca7606.mp3"
+      },
+      {
+        "id": "trump-thank-you",
+        "name": "Trump: Thank You Very Much",
+        "sourceURL": "https://www.myinstants.com/en/instant/trump-thank-you-very-much-4296/",
+        "provider": "Myinstants",
+        "uploader": "Community upload",
+        "rights": "Community upload; redistribution and broadcast rights not verified.",
+        "byteCount": 18285,
+        "sha256": "cc1661b113cc597547999a9725de1cd2549f105c9ae59262e9ee3963346c0868",
+        "duration": 1.104,
+        "originalDownloadURL": "https://www.myinstants.com/media/sounds/thank-you-very-much-trump.mp3",
+        "fileName": "trump-thank-you-cc1661b113cc597547999a9725de1cd2549f105c9ae59262e9ee3963346c0868.mp3"
+      },
+      {
+        "id": "trump-large-brain",
+        "name": "Trump: Very Large Brain",
+        "sourceURL": "https://www.myinstants.com/en/instant/trump-very-large-brain-90282/",
+        "provider": "Myinstants",
+        "uploader": "ent3rpr1s3",
+        "rights": "Community upload; redistribution and broadcast rights not verified.",
+        "byteCount": 131658,
+        "sha256": "739f83200c129e94df71b691bc95f8c8de8f555da6e4b9909f5d94b5ed0ff6f9",
+        "duration": 8.161,
+        "originalDownloadURL": "https://www.myinstants.com/media/sounds/formatfactorymeu-filme.mp3",
+        "fileName": "trump-large-brain-739f83200c129e94df71b691bc95f8c8de8f555da6e4b9909f5d94b5ed0ff6f9.mp3"
       }
     ]
   },
