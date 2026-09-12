@@ -67,7 +67,7 @@ public class MainFormTests
                     var server = new CompanionServer(store, identity, audio, runner);
                     using var form = new MainForm(store, identity, audio, runner, server);
                     // Host the real control tree without starting the server or the startup update check.
-                    using var host = new Form { ClientSize = new(width, height), Font = form.Font };
+                    using var host = new Form { ClientSize = new(width, height), Font = form.Font, BackColor = form.BackColor };
                     host.Controls.Add(form.Controls[0]);
                     host.Show(); Application.DoEvents();
                     var controls = Descendants(host).ToArray();
@@ -76,6 +76,7 @@ public class MainFormTests
                         var button = Assert.Single(controls.OfType<Button>(), b => b.Text == title);
                         button.PerformClick(); Application.DoEvents();
                         Assert.Equal("Current page", button.AccessibleDescription);
+                        AssertButtonCorners(button, host.BackColor);
                         var page = Assert.Single(controls, c => c.Name == title);
                         Assert.True(page.Visible);
                         Assert.Single(page.Parent!.Controls.Cast<Control>(), c => c.Visible);
@@ -84,7 +85,11 @@ public class MainFormTests
                         foreach (var control in Descendants(page).Where(c => c.Visible))
                             Assert.True(control.Left >= 0 && control.Right <= control.Parent!.ClientSize.Width,
                                 $"{title}: {control.GetType().Name} '{control.Text}' exceeds its container at {width} x {height}");
-                        Assert.True(Assert.Single(controls.OfType<Button>(), b => b.Text == "Stop all sounds").Visible);
+                        foreach (var action in Descendants(page).OfType<Button>().Where(b => b.Visible))
+                            AssertButtonCorners(action, Color.White);
+                        var stop = Assert.Single(controls.OfType<Button>(), b => b.Text == "Stop all sounds");
+                        Assert.True(stop.Visible);
+                        AssertButtonCorners(stop, host.BackColor);
                     }
                     var audioButton = controls.OfType<Button>().Single(b => b.Text == "Audio & voice chat");
                     audioButton.PerformClick();
@@ -104,6 +109,19 @@ public class MainFormTests
         }) { IsBackground = true };
         thread.SetApartmentState(ApartmentState.STA); thread.Start();
         await completion.Task.WaitAsync(TimeSpan.FromSeconds(30));
+    }
+
+    static void AssertButtonCorners(Button button, Color background)
+    {
+        using var bitmap = new Bitmap(button.Width, button.Height);
+        button.DrawToBitmap(bitmap, button.ClientRectangle);
+        foreach (var point in new[] { new Point(0, 0), new Point(button.Width - 1, 0),
+            new Point(0, button.Height - 1), new Point(button.Width - 1, button.Height - 1) })
+        {
+            var actual = bitmap.GetPixel(point.X, point.Y);
+            Assert.True(background.ToArgb() == actual.ToArgb(),
+                $"'{button.Text}' corner {point} should show {background}, but rendered {actual}.");
+        }
     }
 
     static IEnumerable<Control> Descendants(Control parent)

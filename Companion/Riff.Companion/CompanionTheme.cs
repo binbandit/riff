@@ -147,6 +147,8 @@ internal sealed class RiffButton : Button
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
         Text = title; AccessibleName = title; UseMnemonic = false; AutoSize = true; AutoSizeMode = AutoSizeMode.GrowAndShrink;
         FlatStyle = FlatStyle.Flat; FlatAppearance.BorderSize = 0; UseVisualStyleBackColor = false;
+        // ButtonBase is opaque by default; paint the parent behind our rounded corners.
+        SetStyle(ControlStyles.Opaque, false);
         BackColor = Color.Transparent; ForeColor = CompanionTheme.Ink; Font = CompanionTheme.StrongFont;
         Padding = new(18, 10, 18, 10); Margin = new(0, 0, 10, 10); MinimumSize = new(0, 44);
         Cursor = Cursors.Hand;
