@@ -7,6 +7,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Riff.WindowsTests" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="../Riff.Core/Riff.Core.csproj" />
     <PackageReference Include="QRCoder" Version="1.6.0" />

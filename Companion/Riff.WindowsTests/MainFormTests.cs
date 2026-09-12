@@ -76,7 +76,7 @@ public class MainFormTests
                         var button = Assert.Single(controls.OfType<Button>(), b => b.Text == title);
                         button.PerformClick(); Application.DoEvents();
                         Assert.Equal("Current page", button.AccessibleDescription);
-                        AssertButtonCorners(button, host.BackColor);
+                        AssertButtonCorners(button);
                         var page = Assert.Single(controls, c => c.Name == title);
                         Assert.True(page.Visible);
                         Assert.Single(page.Parent!.Controls.Cast<Control>(), c => c.Visible);
@@ -86,10 +86,10 @@ public class MainFormTests
                             Assert.True(control.Left >= 0 && control.Right <= control.Parent!.ClientSize.Width,
                                 $"{title}: {control.GetType().Name} '{control.Text}' exceeds its container at {width} x {height}");
                         foreach (var action in Descendants(page).OfType<Button>().Where(b => b.Visible))
-                            AssertButtonCorners(action, Color.White);
+                            AssertButtonCorners(action);
                         var stop = Assert.Single(controls.OfType<Button>(), b => b.Text == "Stop all sounds");
                         Assert.True(stop.Visible);
-                        AssertButtonCorners(stop, host.BackColor);
+                        AssertButtonCorners(stop);
                     }
                     var audioButton = controls.OfType<Button>().Single(b => b.Text == "Audio & voice chat");
                     audioButton.PerformClick();
@@ -111,8 +111,15 @@ public class MainFormTests
         await completion.Task.WaitAsync(TimeSpan.FromSeconds(30));
     }
 
-    static void AssertButtonCorners(Button button, Color background)
+    static void AssertButtonCorners(Button button)
     {
+        // Visible is still true for controls below a scrollable page's viewport.
+        for (var parent = button.Parent; parent is not null; parent = parent.Parent)
+            if (parent is ScrollableControl { AutoScroll: true } scroll)
+                scroll.ScrollControlIntoView(button);
+        Application.DoEvents();
+
+        var background = ButtonBackground(button);
         using var bitmap = new Bitmap(button.Width, button.Height);
         button.DrawToBitmap(bitmap, button.ClientRectangle);
         foreach (var point in new[] { new Point(0, 0), new Point(button.Width - 1, 0),
@@ -122,6 +129,17 @@ public class MainFormTests
             Assert.True(background.ToArgb() == actual.ToArgb(),
                 $"'{button.Text}' corner {point} should show {background}, but rendered {actual}.");
         }
+    }
+
+    static Color ButtonBackground(Button button)
+    {
+        // Transparent layout panels inherit the nearest painted card or page.
+        for (var parent = button.Parent; parent is not null; parent = parent.Parent)
+        {
+            if (parent is RoundedCard card) return card.SurfaceColor;
+            if (parent.BackColor.A == 255) return parent.BackColor;
+        }
+        throw new InvalidOperationException($"'{button.Text}' has no painted background.");
     }
 
     static IEnumerable<Control> Descendants(Control parent)
