@@ -20,7 +20,7 @@ struct RecordingView: View {
                     HStack(spacing: 5) {
                         ForEach(0..<43, id: \.self) { index in
                             Capsule().fill(recorder.recording ? Palette.accent : Palette.accent.opacity(0.25))
-                                .frame(width: 4, height: recorder.recording ? max(5, CGFloat(recorder.level) * 100 * (0.35 + abs(sin(Double(index) * 1.8)))) : 5)
+                                .frame(width: 4, height: waveformHeight(at: index))
                         }
                     }.frame(height: 120).animation(.linear(duration: 0.08), value: recorder.level).accessibilityHidden(true)
                     Text(String(format: "%02d:%02d", Int(recorder.elapsed) / 60, Int(recorder.elapsed) % 60))
@@ -69,5 +69,12 @@ struct RecordingView: View {
 #endif
         .onDisappear { recorder.cleanup() }
         .onChange(of: scenePhase) { _, phase in if phase != .active && recorder.recording { recorder.stop() } }
+    }
+
+    private func waveformHeight(at index: Int) -> CGFloat {
+        guard recorder.recording else { return 5 }
+        let variation = 0.35 + abs(sin(Double(index) * 1.8))
+        let height = Double(recorder.level) * 100 * variation
+        return max(5, CGFloat(height))
     }
 }
