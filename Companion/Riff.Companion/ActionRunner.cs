@@ -50,7 +50,7 @@ public sealed class ActionRunner(StateStore store, AudioEngine audio) : IDisposa
                     lock (store.Gate)
                     {
                         if (!store.State.Clips.Any(c => c.Id == value)) throw new ArgumentException("This sound no longer exists.");
-                        audio.Play(store.ClipPath(value), store.State.OutputId, padId, toggle, mode);
+                        audio.Play(store.ClipPath(value), store.State.OutputId, padId, toggle, mode, store.State.MonitorEnabled ? store.State.MonitorOutputId : null, store.State.MonitorVolume);
                     }
                     break;
                 case "hotkey": WindowsInput.Hotkey(value); break;

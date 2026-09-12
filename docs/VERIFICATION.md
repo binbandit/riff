@@ -37,4 +37,13 @@ Xcode's only build warning is skipped App Intents metadata extraction because Ri
 
 The iPad IPA is unsigned and requires signing before installation. The Windows preview is a development build, not a published release. Cross-compilation does not validate physical audio, Windows input permissions, firewall reachability, or anti-cheat compatibility.
 
-Riff uses one selected sound output. Live-mic mixing and music routing use a separately installed Windows mixer. Apple Music catalog browsing and iPad-to-PC music relay are not implemented. The iPad app must remain open as a control surface. Push-to-talk is held physically. Steam detection reads local data and is best effort. Riff does not implement Elgato plugins or a dedicated OBS API client.
+Riff uses a selected sound output and an optional headphone output. Live-mic mixing and music routing use a separately installed Windows mixer. Apple Music catalog browsing and iPad-to-PC music relay are not implemented. The iPad app must remain open as a control surface. Push-to-talk is held physically. Steam detection reads local data and is best effort. Riff does not implement Elgato plugins or a dedicated OBS API client.
+
+
+## Headphone monitoring
+
+The headphone settings request first failed against the original audio contract because it accepted only one output. After adding monitoring, the isolated headphone-monitoring change passed 71 Swift tests and 77 portable companion tests. The iPad simulator build and Windows companion/test-project builds succeeded. New checks cover the real iPad store over loopback HTTPS, compatibility with an older companion that rejects unknown fields, independently saved headphone volume, settings persistence, disconnected headphones, and invalid volumes. Windows HTTPS integration coverage for headphone settings compiles but has not been run on this Mac.
+
+The [headphone controls capture](screenshots/ipad-headphone-controls.png) is a native iPad simulator layout check using temporary sample output devices. The sample state and launch instrumentation were removed after capture. Device Hub computer-use attachment timed out, so this does not claim a full UI tap-through or a physical listening test.
+
+Still requires a Windows PC with two audio endpoints: select CABLE Input and headphones, enable Hear sounds myself, and test a clip in both headphones and the chat app's microphone test. Confirm independent volume, toggle/Stop all, Overlap/One at a time/Queue, same-device deduplication (including PC default), restart persistence, and headphone unplug/reconnect without interrupting chat playback. Disable any existing Windows or mixer monitoring for this check.

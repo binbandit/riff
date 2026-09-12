@@ -100,6 +100,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
         else:
             self.reply({"error": "Unknown path"}, 404)
 
+    def do_PUT(self):
+        if not self.authorized():
+            return
+        body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
+        if self.path != "/api/audio":
+            self.reply({"error": "Unknown path"}, 404)
+            return
+        allowed = {"outputId", "volume"}
+        if "audio-monitor-v1" in state.get("capabilities", []):
+            allowed |= {"monitorEnabled", "monitorOutputId", "monitorVolume"}
+        if set(body) - allowed:
+            self.reply({"error": "Unknown audio setting"}, 400)
+            return
+        with lock:
+            state.update(body)
+            state["version"] += 1
+            response = copy.deepcopy(state)
+        self.reply(response)
+
     def do_POST(self):
         global pc_previews
         if not self.authorized():

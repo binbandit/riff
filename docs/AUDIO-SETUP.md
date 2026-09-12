@@ -1,6 +1,14 @@
 # Microphone, soundboard, and music
 
-Riff plays clips through one Windows output. To use your regular microphone at the same time, combine both in a separate Windows audio mixer and choose its virtual output as the game's microphone. The iPad app includes these instructions under Sound controls → Microphone, sounds & music. This is guided setup, not automatic installation or a built-in microphone mixer.
+Riff sends clips to a Windows output and can also play a copy through your PC headphones. To use your regular microphone at the same time, combine both in a separate Windows audio mixer and choose its virtual output as the game's microphone. The iPad app includes these instructions under Sound controls → Microphone, sounds & music. This is guided setup, not automatic installation or a built-in microphone mixer.
+
+## Hear your own sounds
+
+In **Sound controls**, keep **Output** set to your chat cable or mixer. Enable **Hear sounds myself**, select your PC headphones, set **Headphone volume**, then **Apply**. These controls are also on the Windows companion's **Audio & voice chat** tab. The iPad controls require a companion with headphone monitoring support.
+
+Your headphone volume is independent of the sound volume sent to chat. Both copies stop together, and queued sounds wait for both copies to finish. Selecting the same physical device for both outputs plays only one copy, using Sound volume. Choose an explicit headphone device if your PC default output is the virtual cable. Use **Stop all** before changing devices or turning monitoring on or off; sounds already playing or queued retain their routing.
+
+If headphones disconnect, Riff keeps the chat output playing and reports the headphone problem in the Windows Activity tab. Reconnect them or select another headphone output. If Windows **Listen to this device** or Voicemeeter already sends the clips to your headphones, use only one monitoring route to avoid hearing a delayed duplicate. The Voicemeeter setup below already monitors through its A bus, so leave Riff's **Hear sounds myself** off for that setup.
 
 ## Your mic and Riff together
 

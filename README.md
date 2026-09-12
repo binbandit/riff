@@ -87,9 +87,9 @@ With [VB-CABLE](https://vb-audio.com/Cable/) installed on Windows, the audio rou
 3. Open the chat app's microphone test and play a sound from Riff.
 4. Use voice activation, or hold your push-to-talk key while the clip plays. Riff sends shortcut taps, so it can't hold that key for you.
 
-If clips get cut off, check the chat app's voice threshold and noise suppression settings. To hear the clips yourself, enable **Listen to this device** for **CABLE Output** in Windows sound settings and select your headphones. Monitoring this way can add latency.
+If clips get cut off, check the chat app's voice threshold and noise suppression settings. To hear the clips yourself, open **Sound controls**, turn on **Hear sounds myself**, select your PC headphones, and **Apply**. **Headphone volume** changes only your local copy; **Sound volume** controls the output sent to chat. The Windows companion has the same controls under **Audio & voice chat**. This requires an updated companion. If you already listen through Windows or Voicemeeter, use just one monitoring route to avoid an echo.
 
-Riff has one playback output and doesn't mix your microphone with clips. For both at once, you'll need a separate mixer, such as [Voicemeeter](https://vb-audio.com/Voicemeeter/). These audio tools are separate downloads and aren't bundled with Riff.
+Riff can play to your chat output and headphones together, but doesn't mix your microphone with clips. For both at once, you'll need a separate mixer, such as [Voicemeeter](https://vb-audio.com/Voicemeeter/). These audio tools are separate downloads and aren't bundled with Riff.
 
 ### Steam and other controls
 

@@ -10,15 +10,15 @@ public record Clip(string Id, string Name, double Duration);
 public record LaunchTarget(string Id, string Name, string Path);
 public record DeviceInfo(string Id, string Name);
 public record Snapshot(int Version, List<Deck> Decks, List<Clip> Clips, List<DeviceInfo> Outputs,
-    string OutputId, float Volume, List<LaunchTargetInfo> Apps, string ComputerName, List<SteamGame> Games, string ActiveGameId, string ActiveGameName, List<string>? Capabilities = null, string? CompanionVersion = null, bool SoundboardOnly = true);
+    string OutputId, float Volume, List<LaunchTargetInfo> Apps, string ComputerName, List<SteamGame> Games, string ActiveGameId, string ActiveGameName, List<string>? Capabilities = null, string? CompanionVersion = null, bool SoundboardOnly = true, bool MonitorEnabled = false, string MonitorOutputId = "", float MonitorVolume = .75f);
 public record SteamGame(string Id, string Name);
 public record LaunchTargetInfo(string Id, string Name);
 public record DeckUpdate(int Version, List<Deck> Decks);
 public record Trigger(string PadId, string RequestId, bool Toggle = false, string? SoundMode = null);
 public record PlaybackState(string SessionId, long Revision, List<string> PadIds, List<string>? QueuedPadIds = null);
-public record AudioSettings(string OutputId, float Volume);
+public record AudioSettings(string OutputId, float Volume, bool? MonitorEnabled = null, string? MonitorOutputId = null, float? MonitorVolume = null);
 public record ClipRename(int Version, string Name);
-public record SavedState(int Version, List<Deck> Decks, List<Clip> Clips, string OutputId, float Volume, List<LaunchTarget> Apps, bool SoundboardOnly = true);
+public record SavedState(int Version, List<Deck> Decks, List<Clip> Clips, string OutputId, float Volume, List<LaunchTarget> Apps, bool SoundboardOnly = true, bool MonitorEnabled = false, string MonitorOutputId = "", float MonitorVolume = .75f);
 
 public static class Wire
 {

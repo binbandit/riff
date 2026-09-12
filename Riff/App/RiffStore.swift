@@ -95,6 +95,7 @@ import Observation
     var playingPadIDs: Set<String> = []
     var queuedPadIDs: [String] = []
     func queuePosition(for padID: String) -> Int? { queuedPadIDs.firstIndex(of: padID).map { $0 + 1 } }
+    var supportsMonitoring: Bool { snapshot.capabilities?.contains("audio-monitor-v1") == true }
     var supportsQueue: Bool { snapshot.capabilities?.contains("soundboard-queue-v1") == true }
     var availablePlaybackModes: [SoundPlaybackMode] {
         SoundPlaybackMode.allCases.filter { $0 != .queue || !connected || supportsQueue }
@@ -299,12 +300,24 @@ import Observation
         let pad = decks[d].pads.remove(at: from); decks[d].pads.insert(pad, at: to)
         do { try await saveDecks(decks) } catch { self.error = error.localizedDescription }
     }
-    func audio(output: String, volume: Float) async throws {
+    func audio(output: String, volume: Float, monitorEnabled: Bool? = nil, monitorOutput: String? = nil, monitorVolume: Float? = nil) async throws {
         guard let client, connected else { throw RiffError.message("Connect your PC to change audio routing.") }
         guard !busy else { throw RiffError.message("Wait for the current change to finish.") }
         busy = true; epoch += 1; defer { busy = false }
-        struct Settings: Encodable { let outputId: String; let volume: Float }
-        let state: Snapshot = try await client.request("/api/audio", method: "PUT", body: JSONEncoder().encode(Settings(outputId: output, volume: volume)))
+        struct Settings: Encodable {
+            let outputId: String
+            let volume: Float
+            var monitorEnabled: Bool? = nil
+            var monitorOutputId: String? = nil
+            var monitorVolume: Float? = nil
+        }
+        var settings = Settings(outputId: output, volume: volume)
+        if supportsMonitoring {
+            settings.monitorEnabled = monitorEnabled
+            settings.monitorOutputId = monitorOutput
+            settings.monitorVolume = monitorVolume
+        }
+        let state: Snapshot = try await client.request("/api/audio", method: "PUT", body: JSONEncoder().encode(settings))
         apply(state)
     }
     func upload(_ url: URL, name: String) async throws -> Clip {

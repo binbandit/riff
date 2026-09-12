@@ -60,7 +60,7 @@ struct AudioSetupView: View {
             Link("Get Voicemeeter Standard", destination: URL(string: "https://vb-audio.com/Voicemeeter/")!)
             AudioSetupStep(number: 2, title: "Connect your headphones and mic", detail: "In Voicemeeter, set hardware output A1 to your headphones and the first hardware input to your regular microphone.")
             AudioSetupStep(number: 3, title: "Send Riff into the mixer", detail: "In Riff’s Sound controls, choose Voicemeeter Input (VB-Audio Voicemeeter VAIO), then tap Apply.")
-            AudioSetupStep(number: 4, title: "Choose what everyone hears", detail: "On the microphone strip, turn B on and A off. On the virtual input strip, turn A and B on. A is what you hear; B is what your game hears.")
+            AudioSetupStep(number: 4, title: "Choose what everyone hears", detail: "On the microphone strip, turn B on and A off. On the virtual input strip, turn A and B on. A is what you hear; B is what your game hears. Leave Riff’s Hear sounds myself off when using this route to avoid hearing clips twice.")
             AudioSetupStep(number: 5, title: "Choose the mixed microphone", detail: "In your game or Discord, select Voicemeeter Out B1 as the input. Older versions call it Voicemeeter Output. Leave the game’s output set to your headphones.")
             Text("Keep Voicemeeter running while you play. To mute your voice alone, use the microphone strip’s Mute button or your microphone’s physical mute.")
                 .font(.caption).foregroundStyle(.secondary)
@@ -75,6 +75,7 @@ struct AudioSetupView: View {
             Link("Get VB-CABLE", destination: URL(string: "https://vb-audio.com/Cable/")!)
             AudioSetupStep(number: 2, title: "Send Riff into the cable", detail: "In Riff’s Sound controls, choose CABLE Input, then tap Apply.")
             AudioSetupStep(number: 3, title: "Make the cable your microphone", detail: "Select CABLE Output as the input in your game or Discord. Keep your headphones as the game’s output.")
+            AudioSetupStep(number: 4, title: "Hear the clips yourself", detail: "In Sound controls, turn on Hear sounds myself, choose your PC headphones, and Apply. Headphone volume changes only your copy. Use Stop all before changing routing.")
             Text("This route sends clips alone. Choose My mic + sounds above to keep your regular microphone in the mix.")
                 .font(.caption).foregroundStyle(.secondary)
         } header: { Text("On your Windows PC") } footer: {

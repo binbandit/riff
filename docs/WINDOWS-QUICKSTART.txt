@@ -24,8 +24,9 @@ Use voice activation, or hold your push-to-talk key while a sound plays.
 Use the chat app's microphone test to verify the complete route.
 If sounds get cut off, lower the voice threshold and disable noise suppression.
 
-To hear the sounds yourself, enable Listen to this device for CABLE Output in
-Windows Sound > Recording > Properties > Listen; choose headphones for playback.
+To hear sounds yourself, enable Hear sounds myself in Riff, choose your PC
+headphones, and Apply. Headphone volume only changes your local copy.
+If Windows or Voicemeeter already monitors clips, use just one monitoring route.
 This route uses clips instead of your real microphone. Mixing both requires an
 optional mixer such as Voicemeeter. VB-CABLE and Voicemeeter are separate products.
 

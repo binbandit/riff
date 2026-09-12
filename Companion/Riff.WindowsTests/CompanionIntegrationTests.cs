@@ -55,6 +55,18 @@ public class CompanionIntegrationTests
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
                 runner.SetSoundboardOnly(true);
                 Assert.True(new StateStore(folder).State.SoundboardOnly);
+                Assert.Contains("audio-monitor-v1", server.Snapshot().Capabilities!);
+                var monitorResponse = await client.PutAsJsonAsync("/api/audio", new AudioSettings("", .6f, true, "", .3f), Wire.Json);
+                monitorResponse.EnsureSuccessStatusCode();
+                var monitored = (await monitorResponse.Content.ReadFromJsonAsync<Snapshot>(Wire.Json))!;
+                Assert.True(monitored.MonitorEnabled);
+                Assert.Equal(.3f, monitored.MonitorVolume);
+                Assert.True(new StateStore(folder).State.MonitorEnabled);
+                (await client.PutAsJsonAsync("/api/audio", new AudioSettings("", .5f), Wire.Json)).EnsureSuccessStatusCode();
+                Assert.True(server.Snapshot().MonitorEnabled);
+                Assert.Equal(.3f, server.Snapshot().MonitorVolume);
+                Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync("/api/audio", new AudioSettings("", .5f, true, "missing-device"), Wire.Json)).StatusCode);
+                (await client.PutAsJsonAsync("/api/audio", new AudioSettings("", .75f, false), Wire.Json)).EnsureSuccessStatusCode();
                 snapshot = server.Snapshot();
                 Assert.Equal(CompanionBuild.Version, snapshot.CompanionVersion);
                 Assert.True(Version.TryParse(snapshot.CompanionVersion!.Split('-')[0], out _));

@@ -5,6 +5,9 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var output = ""
     @State private var volume: Float = 0.75
+    @State private var monitorEnabled = false
+    @State private var monitorOutput = ""
+    @State private var monitorVolume: Float = 0.75
     @State private var saving = false
     @State private var failure: String?
     @State private var connection = false
@@ -28,15 +31,20 @@ struct SettingsView: View {
                         if !output.isEmpty && !store.snapshot.outputs.contains(where: { $0.id == output }) { Text("Disconnected output").tag(output) }
                     }
                     HStack { Image(systemName: "speaker.fill"); Slider(value: $volume, in: 0...1); Text("\(Int(volume * 100))%").monospacedDigit().frame(width: 45) }
+                    if store.supportsMonitoring {
+                        HeadphoneControls(enabled: $monitorEnabled, output: $monitorOutput, volume: $monitorVolume, outputs: store.snapshot.outputs)
+                    } else if store.connected {
+                        Text("Update Riff on your PC to hear sounds through your headphones while sending them to chat.").font(.caption).foregroundStyle(.secondary)
+                    }
                     Button(saving ? "Applying…" : "Apply audio settings") {
                         saving = true; failure = nil
-                        Task { do { try await store.audio(output: output, volume: volume); store.message("Audio settings saved") } catch { failure = error.localizedDescription }; saving = false }
+                        Task { do { try await store.audio(output: output, volume: volume, monitorEnabled: monitorEnabled, monitorOutput: monitorOutput, monitorVolume: monitorVolume); store.message("Audio settings saved") } catch { failure = error.localizedDescription }; saving = false }
                     }.disabled(!store.connected || saving)
                     if let clip = store.snapshot.clips.first {
                         Button("Play a test sound on PC", systemImage: "play.circle") { Task { await store.testSoundOnPC(clip) } }.disabled(!store.connected || saving)
                     }
                     if let failure { Text(failure).foregroundStyle(.red) }
-                } header: { Text("Audio routing") } footer: { Text("Apply changes before testing. New sounds use the selected output. Stop existing sounds before switching devices.") }
+                } header: { Text("Audio routing") } footer: { Text("Apply changes before testing. New sounds use the selected output. Use Stop all before changing outputs or Hear sounds myself.") }
                     .disabled(!store.connected || saving)
                 Section {
                     NavigationLink { AudioSetupView() } label: {
@@ -77,6 +85,9 @@ struct SettingsView: View {
     }
     private func loadAudio() {
         output = store.snapshot.outputId; volume = store.snapshot.volume
+        monitorEnabled = store.snapshot.monitorEnabled ?? false
+        monitorOutput = store.snapshot.monitorOutputId ?? ""
+        monitorVolume = store.snapshot.monitorVolume ?? 0.75
         hasLoadedAudio = true; hasLoadedConnectedAudio = store.connected
     }
 }

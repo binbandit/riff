@@ -18,6 +18,9 @@ struct Snapshot: Codable {
     var capabilities: [String]? = nil
     var companionVersion: String? = nil
     var soundboardOnly: Bool? = nil
+    var monitorEnabled: Bool? = nil
+    var monitorOutputId: String? = nil
+    var monitorVolume: Float? = nil
     func blocksDesktopAction(_ pad: Pad) -> Bool { soundboardOnly == true && pad.kind != "sound" }
     func decksSaving(_ pad: Pad, in deckId: String) throws -> [Deck] {
         var result = decks

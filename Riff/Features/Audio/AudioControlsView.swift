@@ -5,6 +5,9 @@ struct AudioControlsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var output = ""
     @State private var volume: Float = 0.75
+    @State private var monitorEnabled = false
+    @State private var monitorOutput = ""
+    @State private var monitorVolume: Float = 0.75
     @State private var saving = false
     @State private var failure: String?
     @State private var connection = false
@@ -45,8 +48,13 @@ struct AudioControlsView: View {
                         HStack { Text("Sound volume"); Spacer(); Text("\(Int(volume * 100))%").monospacedDigit().foregroundStyle(.secondary) }
                         Slider(value: $volume, in: 0...1).accessibilityLabel("Soundboard volume")
                     }.padding(.vertical, 8)
+                    if store.supportsMonitoring {
+                        HeadphoneControls(enabled: $monitorEnabled, output: $monitorOutput, volume: $monitorVolume, outputs: store.snapshot.outputs)
+                    } else if store.connected {
+                        Text("Update Riff on your PC to hear sounds through your headphones while sending them to chat.").font(.caption).foregroundStyle(.secondary)
+                    }
                 } footer: {
-                    Text("Deck buttons and PC test sounds use this output. Library previews play on your iPad at its device volume. Stop existing sounds before switching outputs.")
+                    Text("Deck buttons and PC test sounds use this output. Library previews play on your iPad at its device volume. Use Stop all before changing outputs or Hear sounds myself.")
                 }.disabled(!store.connected || saving)
                 if let failure { Section { Text(failure).foregroundStyle(.red) } }
                 Section {
@@ -63,7 +71,7 @@ struct AudioControlsView: View {
                     Button(saving ? "Applying…" : "Apply") {
                         saving = true; failure = nil
                         Task {
-                            do { try await store.audio(output: output, volume: volume); dismiss() }
+                            do { try await store.audio(output: output, volume: volume, monitorEnabled: monitorEnabled, monitorOutput: monitorOutput, monitorVolume: monitorVolume); dismiss() }
                             catch { failure = error.localizedDescription }
                             saving = false
                         }
@@ -80,6 +88,34 @@ struct AudioControlsView: View {
     }
     private func load() {
         output = store.snapshot.outputId; volume = store.snapshot.volume
+        monitorEnabled = store.snapshot.monitorEnabled ?? false
+        monitorOutput = store.snapshot.monitorOutputId ?? ""
+        monitorVolume = store.snapshot.monitorVolume ?? 0.75
         hasLoadedAudio = true; hasLoadedConnectedAudio = store.connected
+    }
+}
+
+struct HeadphoneControls: View {
+    @Binding var enabled: Bool
+    @Binding var output: String
+    @Binding var volume: Float
+    let outputs: [AudioOutput]
+
+    var body: some View {
+        Toggle("Hear sounds myself", systemImage: "headphones", isOn: $enabled)
+        if enabled {
+            Picker("Headphones", selection: $output) {
+                ForEach(outputs) { Text($0.name).tag($0.id) }
+                if !output.isEmpty && !outputs.contains(where: { $0.id == output }) {
+                    Text("Disconnected headphones").tag(output)
+                }
+            }
+            VStack(spacing: 12) {
+                HStack { Text("Headphone volume"); Spacer(); Text("\(Int(volume * 100))%").monospacedDigit().foregroundStyle(.secondary) }
+                Slider(value: $volume, in: 0...1).accessibilityLabel("Headphone volume")
+            }.padding(.vertical, 8)
+            Text("Choose headphones connected to your PC. This volume only changes what you hear. If Windows or your mixer already plays the clips through your headphones, use just one monitoring route to avoid an echo.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
     }
 }

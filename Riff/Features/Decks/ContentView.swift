@@ -120,7 +120,9 @@ struct ContentView: View {
             case .updates: NavigationStack {
                 CompanionUpdatesView().toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { destination = nil } } }
             }
-            case .audio: AudioControlsView()
+            case .audio:
+                if #available(iOS 18.0, *) { AudioControlsView().presentationSizing(.page) }
+                else { AudioControlsView() }
             case .audioSetup: NavigationStack {
                 AudioSetupView().toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { destination = nil } } }
             }

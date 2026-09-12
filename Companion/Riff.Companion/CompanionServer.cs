@@ -26,7 +26,7 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
             var s = store.State;
             return new(s.Version, s.Decks, s.Clips, audio.Devices(), s.OutputId, s.Volume,
                 s.Apps.Select(a => new LaunchTargetInfo(a.Id, a.Name)).ToList(), Environment.MachineName,
-                presence.Games, presence.Id, presence.Name, ["soundboard-playback-v1", "soundboard-queue-v1", "sound-packs-v1", "soundboard-only-v1", "clip-audio-v1"], CompanionBuild.Version, s.SoundboardOnly);
+                presence.Games, presence.Id, presence.Name, ["audio-monitor-v1", "soundboard-playback-v1", "soundboard-queue-v1", "sound-packs-v1", "soundboard-only-v1", "clip-audio-v1"], CompanionBuild.Version, s.SoundboardOnly, s.MonitorEnabled, s.MonitorOutputId, s.MonitorVolume);
         }
     }
     public async Task Start()
@@ -103,10 +103,14 @@ public sealed class CompanionServer(StateStore store, PairingIdentity identity, 
         });
         app.MapPut("/api/audio", (AudioSettings settings) =>
         {
-            if (!float.IsFinite(settings.Volume) || settings.Volume is < 0 or > 1) throw new ArgumentException("Volume must be between 0 and 100%.");
-            if (!audio.Devices().Any(d => d.Id == settings.OutputId)) throw new ArgumentException("This audio output is disconnected. Choose another output.");
-            lock (store.Gate) store.Save(store.State with { OutputId = settings.OutputId, Volume = settings.Volume, Version = store.State.Version + 1 });
-            audio.SetVolume(settings.Volume); return Snapshot();
+            var devices = audio.Devices();
+            lock (store.Gate)
+            {
+                store.Save(AudioRouting.Apply(store.State, settings, devices));
+                audio.SetVolume(store.State.Volume);
+                audio.SetMonitorVolume(store.State.MonitorVolume);
+            }
+            return Snapshot();
         });
         app.MapPost("/api/clips", async (HttpRequest request) =>
         {

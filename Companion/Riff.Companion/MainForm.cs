@@ -20,6 +20,9 @@ public sealed class MainForm : Form
     readonly ComboBox addresses = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 240 };
     readonly PictureBox qr = new() { Width = 280, Height = 280, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White, Margin = new Padding(16) };
     readonly ComboBox outputs = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 580, DisplayMember = "Name", ValueMember = "Id" };
+    readonly CheckBox monitorEnabled = new() { Text = "Hear sounds myself", AutoSize = true };
+    readonly ComboBox monitorOutputs = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 580, DisplayMember = "Name", ValueMember = "Id", AccessibleName = "Headphone output" };
+    readonly TrackBar monitorVolume = new() { Minimum = 0, Maximum = 100, TickFrequency = 10, Width = 400, AccessibleName = "Headphone volume" };
     readonly TrackBar volume = new() { Minimum = 0, Maximum = 100, TickFrequency = 10, Width = 400 };
     readonly ListBox apps = new() { Height = 220, Dock = DockStyle.Top, DisplayMember = "Name" };
     readonly TextBox log = new() { Multiline = true, ReadOnly = true, Dock = DockStyle.Fill, ScrollBars = ScrollBars.Vertical };
@@ -55,6 +58,7 @@ public sealed class MainForm : Form
         tray = new NotifyIcon { Icon = Icon, Text = "Riff · Ready for your iPad", Visible = true, ContextMenuStrip = menu };
         tray.DoubleClick += (_, _) => ShowWindow();
         server.Activity += AddLog;
+        audio.Warning += AddLog;
         timer.Tick += (_, _) => { status.Text = !serverStarted ? "Companion offline - check Activity" : DateTime.UtcNow - server.LastSeen < TimeSpan.FromSeconds(12) ? "●  iPad connected · Encrypted local connection" : "Waiting for your iPad · Port 49321 · Private network only"; };
         Shown += async (_, _) =>
         {
@@ -96,18 +100,31 @@ public sealed class MainForm : Form
         var flow = Flow(); flow.Controls.Add(Heading("Let your sounds do the talking."));
         flow.Controls.Add(Body("For game voice chat, install VB-CABLE, choose CABLE Input below, and choose CABLE Output as the microphone in your game or Discord."));
         flow.Controls.Add(outputs); volume.Value = (int)(store.State.Volume * 100); flow.Controls.Add(volume);
+        monitorEnabled.Checked = store.State.MonitorEnabled;
+        monitorVolume.Value = (int)(store.State.MonitorVolume * 100);
+        monitorOutputs.Enabled = monitorVolume.Enabled = monitorEnabled.Checked;
+        monitorEnabled.CheckedChanged += (_, _) => monitorOutputs.Enabled = monitorVolume.Enabled = monitorEnabled.Checked;
+        flow.Controls.Add(monitorEnabled);
+        flow.Controls.Add(Body("Choose your PC headphones to hear a copy of each sound. Headphone volume only changes what you hear."));
+        flow.Controls.Add(monitorOutputs); flow.Controls.Add(monitorVolume);
         var buttons = new FlowLayoutPanel { AutoSize = true, Width = 790 };
-        buttons.Controls.Add(Button("Apply output & volume", () =>
+        buttons.Controls.Add(Button("Apply audio settings", () =>
         {
             if (outputs.SelectedItem is not DeviceInfo device) return;
-            lock (store.Gate) store.Save(store.State with { OutputId = device.Id, Volume = volume.Value / 100f, Version = store.State.Version + 1 });
-            audio.SetVolume(volume.Value / 100f); AddLog("Audio output updated: " + device.Name);
+            if (monitorOutputs.SelectedItem is not DeviceInfo monitor) return;
+            var devices = audio.Devices();
+            lock (store.Gate)
+            {
+                store.Save(AudioRouting.Apply(store.State, new(device.Id, volume.Value / 100f, monitorEnabled.Checked, monitor.Id, monitorVolume.Value / 100f), devices));
+                audio.SetVolume(store.State.Volume); audio.SetMonitorVolume(store.State.MonitorVolume);
+            }
+            AddLog("Audio settings saved: " + device.Name);
         }));
         buttons.Controls.Add(Button("Refresh devices", RefreshOutputs));
-        buttons.Controls.Add(Button("Test sound", () => { lock (store.Gate) { var clip = store.State.Clips.FirstOrDefault(); if (clip is not null) audio.Play(store.ClipPath(clip.Id), store.State.OutputId); } }));
+        buttons.Controls.Add(Button("Test sound", () => { lock (store.Gate) { var clip = store.State.Clips.FirstOrDefault(); if (clip is not null) audio.Play(store.ClipPath(clip.Id), store.State.OutputId, monitorOutputId: store.State.MonitorEnabled ? store.State.MonitorOutputId : null, monitorVolume: store.State.MonitorVolume); } }));
         buttons.Controls.Add(Button("Stop all", runner.Stop)); flow.Controls.Add(buttons);
         flow.Controls.Add(Heading("A quick voice-chat check"));
-        flow.Controls.Add(Body("1. Apply the selected output, then play a test sound.\n\n2. In your chat app, select CABLE Output as the microphone and open its microphone test.\n\n3. Use voice activation, or hold the game's push-to-talk key while the clip plays.\n\n4. If clips are cut off, lower the voice threshold and disable noise suppression.\n\nTo hear the clips yourself, open Windows Sound > More sound settings > Recording > CABLE Output > Properties > Listen. Enable Listen to this device and select your headphones. This may add monitoring latency."));
+        flow.Controls.Add(Body("1. Apply the selected output, then play a test sound.\n\n2. In your chat app, select CABLE Output as the microphone and open its microphone test.\n\n3. Use voice activation, or hold the game's push-to-talk key while the clip plays.\n\n4. If clips are cut off, lower the voice threshold and disable noise suppression.\n\nTo hear the clips yourself, turn on Hear sounds myself above and select your headphones, then apply. If you already listen through Windows or Voicemeeter, use only one monitoring route to avoid hearing an echo. Stop existing sounds before changing outputs."));
         flow.Controls.Add(Button("Open VB-CABLE website", () => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://vb-audio.com/Cable/") { UseShellExecute = true })));
         var importButton = Button("Import sounds from PC", () => { });
         importButton.Click += async (_, _) => await ImportSounds(importButton);
@@ -220,7 +237,13 @@ public sealed class MainForm : Form
     }
     void RefreshOutputs()
     {
-        outputs.DataSource = audio.Devices(); outputs.SelectedValue = store.State.OutputId;
+        var devices = audio.Devices();
+        var primaryDevices = devices.ToList();
+        if (!primaryDevices.Any(d => d.Id == store.State.OutputId)) primaryDevices.Add(new(store.State.OutputId, "Disconnected output"));
+        outputs.DataSource = primaryDevices; outputs.SelectedValue = store.State.OutputId;
+        var headphoneDevices = devices.ToList();
+        if (!headphoneDevices.Any(d => d.Id == store.State.MonitorOutputId)) headphoneDevices.Add(new(store.State.MonitorOutputId, "Disconnected headphones"));
+        monitorOutputs.DataSource = headphoneDevices; monitorOutputs.SelectedValue = store.State.MonitorOutputId;
         if (outputs.SelectedIndex < 0) { outputs.SelectedIndex = 0; AddLog("Saved audio output is disconnected. Choose and apply another output."); }
     }
     void RefreshApps() { lock (store.Gate) apps.DataSource = store.State.Apps.ToList(); }
@@ -265,6 +288,7 @@ public sealed class MainForm : Form
         if (disposing)
         {
             server.Activity -= AddLog;
+            audio.Warning -= AddLog;
             tray?.Dispose(); timer.Dispose();
             var image = qr.Image; qr.Image = null; image?.Dispose();
         }
