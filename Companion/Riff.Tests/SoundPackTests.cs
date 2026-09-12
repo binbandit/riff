@@ -10,9 +10,10 @@ public class SoundPackTests
     public void CatalogIsSharedMetadataAndNeverAddsDefaultButtons()
     {
         var sounds = SoundPacks.Catalog.SelectMany(p => p.Sounds).ToList();
-        Assert.Equal(5, SoundPacks.Catalog.Count);
-        Assert.True(sounds.Count >= 35);
+        Assert.True(SoundPacks.Catalog.Count >= 14);
+        Assert.True(sounds.Count >= 138);
         Assert.Equal(sounds.Count, sounds.Select(s => s.ClipId).Distinct().Count());
+        Assert.Equal(sounds.Count, sounds.Select(s => s.Sha256).Distinct().Count());
         Assert.DoesNotContain(Defaults.Decks.SelectMany(d => d.Pads), p => sounds.Any(s => s.ClipId == p.Value));
         Assert.All(sounds, s =>
         {

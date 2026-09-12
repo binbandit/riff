@@ -34,3 +34,7 @@ THE SOFTWARE.
 ## iPad Markdown rendering
 
 The iPad app uses MarkdownUI and its dependencies. Their complete notices are bundled as `MarkdownLicenses.txt` and available in Settings > Open-source licenses.
+
+## Communication voice clips
+
+The bundled Quick Replies, Friendly Chat, and Team Callouts packs use [Coqui Voice Pack v2](https://github.com/coqui-ai/coqui-voice-pack/releases/tag/v2) (MIT, copyright 2023 Coqui.ai; Andrew Chipper synthetic voice) and [Kenney Voiceover Pack](https://kenney.nl/assets/voiceover-pack) (CC0; Kenney Vleugels, with male voice by Jeffrey M. Smith). Selected recordings are converted to mono MP3 and loudness-normalized. Their [complete notices](../Riff/Resources/PackSounds/VoicePack-LICENSES.txt) ship in the iPad app and the Windows companion’s `licenses` folder.

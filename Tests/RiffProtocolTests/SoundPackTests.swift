@@ -7,8 +7,9 @@ import Testing
     @Test func catalogHasUniqueSoundsAndKeepsPacksOutOfStarterLibrary() throws {
         let packs = try SoundPacks.load()
         let sounds = packs.flatMap(\.sounds)
-        #expect(packs.count == 5 && sounds.count >= 35)
+        #expect(packs.count >= 14 && sounds.count >= 138)
         #expect(Set(sounds.map(\.id)).count == sounds.count)
+        #expect(Set(sounds.map(\.sha256)).count == sounds.count)
         #expect(Set(packs.map(\.id)).count == packs.count)
         #expect(Set(sounds.map(\.clipID)).isDisjoint(with: Snapshot.starter.clips.map(\.id)))
         for sound in sounds {
@@ -31,6 +32,9 @@ import Testing
         #expect(sounds.contains { $0.sourceURL.absoluteString == "https://www.myinstants.com/en/instant/welcome-aboard-delta-airlines-82730/" })
         #expect(sounds.contains { $0.sourceURL.absoluteString == "https://www.101soundboards.com/sounds/1506614-and-we-say-bye-bye" && $0.sha256 == "15a70c42b337bc7f7e8c7f4bf7e520905d37fce420349cce271e786c768987d8" })
         #expect(sounds.contains { $0.sourceURL.absoluteString == "https://www.101soundboards.com/sounds/61212-car-horns-heavy-traffic" && $0.sha256 == "d59d7291a6a29fbd10ec3ad4d2a17867714c4388c7b50f302d48d466e36f1075" })
+        let pimpDown = try #require(sounds.first { $0.id == "pimp-down" })
+        #expect(pimpDown.sourceURL.absoluteString == "https://tuna.voicemod.net/sound/24402367-2e4c-449a-81e2-7746a0613e2c")
+        #expect(pimpDown.sha256 == "55b967d096de6c1b54bb33fb5e0f0705a4568ce1fd4bd187162ee64f4bfb8fcd")
     }
     @Test func everySoundIsBundledAndPlayableOffline() throws {
         for sound in try SoundPacks.load().flatMap(\.sounds) {
@@ -41,6 +45,9 @@ import Testing
             #expect(data.count == sound.byteCount)
             let player = try AVAudioPlayer(contentsOf: url)
             #expect(player.duration > 0 && player.duration <= 60)
+            if sound.id.hasPrefix("comms-") {
+                #expect(player.duration < 5)
+            }
         }
         #expect(SoundPacks.audioURL(forClipID: "unknown") == nil)
     }
