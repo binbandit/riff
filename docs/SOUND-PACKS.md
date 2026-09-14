@@ -1,6 +1,6 @@
 # On-device sound packs
 
-Riff includes fifteen bundled packs with 148 gaming, TikTok, meme, streamer, and communication sounds. The requested clips are preserved as exact recordings: Sad Violin (the meme one), Smoke Detector Beep, They Ask You How You Are, Social Credit Music, Welcome Aboard Delta Airlines, And We Say Bye Bye, and Car Horns, Heavy Traffic. The two 101soundboards MP3s were supplied by the user after downloading from the requested pages.
+Riff includes sixteen bundled packs with 162 gaming, TikTok, meme, streamer, and communication sounds. The requested clips are preserved as exact recordings: Sad Violin (the meme one), Smoke Detector Beep, They Ask You How You Are, Social Credit Music, Welcome Aboard Delta Airlines, And We Say Bye Bye, and Car Horns, Heavy Traffic. The two 101soundboards MP3s were supplied by the user after downloading from the requested pages.
 
 ## Using packs
 
@@ -8,7 +8,7 @@ Open **Sounds**. All included sounds are available immediately on both iPad and 
 
 Tap play to preview on iPad, tap plus to assign a sound, or use **Quick add** to select several sounds for a deck. Hold a sound for favorites, its original source, rename, or delete. Remove sounds from buttons and sequences before deleting them. Deletions persist across restarts and sync automatically when the PC reconnects.
 
-Both applications ship all 148 pack MP3s, alongside the six starter WAVs. There are no pack downloads, installation controls, or audio transfers between devices. The companion copies its bundled MP3s into its local library automatically. Existing renames and decks survive upgrades, and deleted catalog entries stay deleted. New catalog entries are added on an app update. Catalog updates require updating both apps.
+Both applications ship all 162 pack MP3s, alongside the six starter WAVs. There are no pack downloads, installation controls, or audio transfers between devices. The companion copies its bundled MP3s into its local library automatically. Existing renames and decks survive upgrades, and deleted catalog entries stay deleted. New catalog entries are added on an app update. Catalog updates require updating both apps.
 
 ## Research and selection
 
@@ -26,9 +26,13 @@ Lobby Jukebox adds 16 musical soundboard excerpts for the same lobby use as Soci
 
 Trump Reactions adds 10 short clips from the linked Myinstants uploads. Chat Chaos also includes [Ace Alderman’s seven-second Scott Morrison Maccas meme](https://www.youtube.com/watch?v=gcNVgJ-Vcfg). The uploader identifies it as a deepfake experiment; the library labels it as a meme, and it is not an authentic Morrison statement.
 
+Bob Katter includes the four original blossoms-to-crocodiles clips plus eight reactions from [the August 2025 press conference](https://www.abc.net.au/news/2025-08-28/bob-katter-threatens-journalist-when-asked-about/105707078) and [Australian Story's Herding Katter preview](https://www.abc.net.au/news/2025-04-14/herding-katter-bob-katter/105176266). These include Don't You Dare Say That, I Have Influence, and When I Stop Breathing. The clips preserve his original voice and use consistent loudness. The press-conference clips are excerpts from his response to a question about his Lebanese heritage; the source link retains that context. Exact source offsets and processing are recorded in the catalog. Researched 13-14 September 2026.
+
+Meme Classics also includes Pauline Hanson's original **Please Explain?** from the 13 October 1996 Nine / 60 Minutes interview, as reproduced in [ABC Media Watch](https://www.abc.net.au/mediawatch/episodes/pauline/106377468). Only the two-word response is included. The catalog records the source time range and processing.
+
 ## Sources and rights
 
-The MP3s live in `Riff/Resources/PackSounds` and are included in both applications. Each filename includes the recording's SHA-256 and the companion checks new audio against the catalog before adding it to its local library. The source page, provider, uploader (when listed), reviewed duration, byte count, and SHA-256 are recorded for every clip. Original upstream download URLs are retained where available. Uploader names identify the upload, not necessarily the recording's copyright owner. The Myinstants, Voicemod Tuna, 101soundboards, and YouTube recordings are not represented as CC0, royalty-free, or cleared for commercial broadcasts or redistribution.
+The MP3s live in `Riff/Resources/PackSounds` and are included in both applications. Each filename includes the recording's SHA-256 and the companion checks new audio against the catalog before adding it to its local library. The source page, provider, uploader (when listed), reviewed duration, byte count, and SHA-256 are recorded for every clip. Original upstream download URLs are retained where available. Uploader names identify the upload, not necessarily the recording's copyright owner. The Myinstants, Voicemod Tuna, 101soundboards, YouTube, and ABC News recordings are not represented as CC0, royalty-free, or cleared for commercial broadcasts or redistribution.
 
 [Myinstants' terms](https://www.myinstants.com/en/terms_of_use.html) describe limited personal/noncommercial site access. Its download buttons and Tuna's community download functionality establish availability, not a blanket distribution license. Rights clearance for those community recordings remains unresolved for public redistribution and commercial broadcasts. Hosting on GitHub does not change the recordings' rights status, and any license for Riff's code does not cover these recordings.
 
@@ -188,7 +192,7 @@ Minecraft, GTA, Mortal Kombat, and more. Call out the clutch, the loot, or the l
 
 From What Da Dog Doin to FBI Open Up. Familiar punchlines for perfectly timed interruptions.
 
-10 sounds, 638 KB bundled.
+12 sounds, 732 KB bundled.
 
 | Sound | Seconds | Source |
 | --- | ---: | --- |
@@ -202,6 +206,8 @@ From What Da Dog Doin to FBI Open Up. Familiar punchlines for perfectly timed in
 | LEGO Breaking | 1.65 | [Myinstants](https://www.myinstants.com/en/instant/lego-breaking-57805/) |
 | Goku Drip | 4.85 | [Myinstants](https://www.myinstants.com/en/instant/goku-drip-99617/) |
 | Huh Cat | 7.29 | [Myinstants](https://www.myinstants.com/en/instant/huh-cat-21280/) |
+| A Succulent Chinese Meal | 4.54 | [Voicemod Tuna](https://tuna.voicemod.net/sound/21eeb60b-c2da-4447-8505-2f82f6785b23) |
+| Pauline Hanson: Please Explain? | 1.37 | [ABC Media Watch](https://www.abc.net.au/mediawatch/episodes/pauline/106377468) |
 
 ### Stream Chat
 
@@ -259,6 +265,27 @@ Wrong, fake news, China, and a little trolling. Short Trump reactions for the so
 | Trump: I Am the Chosen One | 1.80 | [Myinstants](https://www.myinstants.com/en/instant/donald-trump-i-am-the-chosen-one-1796/) |
 | Trump: Thank You Very Much | 1.10 | [Myinstants](https://www.myinstants.com/en/instant/trump-thank-you-very-much-4296/) |
 | Trump: Very Large Brain | 8.16 | [Myinstants](https://www.myinstants.com/en/instant/trump-very-large-brain-90282/) |
+
+### Bob Katter
+
+Blossoms, crocodiles, press-conference blow-ups, and deadpan comebacks. Classic Bob Katter reactions.
+
+12 sounds, 800 KB bundled.
+
+| Sound | Seconds | Source |
+| --- | ---: | --- |
+| Bob Katter: A Thousand Blossoms Bloom | 4.00 | [ABC News](https://www.abc.net.au/news/2026-08-09/bob-katter-plebiscite-crocodiles-queensland/107011450) |
+| Bob Katter: I Ain't Spending Any Time on It | 2.59 | [ABC News](https://www.abc.net.au/news/2026-08-09/bob-katter-plebiscite-crocodiles-queensland/107011450) |
+| Bob Katter: Every Three Months, a Crocodile | 5.17 | [ABC News](https://www.abc.net.au/news/2026-08-09/bob-katter-plebiscite-crocodiles-queensland/107011450) |
+| Bob Katter: Blossoms to Crocodiles (Full Meme) | 19.55 | [ABC News](https://www.abc.net.au/news/2026-08-09/bob-katter-plebiscite-crocodiles-queensland/107011450) |
+| Bob Katter: Oh Mate, Don't Say That | 3.64 | [ABC News](https://www.abc.net.au/news/2025-08-28/bob-katter-threatens-journalist-when-asked-about/105707078) |
+| Bob Katter: I Punch Blokes in the Mouth | 2.90 | [ABC News](https://www.abc.net.au/news/2025-08-28/bob-katter-threatens-journalist-when-asked-about/105707078) |
+| Bob Katter: Don't You Dare Say That | 1.60 | [ABC News](https://www.abc.net.au/news/2025-08-28/bob-katter-threatens-journalist-when-asked-about/105707078) |
+| Bob Katter: I'm Restraining Myself Today | 2.34 | [ABC News](https://www.abc.net.au/news/2025-08-28/bob-katter-threatens-journalist-when-asked-about/105707078) |
+| Bob Katter: I'm Not Listening to You, You're Out | 2.22 | [ABC News](https://www.abc.net.au/news/2025-08-28/bob-katter-threatens-journalist-when-asked-about/105707078) |
+| Bob Katter: I Have Influence | 1.32 | [ABC News](https://www.abc.net.au/news/2025-04-14/herding-katter-bob-katter/105176266) |
+| Bob Katter: Shut Up and Let Me Have a Go | 2.00 | [ABC News](https://www.abc.net.au/news/2025-04-14/herding-katter-bob-katter/105176266) |
+| Bob Katter: When I Stop Breathing | 1.86 | [ABC News](https://www.abc.net.au/news/2025-04-14/herding-katter-bob-katter/105176266) |
 
 ### Quick Replies
 
